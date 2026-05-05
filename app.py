@@ -24,7 +24,10 @@ st.set_page_config(
 st.markdown(f'''
     <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px; background-color: #f0f2f6; padding: 15px 20px; border-radius: 10px;">
         <img src="https://avatars.githubusercontent.com/u/279401247?v=4" style="width: 50px; height: 50px; border-radius: 50%;">
-        <h1 style="margin: 0; font-size: 28px; color: #000000;">Senderisme en tren</h1>
+        <div>
+            <h1 style="margin: 0; font-size: 28px; color: #000000;">Senderisme en tren</h1>
+            <p style="margin: 4px 0 0 0; font-size: 15px; color: #555;">Rutes i excursions a peu amb accés en tren, metro, cremallera o funicular.</p>
+        </div>
     </div>
 ''', unsafe_allow_html=True)
 
