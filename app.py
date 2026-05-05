@@ -144,11 +144,12 @@ def mostrar_mapa_gpx(ruta_id, lat_s, lng_s, lat_a, lng_a):
                     punts.append((point.latitude, point.longitude))
         if not punts:
             return False
-
-centre = (sum(p[0] for p in punts) / len(punts),
-          sum(p[1] for p in punts) / len(punts))
-m = folium.Map(location=centre, tiles="OpenStreetMap")
-folium.PolyLine(punts, color="#E63946", weight=3, opacity=0.9).add_to(m)
+        centre = (sum(p[0] for p in punts) / len(punts),
+                  sum(p[1] for p in punts) / len(punts))
+        m = folium.Map(location=centre, tiles="OpenStreetMap")
+        m.fit_bounds([[min(p[0] for p in punts), min(p[1] for p in punts)],
+                      [max(p[0] for p in punts), max(p[1] for p in punts)]])
+        folium.PolyLine(punts, color="#E63946", weight=3, opacity=0.9).add_to(m)
 
         if lat_s and lng_s:
             folium.Marker(
