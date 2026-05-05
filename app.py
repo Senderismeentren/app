@@ -223,7 +223,8 @@ try:
 
     # --- FILTRES SIDEBAR ---
     st.sidebar.header("🔎 Filtres")
-    sel_100cims = st.sidebar.checkbox("🏆 100 Cims")
+    st.sidebar.markdown('<img src="https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/logo-100cims.svg" width="80" style="margin-bottom: 5px;">', unsafe_allow_html=True)
+    sel_100cims = st.sidebar.checkbox("Rutes amb 100 Cims")
     cerca = st.sidebar.text_input("📝 Paraula clau")
     sel_sortida = st.sidebar.multiselect("🚉 Estació de sortida", get_unique(cols["sortida"]))
     sel_linia = st.sidebar.multiselect("🚆 Línia de tren", get_unique(cols["linia_s"]))
