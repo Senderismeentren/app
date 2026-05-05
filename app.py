@@ -241,7 +241,7 @@ try:
 
     # --- BUCLE DE RUTES ---
     for _, row in f.iterrows():
-        st.markdown(f'<h2 style="color: #000000; margin-top: 25px; font-size: 30px; font-weight: bold;">Ruta {int(row[cols["id"]]) if pd.notna(row[cols["id"]]) else ""}: {row[cols["ruta"]]}</h2>', unsafe_allow_html=True)
+        st.markdown(f'<h2 style="color: #000000; margin-top: 25px; font-size: 22px; font-weight: bold;">Ruta {int(row[cols["id"]]) if pd.notna(row[cols["id"]]) else ""}: {row[cols["ruta"]]}</h2>', unsafe_allow_html=True)
         
         s_est = str(row[cols["sortida"]]).strip()
         a_est = str(row[cols["arribada"]]).strip()
