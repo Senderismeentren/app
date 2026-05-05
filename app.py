@@ -187,7 +187,7 @@ try:
         "id":      buscar_col(["id_ruta", "id"]),
         "ruta":    buscar_col(["nom_de_la_ruta", "nom ruta"]),
         "km":      buscar_col(["km"]),
-        "cims":    buscar_col(["100cims", "100_cims", "cims"]),
+        "cims":    buscar_col(["100_cims", "100cims"]),
         "sortida": buscar_col(["estació_sortida", "sortida"]),
         "op_s":    buscar_col(["operador_sortida", "operador s"]),
         "arribada":buscar_col(["estació_arribada", "arribada"]),
@@ -239,7 +239,7 @@ try:
     # --- APLICAR FILTRES ---
     f = df.copy()
     if sel_100cims and cols["cims"]:
-        f = f[f[cols["cims"]].astype(str).str.strip().str.upper() == "S"]
+         f = f[f[cols["cims"]].astype(str).str.strip().str.lower() == "si"]
     if cerca:
         f = f[f[cols["ruta"]].str.contains(cerca, case=False, na=False)]
     if sel_sortida:
