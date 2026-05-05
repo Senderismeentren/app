@@ -223,7 +223,7 @@ try:
 
     # --- FILTRES SIDEBAR ---
     st.sidebar.header("🔎 Filtres")
-    sel_100cims = st.sidebar.checkbox("🏆 Rutes amb 100 Cims")
+    sel_100cims = st.sidebar.checkbox("🏆 100 Cims")
     cerca = st.sidebar.text_input("📝 Paraula clau")
     sel_sortida = st.sidebar.multiselect("🚉 Estació de sortida", get_unique(cols["sortida"]))
     sel_linia = st.sidebar.multiselect("🚆 Línia de tren", get_unique(cols["linia_s"]))
