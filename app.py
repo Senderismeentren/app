@@ -214,7 +214,7 @@ try:
     df[cols["km"]] = pd.to_numeric(df[cols["km"]].astype(str).str.replace(',', '.'), errors='coerce').fillna(0)
 
   # --- FILTRES SIDEBAR ---
-        st.sidebar.header("🔎 Filtres")
+    st.sidebar.header("🔎 Filtres")
         
         sel_100cims = st.sidebar.checkbox("🏆 Rutes amb 100 Cims")
         cerca = st.sidebar.text_input("📝 Paraula clau")
