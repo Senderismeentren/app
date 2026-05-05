@@ -1,0 +1,9 @@
+streamlit
+pandas
+openpyxl
+folium
+streamlit-folium
+gpxpy
+requests
+gspread
+google-auth
