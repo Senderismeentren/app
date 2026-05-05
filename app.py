@@ -76,7 +76,7 @@ BASE_LOGO_LINIA = "https://raw.githubusercontent.com/Senderismeentren/senderisme
 BASE_GPX_URL    = "https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/gpx/ruta-{id:03d}.gpx"
 LOGO_SIZE = 22
 SHEET_ID  = "12SrgpFkVTowVdfjSMTprs-XBYR5zUKTr-uU3tyYeVEE"
-SHEET_NAME = "SET_excel_app"
+SHEET_NAME = "Rutes"
 
 # --- FUNCIÓ: carrega dades de Google Sheets ---
 @st.cache_data(ttl=300)
