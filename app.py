@@ -1,5 +1,5 @@
 # ============================================================
-# SENDERISME EN TREN — v7
+# SENDERISME EN TREN — v8
 # ============================================================
 
 import streamlit as st
@@ -150,24 +150,20 @@ def mostrar_mapa_gpx(ruta_id, lat_s, lng_s, lat_a, lng_a):
         m.fit_bounds([[min(p[0] for p in punts), min(p[1] for p in punts)],
                       [max(p[0] for p in punts), max(p[1] for p in punts)]])
         folium.PolyLine(punts, color="#E63946", weight=3, opacity=0.9).add_to(m)
-
         if lat_s and lng_s:
             folium.Marker(
                 location=[lat_s, lng_s],
                 tooltip="Sortida",
                 icon=folium.Icon(color="green", icon="train", prefix="fa")
             ).add_to(m)
-
         if lat_a and lng_a and (lat_s != lat_a or lng_s != lng_a):
             folium.Marker(
                 location=[lat_a, lng_a],
                 tooltip="Arribada",
                 icon=folium.Icon(color="red", icon="flag", prefix="fa")
             ).add_to(m)
-
         st_folium(m, width=700, height=400, returned_objects=[])
         return True
-
     except Exception:
         return False
 
@@ -180,7 +176,7 @@ except Exception as e:
 
 try:
     df_raw.columns = df_raw.columns.str.strip().str.lower()
-    
+
     def buscar_col(llista):
         for c in df_raw.columns:
             for p in llista:
@@ -191,7 +187,7 @@ try:
         "id":      buscar_col(["id_ruta", "id"]),
         "ruta":    buscar_col(["nom_de_la_ruta", "nom ruta"]),
         "km":      buscar_col(["km"]),
-        "cims":    buscar_col(["100", "cim", "s/n"]),
+        "cims":    buscar_col(["100cims", "100_cims", "cims"]),
         "sortida": buscar_col(["estació_sortida", "sortida"]),
         "op_s":    buscar_col(["operador_sortida", "operador s"]),
         "arribada":buscar_col(["estació_arribada", "arribada"]),
@@ -212,49 +208,60 @@ try:
 
     df = df_raw.dropna(subset=[cols["ruta"]]).copy()
     df[cols["km"]] = pd.to_numeric(df[cols["km"]].astype(str).str.replace(',', '.'), errors='coerce').fillna(0)
+    if cols["desn"]:
+        df[cols["desn"]] = pd.to_numeric(df[cols["desn"]].astype(str).str.replace(',', '.'), errors='coerce').fillna(0)
 
-  # --- FILTRES SIDEBAR ---
+    def get_unique(col_name):
+        if col_name and col_name in df.columns:
+            vals = df[col_name].dropna().astype(str)
+            res = set()
+            for v in vals:
+                for s in re.split(";|,", v):
+                    if s.strip(): res.add(s.strip())
+            return sorted(list(res))
+        return []
+
+    # --- FILTRES SIDEBAR ---
     st.sidebar.header("🔎 Filtres")
-        
-        sel_100cims = st.sidebar.checkbox("🏆 Rutes amb 100 Cims")
-        cerca = st.sidebar.text_input("📝 Paraula clau")
-        sel_sortida = st.sidebar.multiselect("🚉 Estació de sortida", get_unique(cols["sortida"]))
-        sel_linia = st.sidebar.multiselect("🚆 Línia de tren", get_unique(cols["linia_s"]))
-        sel_dif = st.sidebar.multiselect("🧗 Dificultat", get_unique(cols["dif"]))
-        min_desn = float(df[cols["desn"]].min()) if cols["desn"] else 0
-        max_desn = float(df[cols["desn"]].max()) if cols["desn"] else 9999
-        sel_desn = st.sidebar.slider("📈 Desnivell (m)", min_desn, max_desn, (min_desn, max_desn))
-        sel_comarca = st.sidebar.multiselect("📍 Comarca", get_unique(cols["comarca"]))
-        sel_espai   = st.sidebar.multiselect("🌲 Espai natural", get_unique(cols["espai"]))
-        min_km, max_km = float(df[cols["km"]].min()), float(df[cols["km"]].max())
-        sel_km = st.sidebar.slider("📏 Distància (km)", min_km, max_km, (min_km, max_km))
+    sel_100cims = st.sidebar.checkbox("🏆 Rutes amb 100 Cims")
+    cerca = st.sidebar.text_input("📝 Paraula clau")
+    sel_sortida = st.sidebar.multiselect("🚉 Estació de sortida", get_unique(cols["sortida"]))
+    sel_linia = st.sidebar.multiselect("🚆 Línia de tren", get_unique(cols["linia_s"]))
+    sel_dif = st.sidebar.multiselect("🧗 Dificultat", get_unique(cols["dif"]))
+    min_desn = float(df[cols["desn"]].min()) if cols["desn"] else 0.0
+    max_desn = float(df[cols["desn"]].max()) if cols["desn"] else 9999.0
+    sel_desn = st.sidebar.slider("📈 Desnivell (m)", min_desn, max_desn, (min_desn, max_desn))
+    sel_comarca = st.sidebar.multiselect("📍 Comarca", get_unique(cols["comarca"]))
+    sel_espai = st.sidebar.multiselect("🌲 Espai natural", get_unique(cols["espai"]))
+    min_km, max_km = float(df[cols["km"]].min()), float(df[cols["km"]].max())
+    sel_km = st.sidebar.slider("📏 Distància (km)", min_km, max_km, (min_km, max_km))
 
+    # --- APLICAR FILTRES ---
     f = df.copy()
-        if sel_100cims and cols["cims"]:
-            f = f[f[cols["cims"]].astype(str).str.strip().str.upper() == "S"]
-        if cerca:
-            f = f[f[cols["ruta"]].str.contains(cerca, case=False, na=False)]
-        if sel_sortida:
-            f = f[f[cols["sortida"]].astype(str).apply(lambda x: any(s in x for s in sel_sortida))]
-        if sel_linia:
-            f = f[f[cols["linia_s"]].astype(str).apply(lambda x: any(l in x for l in sel_linia))]
-        if sel_dif:
-            f = f[f[cols["dif"]].astype(str).apply(lambda x: any(d in x for d in sel_dif))]
-        if sel_comarca:
-            f = f[f[cols["comarca"]].astype(str).apply(lambda x: any(c in x for c in sel_comarca))]
-        if sel_espai:
-            f = f[f[cols["espai"]].astype(str).apply(lambda x: any(e in x for e in sel_espai))]
-        f = f[(f[cols["km"]] >= sel_km[0]) & (f[cols["km"]] <= sel_km[1])]
-        if cols["desn"]:
-            df[cols["desn"]] = pd.to_numeric(df[cols["desn"]].astype(str).str.replace(',', '.'), errors='coerce').fillna(0)
-            f = f[(f[cols["desn"]] >= sel_desn[0]) & (f[cols["desn"]] <= sel_desn[1])]
+    if sel_100cims and cols["cims"]:
+        f = f[f[cols["cims"]].astype(str).str.strip().str.upper() == "S"]
+    if cerca:
+        f = f[f[cols["ruta"]].str.contains(cerca, case=False, na=False)]
+    if sel_sortida:
+        f = f[f[cols["sortida"]].astype(str).apply(lambda x: any(s in x for s in sel_sortida))]
+    if sel_linia:
+        f = f[f[cols["linia_s"]].astype(str).apply(lambda x: any(l in x for l in sel_linia))]
+    if sel_dif:
+        f = f[f[cols["dif"]].astype(str).apply(lambda x: any(d in x for d in sel_dif))]
+    if sel_comarca:
+        f = f[f[cols["comarca"]].astype(str).apply(lambda x: any(c in x for c in sel_comarca))]
+    if sel_espai:
+        f = f[f[cols["espai"]].astype(str).apply(lambda x: any(e in x for e in sel_espai))]
+    f = f[(f[cols["km"]] >= sel_km[0]) & (f[cols["km"]] <= sel_km[1])]
+    if cols["desn"]:
+        f = f[(f[cols["desn"]] >= sel_desn[0]) & (f[cols["desn"]] <= sel_desn[1])]
 
     st.write(f"**Resultats: {len(f)} rutes**")
 
     # --- BUCLE DE RUTES ---
     for _, row in f.iterrows():
         st.markdown(f'<h2 style="color: #000000; margin-top: 25px; font-size: 24px; font-weight: bold;">Ruta {int(row[cols["id"]]) if pd.notna(row[cols["id"]]) else ""}: {row[cols["ruta"]]}</h2>', unsafe_allow_html=True)
-        
+
         s_est = str(row[cols["sortida"]]).strip()
         a_est = str(row[cols["arribada"]]).strip()
         op_s_raw = str(row[cols["op_s"]]) if pd.notna(row[cols["op_s"]]) else "rodalies"
