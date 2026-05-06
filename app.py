@@ -1,5 +1,5 @@
 # ============================================================
-# SENDERISME EN TREN — v10
+# SENDERISME EN TREN — v11
 # ============================================================
 
 import streamlit as st
@@ -25,8 +25,8 @@ st.markdown(f'''
     <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px; background-color: #f0f2f6; padding: 15px 20px; border-radius: 10px;">
         <img src="https://avatars.githubusercontent.com/u/279401247?v=4" style="width: 50px; height: 50px; border-radius: 50%;">
         <div>
-            <h1 style="margin: 0; font-size: 32px; color: #000000;">Senderisme en tren</h1>
-            <p style="margin: 4px 0 0 0; font-size: 18px; color: #555;">Rutes i excursions a peu amb accés en tren, metro, cremallera o funicular.</p>
+            <h1 style="margin: 0; font-size: 28px; color: #000000;">Senderisme en tren</h1>
+            <p style="margin: 4px 0 0 0; font-size: 15px; color: #555;">Rutes i excursions a peu amb accés en tren, metro, cremallera o funicular.</p>
         </div>
     </div>
 ''', unsafe_allow_html=True)
@@ -108,10 +108,11 @@ CATEGORIES_ICONES = {
 BASE_LOGO_LINIA  = "https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/Logo-{linia}.svg"
 BASE_GPX_URL     = "https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/gpx/ruta-{id:03d}.gpx"
 BASE_IMATGE_URL  = "https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/main/imatges/ruta-{id:03d}.jpg"
-LOGO_SIZE = 22
-SHEET_ID  = "12SrgpFkVTowVdfjSMTprs-XBYR5zUKTr-uU3tyYeVEE"
-SHEET_NAME = "Rutes"
-COLOR_PRINCIPAL = "#007bff"
+LOGO_SIZE        = 22
+SHEET_ID         = "12SrgpFkVTowVdfjSMTprs-XBYR5zUKTr-uU3tyYeVEE"
+SHEET_NAME       = "Rutes"
+COLOR_BLAU       = "#007bff"
+COLOR_VERD       = "#2d9e6b"
 
 # --- FUNCIÓ: carrega dades de Google Sheets ---
 @st.cache_data(ttl=300)
@@ -149,12 +150,11 @@ def bloc_estacio_html(op_str, linies_str):
         op_str = "rodalies"
     operadors = [o.strip().lower() for o in re.split(r";", str(op_str)) if o.strip()]
     logos_linies = logos_linies_html(linies_str)
-
     parts = []
     for op in operadors:
         info = OPERADORS_INFO.get(op, OPERADORS_INFO["rodalies"])
         logo_op = f'<img src="{info["logo"]}" width="{LOGO_SIZE}" style="vertical-align:middle;margin-right:4px;">' if info.get("logo") else ""
-        horari = f'<a href="{info["url"]}" target="_blank" style="font-size:13px;color:{COLOR_PRINCIPAL};text-decoration:none;font-weight:bold;margin-left:6px;">HORARI</a>'
+        horari = f'<a href="{info["url"]}" target="_blank" style="font-size:13px;color:{COLOR_BLAU};text-decoration:none;font-weight:bold;margin-left:6px;">HORARI</a>'
         parts.append(f'{logo_op}{logos_linies}{horari}')
     return " ".join(parts)
 
@@ -164,7 +164,6 @@ def punts_interes_html(elements_str, categories_str):
         return ""
     elements = [e.strip() for e in re.split(r";", str(elements_str)) if e.strip()]
     categories = [c.strip().lower() for c in re.split(r";", str(categories_str)) if c.strip()] if categories_str and str(categories_str).strip().lower() not in ("nan", "") else []
-
     targetes = []
     for i, element in enumerate(elements):
         categoria = categories[i] if i < len(categories) else ""
@@ -176,7 +175,6 @@ def punts_interes_html(elements_str, categories_str):
             f"<span>{element}</span>"
             "</div>"
         )
-
     grid = "".join(targetes)
     return (
         "<div style=\"margin-top:16px;\">"
@@ -206,7 +204,7 @@ def mostrar_mapa_gpx(ruta_id, lat_s, lng_s, lat_a, lng_a):
         m = folium.Map(location=centre, tiles="OpenStreetMap")
         m.fit_bounds([[min(p[0] for p in punts), min(p[1] for p in punts)],
                       [max(p[0] for p in punts), max(p[1] for p in punts)]])
-        folium.PolyLine(punts, color=COLOR_PRINCIPAL, weight=4, opacity=0.9).add_to(m)
+        folium.PolyLine(punts, color=COLOR_BLAU, weight=4, opacity=0.9).add_to(m)
         if lat_s and lng_s:
             folium.Marker(
                 location=[lat_s, lng_s],
@@ -334,10 +332,10 @@ try:
         if te_imatge:
             st.markdown(f'''
                 <div style="position: relative; border-radius: 12px; overflow: hidden; margin-top: 30px; margin-bottom: 0;">
-                    <img src="{imatge_url}" style="width: 100%; height: 200px; object-fit: cover; display: block;">
+                    <img src="{imatge_url}" style="width: 100%; height: 220px; object-fit: cover; display: block;">
                     <div style="position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(transparent, rgba(0,0,0,0.75)); padding: 20px;">
-                        <span style="background: {COLOR_PRINCIPAL}; color: white; font-size: 16px; font-weight: bold; padding: 5px 14px; border-radius: 20px;">RUTA {ruta_id}</span>
-                        <div style="margin-top: 8px; font-size: 20px; font-weight: bold; color: white;">
+                        <span style="background: {COLOR_VERD}; color: white; font-size: 20px; font-weight: bold; padding: 6px 18px; border-radius: 20px;">RUTA {ruta_id}</span>
+                        <div style="margin-top: 10px; font-size: 28px; font-weight: bold; color: #000000;">
                             {s_est} &nbsp;→&nbsp; {a_est}
                         </div>
                     </div>
@@ -350,8 +348,8 @@ try:
         else:
             st.markdown(f'''
                 <div style="background: #f0f2f6; border-radius: 12px; padding: 16px 20px; margin-top: 30px; margin-bottom: 10px;">
-                    <span style="background: {COLOR_PRINCIPAL}; color: white; font-size: 16px; font-weight: bold; padding: 5px 14px; border-radius: 20px;">RUTA {ruta_id}</span>
-                    <div style="margin-top: 8px; font-size: 20px; font-weight: bold; color: #111;">
+                    <span style="background: {COLOR_VERD}; color: white; font-size: 20px; font-weight: bold; padding: 6px 18px; border-radius: 20px;">RUTA {ruta_id}</span>
+                    <div style="margin-top: 10px; font-size: 28px; font-weight: bold; color: #111;">
                         {s_est} &nbsp;→&nbsp; {a_est}
                     </div>
                     <h2 style="margin: 8px 0 4px 0; font-size: 24px; color: #111;">{nom_ruta}</h2>
@@ -364,15 +362,15 @@ try:
             <div style="display: flex; gap: 12px; margin: 12px 0;">
                 <div style="flex: 1; background: white; border: 1px solid #e0e0e0; border-radius: 10px; padding: 14px; text-align: center;">
                     <div style="font-size: 16px; color: #888;">Distància</div>
-                    <div style="font-size: 22px; font-weight: bold; color: #111;">📏 {row[cols["km"]]} km</div>
+                    <div style="font-size: 28px; font-weight: bold; color: #111;">📏 {row[cols["km"]]} km</div>
                 </div>
                 <div style="flex: 1; background: white; border: 1px solid #e0e0e0; border-radius: 10px; padding: 14px; text-align: center;">
                     <div style="font-size: 16px; color: #888;">Desnivell</div>
-                    <div style="font-size: 22px; font-weight: bold; color: #111;">📈 +{row[cols["desn"]]} m</div>
+                    <div style="font-size: 28px; font-weight: bold; color: #111;">📈 +{row[cols["desn"]]} m</div>
                 </div>
                 <div style="flex: 1; background: white; border: 1px solid #e0e0e0; border-radius: 10px; padding: 14px; text-align: center;">
                     <div style="font-size: 16px; color: #888;">Dificultat</div>
-                    <div style="font-size: 22px; font-weight: bold; color: #111;">🧗 {row[cols["dif"]]}</div>
+                    <div style="font-size: 28px; font-weight: bold; color: #111;">🧗 {row[cols["dif"]]}</div>
                 </div>
             </div>
         ''', unsafe_allow_html=True)
@@ -385,8 +383,8 @@ try:
             st.markdown(f'''
                 <div style="display: flex; gap: 12px; margin: 12px 0;">
                     <div style="flex: 1; background: white; border: 1px solid #e0e0e0; border-radius: 10px; padding: 14px;">
-                        <div style="font-size: 16px; color: {COLOR_PRINCIPAL}; font-weight: bold;">Sortida/Arribada</div>
-                        <div style="font-size: 20px; font-weight: bold; margin: 4px 0;">🚉 <a href="https://www.google.com/maps/search/{s_est}+estacio" target="_blank" style="text-decoration:none;color:#111;">{s_est}</a></div>
+                        <div style="font-size: 16px; color: {COLOR_BLAU}; font-weight: bold;">Estació de sortida/arribada</div>
+                        <div style="font-size: 22px; font-weight: bold; margin: 4px 0;">🚉 <a href="https://www.google.com/maps/search/{s_est}+estacio" target="_blank" style="text-decoration:none;color:#111;">{s_est}</a></div>
                         <div style="margin-top: 6px;">{bloc_s}</div>
                     </div>
                 </div>
@@ -395,13 +393,13 @@ try:
             st.markdown(f'''
                 <div style="display: flex; gap: 12px; margin: 12px 0;">
                     <div style="flex: 1; background: white; border: 1px solid #e0e0e0; border-radius: 10px; padding: 14px;">
-                        <div style="font-size: 16px; color: {COLOR_PRINCIPAL}; font-weight: bold;">Sortida</div>
-                        <div style="font-size: 20px; font-weight: bold; margin: 4px 0;">🚉 <a href="https://www.google.com/maps/search/{s_est}+estacio" target="_blank" style="text-decoration:none;color:#111;">{s_est}</a></div>
+                        <div style="font-size: 16px; color: {COLOR_BLAU}; font-weight: bold;">Estació de sortida</div>
+                        <div style="font-size: 22px; font-weight: bold; margin: 4px 0;">🚉 <a href="https://www.google.com/maps/search/{s_est}+estacio" target="_blank" style="text-decoration:none;color:#111;">{s_est}</a></div>
                         <div style="margin-top: 6px;">{bloc_s}</div>
                     </div>
                     <div style="flex: 1; background: white; border: 1px solid #e0e0e0; border-radius: 10px; padding: 14px;">
-                        <div style="font-size: 16px; color: {COLOR_PRINCIPAL}; font-weight: bold;">Arribada</div>
-                        <div style="font-size: 20px; font-weight: bold; margin: 4px 0;">🏁 <a href="https://www.google.com/maps/search/{a_est}+estacio" target="_blank" style="text-decoration:none;color:#111;">{a_est}</a></div>
+                        <div style="font-size: 16px; color: {COLOR_BLAU}; font-weight: bold;">Estació d'arribada</div>
+                        <div style="font-size: 22px; font-weight: bold; margin: 4px 0;">🏁 <a href="https://www.google.com/maps/search/{a_est}+estacio" target="_blank" style="text-decoration:none;color:#111;">{a_est}</a></div>
                         <div style="margin-top: 6px;">{bloc_a}</div>
                     </div>
                 </div>
@@ -423,7 +421,7 @@ try:
 
         # WIKILOC
         if pd.notna(row[cols["wiki"]]):
-            st.markdown(f'<a href="{row[cols["wiki"]]}" target="_blank" style="background-color:{COLOR_PRINCIPAL};color:white;padding:10px 20px;border-radius:8px;text-decoration:none;font-size:16px;font-weight:bold;display:inline-block;margin:12px 0;">🔗 Veure a Wikiloc</a>', unsafe_allow_html=True)
+            st.markdown(f'<a href="{row[cols["wiki"]]}" target="_blank" style="background-color:{COLOR_VERD};color:white;padding:10px 20px;border-radius:8px;text-decoration:none;font-size:16px;font-weight:bold;display:inline-block;margin:12px 0;">🔗 Veure a Wikiloc</a>', unsafe_allow_html=True)
 
         st.markdown(f'<div style="font-size: 14px; color: #888; margin-top: 8px;">📍 <b>Comarca:</b> {row[cols["comarca"]]} &nbsp;|&nbsp; 🌲 <b>Espai:</b> {row[cols["espai"]]}</div>', unsafe_allow_html=True)
         st.markdown("<hr style='margin: 30px 0; opacity: 0.15;'>", unsafe_allow_html=True)
