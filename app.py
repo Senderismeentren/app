@@ -365,37 +365,38 @@ try:
 
         # MÈTRIQUES
         if "circular" in tipus:
-            desn_html = f'''
-                <div style="flex: 1; background: white; border: 1px solid #e0e0e0; border-radius: 10px; padding: 14px; text-align: center;">
-                    <div style="font-size: 16px; color: #888;">Desnivell</div>
-                    <div style="font-size: 22px; font-weight: bold; color: #111;">📈 +/- {desn_pujada} m</div>
-                </div>
-            '''
+            desn_html = (
+                "<div style=\"flex:1;background:white;border:1px solid #e0e0e0;border-radius:10px;padding:14px;text-align:center;\">"
+                "<div style=\"font-size:16px;color:#888;\">Desnivell</div>"
+                f"<div style=\"font-size:22px;font-weight:bold;color:#111;\">📈 +/- {desn_pujada} m</div>"
+                "</div>"
+            )
         else:
-            desn_html = f'''
-                <div style="flex: 1; background: white; border: 1px solid #e0e0e0; border-radius: 10px; padding: 14px; text-align: center;">
-                    <div style="font-size: 16px; color: #888;">Desnivell pujada</div>
-                    <div style="font-size: 22px; font-weight: bold; color: #111;">📈 +{desn_pujada} m</div>
-                </div>
-                <div style="flex: 1; background: white; border: 1px solid #e0e0e0; border-radius: 10px; padding: 14px; text-align: center;">
-                    <div style="font-size: 16px; color: #888;">Desnivell baixada</div>
-                    <div style="font-size: 22px; font-weight: bold; color: #111;">📉 -{desn_baixada} m</div>
-                </div>
-            '''
+            desn_html = (
+                "<div style=\"flex:1;background:white;border:1px solid #e0e0e0;border-radius:10px;padding:14px;text-align:center;\">"
+                "<div style=\"font-size:16px;color:#888;\">Desnivell pujada</div>"
+                f"<div style=\"font-size:22px;font-weight:bold;color:#111;\">📈 +{desn_pujada} m</div>"
+                "</div>"
+                "<div style=\"flex:1;background:white;border:1px solid #e0e0e0;border-radius:10px;padding:14px;text-align:center;\">"
+                "<div style=\"font-size:16px;color:#888;\">Desnivell baixada</div>"
+                f"<div style=\"font-size:22px;font-weight:bold;color:#111;\">📉 -{desn_baixada} m</div>"
+                "</div>"
+            )
 
-        st.markdown(f'''
-            <div style="display: flex; gap: 12px; margin: 12px 0;">
-                <div style="flex: 1; background: white; border: 1px solid #e0e0e0; border-radius: 10px; padding: 14px; text-align: center;">
-                    <div style="font-size: 16px; color: #888;">Distància</div>
-                    <div style="font-size: 22px; font-weight: bold; color: #111;">📏 {row[cols["km"]]} km</div>
-                </div>
-                {desn_html}
-                <div style="flex: 1; background: white; border: 1px solid #e0e0e0; border-radius: 10px; padding: 14px; text-align: center;">
-                    <div style="font-size: 16px; color: #888;">Dificultat</div>
-                    <div style="font-size: 22px; font-weight: bold; color: #111;">🧗 {row[cols["dif"]]}</div>
-                </div>
-            </div>
-        ''', unsafe_allow_html=True)
+        st.markdown(
+            "<div style=\"display:flex;gap:12px;margin:12px 0;\">"
+            "<div style=\"flex:1;background:white;border:1px solid #e0e0e0;border-radius:10px;padding:14px;text-align:center;\">"
+            "<div style=\"font-size:16px;color:#888;\">Distància</div>"
+            f"<div style=\"font-size:22px;font-weight:bold;color:#111;\">📏 {row[cols['km']]} km</div>"
+            "</div>"
+            f"{desn_html}"
+            "<div style=\"flex:1;background:white;border:1px solid #e0e0e0;border-radius:10px;padding:14px;text-align:center;\">"
+            "<div style=\"font-size:16px;color:#888;\">Dificultat</div>"
+            f"<div style=\"font-size:22px;font-weight:bold;color:#111;\">🧗 {row[cols['dif']]}</div>"
+            "</div>"
+            "</div>",
+            unsafe_allow_html=True
+        )
 
         # ESTACIONS
         bloc_s = bloc_estacio_html(row[cols["op_s"]], row[cols["linia_s"]])
