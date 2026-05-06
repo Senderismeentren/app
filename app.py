@@ -253,7 +253,7 @@ try:
         "comarca":  buscar_col(["comarca"]),
         "espai":    buscar_col(["espai_natural"]),
         "desn":     buscar_col(["desnivell_positiu", "desnivell"]),
-        "baixada":  buscar_col(["baixada"]),
+        "baixada":  buscar_col(["negatiu"]),
         "tipus":    buscar_col(["tipus"]),
         "dif":      buscar_col(["dificultat"]),
         "wiki":     buscar_col(["enllaç_wikiloc", "wikiloc"]),
