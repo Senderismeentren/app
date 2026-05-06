@@ -1,5 +1,5 @@
 # ============================================================
-# SENDERISME EN TREN — v8
+# SENDERISME EN TREN — v9
 # ============================================================
 
 import streamlit as st
@@ -75,8 +75,39 @@ OPERADORS_INFO = {
     }
 }
 
-BASE_LOGO_LINIA = "https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/Logo-{linia}.svg"
-BASE_GPX_URL    = "https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/gpx/ruta-{id:03d}.gpx"
+# --- DICCIONARI DE CATEGORIES AMB ICONES ---
+CATEGORIES_ICONES = {
+    "100 cims": "🏔️",
+    "búnquer": "🪖",
+    "castell": "🏰",
+    "cova": "🕳️",
+    "dolmen": "🪨",
+    "ermita": "⛪",
+    "ferrocarril": "🚂",
+    "jaciment ibèric": "🏛️",
+    "museu": "🖼️",
+    "pintures rupestres": "🎨",
+    "pont": "🌉",
+    "època romana": "🏟️",
+    "santuari": "🙏",
+    "torre del telègraf": "📡",
+    "torre": "🗼",
+    "patrimoni unesco": "🌍",
+    "bosc": "🌲",
+    "camí equipat": "🧗",
+    "cascada": "💧",
+    "cim": "⛰️",
+    "cingleres": "🪨",
+    "gorgs": "🌊",
+    "litoral": "🏖️",
+    "platja": "🏝️",
+    "riu": "🏞️",
+    "pantà": "💦",
+}
+
+BASE_LOGO_LINIA  = "https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/Logo-{linia}.svg"
+BASE_GPX_URL     = "https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/gpx/ruta-{id:03d}.gpx"
+BASE_IMATGE_URL  = "https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/main/imatges/ruta-{id:03d}.jpg"
 LOGO_SIZE = 22
 SHEET_ID  = "12SrgpFkVTowVdfjSMTprs-XBYR5zUKTr-uU3tyYeVEE"
 SHEET_NAME = "Rutes"
@@ -91,6 +122,14 @@ def carregar_dades():
     full   = client.open_by_key(SHEET_ID).worksheet(SHEET_NAME)
     dades  = full.get_all_records()
     return pd.DataFrame(dades)
+
+# --- FUNCIÓ: comprova si una imatge existeix ---
+def imatge_existeix(url):
+    try:
+        r = requests.head(url, timeout=3)
+        return r.status_code == 200
+    except:
+        return False
 
 # --- FUNCIÓ: genera els logos de línies ---
 def logos_linies_html(linies_str):
@@ -116,16 +155,32 @@ def bloc_operadors_html(op_str):
         parts.append(f'{logo}{link}')
     return "&nbsp;&nbsp;".join(parts)
 
-# --- FUNCIÓ: genera llista de punts d'interès ---
-def punts_interes_html(punts_str):
-    if not punts_str or str(punts_str).strip().lower() in ("nan", ""):
+# --- FUNCIÓ: genera targetes de punts d'interès ---
+def punts_interes_html(elements_str, categories_str):
+    if not elements_str or str(elements_str).strip().lower() in ("nan", ""):
         return ""
-    punts = [p.strip() for p in re.split(r"[;,]", str(punts_str)) if p.strip()]
-    items = "".join([f'<li style="font-size: 15px; color: #333;">{p}</li>' for p in punts])
+    elements = [e.strip() for e in re.split(r";", str(elements_str)) if e.strip()]
+    categories = [c.strip().lower() for c in re.split(r";", str(categories_str)) if c.strip()] if categories_str and str(categories_str).strip().lower() not in ("nan", "") else []
+
+    targetes = []
+    for i, element in enumerate(elements):
+        categoria = categories[i] if i < len(categories) else ""
+        icona = CATEGORIES_ICONES.get(categoria, "📍")
+        targetes.append(f'''
+            <div style="display: flex; align-items: center; gap: 10px; background: #f8f9fa; 
+                        border-radius: 10px; padding: 10px 14px; font-size: 14px; color: #333;">
+                <span style="font-size: 22px;">{icona}</span>
+                <span>{element}</span>
+            </div>
+        ''')
+
+    grid = "".join(targetes)
     return f'''
-        <div style="margin-top: 8px;">
-            <span style="font-size: 15px; font-weight: bold; color: #444;">📌 Punts d'interès:</span>
-            <ul style="margin: 4px 0 0 20px; padding: 0;">{items}</ul>
+        <div style="margin-top: 16px;">
+            <div style="font-size: 16px; font-weight: bold; color: #333; margin-bottom: 10px;">📌 Punts d'interès</div>
+            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px;">
+                {grid}
+            </div>
         </div>
     '''
 
@@ -149,7 +204,7 @@ def mostrar_mapa_gpx(ruta_id, lat_s, lng_s, lat_a, lng_a):
         m = folium.Map(location=centre, tiles="OpenStreetMap")
         m.fit_bounds([[min(p[0] for p in punts), min(p[1] for p in punts)],
                       [max(p[0] for p in punts), max(p[1] for p in punts)]])
-        folium.PolyLine(punts, color="#E63946", weight=3, opacity=0.9).add_to(m)
+        folium.PolyLine(punts, color="#2d9e6b", weight=4, opacity=0.9).add_to(m)
         if lat_s and lng_s:
             folium.Marker(
                 location=[lat_s, lng_s],
@@ -162,7 +217,7 @@ def mostrar_mapa_gpx(ruta_id, lat_s, lng_s, lat_a, lng_a):
                 tooltip="Arribada",
                 icon=folium.Icon(color="red", icon="flag", prefix="fa")
             ).add_to(m)
-        st_folium(m, width=700, height=400, returned_objects=[])
+        st_folium(m, width=None, height=350, returned_objects=[])
         return True
     except Exception:
         return False
@@ -184,26 +239,28 @@ try:
         return None
 
     cols = {
-        "id":      buscar_col(["id_ruta", "id"]),
-        "ruta":    buscar_col(["nom_de_la_ruta", "nom ruta"]),
-        "km":      buscar_col(["km"]),
-        "cims":    buscar_col(["100_cims", "100cims"]),
-        "sortida": buscar_col(["estació_sortida", "sortida"]),
-        "op_s":    buscar_col(["operador_sortida", "operador s"]),
-        "arribada":buscar_col(["estació_arribada", "arribada"]),
-        "op_a":    buscar_col(["operador_arribada", "operador a"]),
-        "linia_s": buscar_col(["linies_sortida"]),
-        "linia_a": buscar_col(["linies_arribada"]),
-        "comarca": buscar_col(["comarca"]),
-        "espai":   buscar_col(["espai_natural"]),
-        "desn":    buscar_col(["desnivell_positiu", "desnivell"]),
-        "dif":     buscar_col(["dificultat"]),
-        "wiki":    buscar_col(["enllaç_wikiloc", "wikiloc"]),
-        "punts":   buscar_col(["punts_interès_tipus", "punts_interes_tipus"]),
-        "lat_s":   buscar_col(["lat_sortida", "lat_s"]),
-        "lng_s":   buscar_col(["lng_sortida", "lng_s"]),
-        "lat_a":   buscar_col(["lat_arribada", "lat_a"]),
-        "lng_a":   buscar_col(["lng_arribada", "lng_a"]),
+        "id":       buscar_col(["id_ruta", "id"]),
+        "ruta":     buscar_col(["nom_de_la_ruta", "nom ruta"]),
+        "desc":     buscar_col(["descripció", "descripcio", "subtitol"]),
+        "km":       buscar_col(["km"]),
+        "cims":     buscar_col(["100_cims", "100cims"]),
+        "sortida":  buscar_col(["estació_sortida", "sortida"]),
+        "op_s":     buscar_col(["operador_sortida", "operador s"]),
+        "arribada": buscar_col(["estació_arribada", "arribada"]),
+        "op_a":     buscar_col(["operador_arribada", "operador a"]),
+        "linia_s":  buscar_col(["linies_sortida"]),
+        "linia_a":  buscar_col(["linies_arribada"]),
+        "comarca":  buscar_col(["comarca"]),
+        "espai":    buscar_col(["espai_natural"]),
+        "desn":     buscar_col(["desnivell_positiu", "desnivell"]),
+        "dif":      buscar_col(["dificultat"]),
+        "wiki":     buscar_col(["enllaç_wikiloc", "wikiloc"]),
+        "elements": buscar_col(["elements_interès", "elements_interes"]),
+        "cats":     buscar_col(["categories_elements_interès", "categories_elements_interes"]),
+        "lat_s":    buscar_col(["lat_sortida", "lat_s"]),
+        "lng_s":    buscar_col(["lng_sortida", "lng_s"]),
+        "lat_a":    buscar_col(["lat_arribada", "lat_a"]),
+        "lng_a":    buscar_col(["lng_arribada", "lng_a"]),
     }
 
     df = df_raw.dropna(subset=[cols["ruta"]]).copy()
@@ -224,7 +281,7 @@ try:
     # --- FILTRES SIDEBAR ---
     st.sidebar.header("🔎 Filtres")
     st.sidebar.markdown('<img src="https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/logo-100cims.svg" width="80" style="margin-bottom: 5px;">', unsafe_allow_html=True)
-    sel_100cims = st.sidebar.checkbox("100 Cims")
+    sel_100cims = st.sidebar.checkbox("Rutes amb 100 Cims")
     cerca = st.sidebar.text_input("📝 Paraula clau")
     sel_sortida = st.sidebar.multiselect("🚉 Estació de sortida", get_unique(cols["sortida"]))
     sel_linia = st.sidebar.multiselect("🚆 Línia de tren", get_unique(cols["linia_s"]))
@@ -240,7 +297,7 @@ try:
     # --- APLICAR FILTRES ---
     f = df.copy()
     if sel_100cims and cols["cims"]:
-         f = f[f[cols["cims"]].astype(str).str.strip().str.lower() == "si"]
+        f = f[f[cols["cims"]].astype(str).str.strip().str.lower() == "si"]
     if cerca:
         f = f[f[cols["ruta"]].str.contains(cerca, case=False, na=False)]
     if sel_sortida:
@@ -261,74 +318,110 @@ try:
 
     # --- BUCLE DE RUTES ---
     for _, row in f.iterrows():
-        st.markdown(f'<h2 style="color: #000000; margin-top: 25px; font-size: 24px; font-weight: bold;">Ruta {int(row[cols["id"]]) if pd.notna(row[cols["id"]]) else ""}: {row[cols["ruta"]]}</h2>', unsafe_allow_html=True)
+        ruta_id = int(row[cols["id"]]) if pd.notna(row[cols["id"]]) else None
+        nom_ruta = row[cols["ruta"]]
+        desc = str(row[cols["desc"]]).strip() if cols["desc"] and pd.notna(row[cols["desc"]]) else ""
 
+        # CAPÇALERA DE LA RUTA
+        imatge_url = BASE_IMATGE_URL.format(id=ruta_id) if ruta_id else None
+        te_imatge = imatge_existeix(imatge_url) if imatge_url else False
+
+        if te_imatge:
+            st.markdown(f'''
+                <div style="position: relative; border-radius: 12px; overflow: hidden; margin-top: 30px; margin-bottom: 0;">
+                    <img src="{imatge_url}" style="width: 100%; height: 200px; object-fit: cover; display: block;">
+                    <div style="position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(transparent, rgba(0,0,0,0.7)); padding: 20px;">
+                        <span style="background: #2d9e6b; color: white; font-size: 12px; font-weight: bold; padding: 3px 10px; border-radius: 20px;">RUTA {ruta_id}</span>
+                    </div>
+                </div>
+                <div style="background: white; border: 1px solid #e0e0e0; border-top: none; border-radius: 0 0 12px 12px; padding: 16px 20px; margin-bottom: 10px;">
+                    <h2 style="margin: 0 0 4px 0; font-size: 24px; color: #111;">{nom_ruta}</h2>
+                    <p style="margin: 0; font-size: 14px; color: #666;">{desc}</p>
+                </div>
+            ''', unsafe_allow_html=True)
+        else:
+            st.markdown(f'''
+                <div style="background: #f0f2f6; border-radius: 12px; padding: 16px 20px; margin-top: 30px; margin-bottom: 10px;">
+                    <span style="background: #2d9e6b; color: white; font-size: 12px; font-weight: bold; padding: 3px 10px; border-radius: 20px;">RUTA {ruta_id}</span>
+                    <h2 style="margin: 8px 0 4px 0; font-size: 24px; color: #111;">{nom_ruta}</h2>
+                    <p style="margin: 0; font-size: 14px; color: #666;">{desc}</p>
+                </div>
+            ''', unsafe_allow_html=True)
+
+        # MÈTRIQUES
+        st.markdown(f'''
+            <div style="display: flex; gap: 12px; margin: 12px 0;">
+                <div style="flex: 1; background: white; border: 1px solid #e0e0e0; border-radius: 10px; padding: 14px; text-align: center;">
+                    <div style="font-size: 12px; color: #888;">Distància</div>
+                    <div style="font-size: 22px; font-weight: bold; color: #111;">📏 {row[cols["km"]]} km</div>
+                </div>
+                <div style="flex: 1; background: white; border: 1px solid #e0e0e0; border-radius: 10px; padding: 14px; text-align: center;">
+                    <div style="font-size: 12px; color: #888;">Desnivell</div>
+                    <div style="font-size: 22px; font-weight: bold; color: #111;">📈 +{row[cols["desn"]]} m</div>
+                </div>
+                <div style="flex: 1; background: white; border: 1px solid #e0e0e0; border-radius: 10px; padding: 14px; text-align: center;">
+                    <div style="font-size: 12px; color: #888;">Dificultat</div>
+                    <div style="font-size: 22px; font-weight: bold; color: #111;">🧗 {row[cols["dif"]]}</div>
+                </div>
+            </div>
+        ''', unsafe_allow_html=True)
+
+        # ESTACIONS
         s_est = str(row[cols["sortida"]]).strip()
         a_est = str(row[cols["arribada"]]).strip()
         op_s_raw = str(row[cols["op_s"]]) if pd.notna(row[cols["op_s"]]) else "rodalies"
         op_a_raw = str(row[cols["op_a"]]) if pd.notna(row[cols["op_a"]]) else "rodalies"
-
         bloc_s  = bloc_operadors_html(op_s_raw)
         bloc_a  = bloc_operadors_html(op_a_raw)
         logos_s = logos_linies_html(row[cols["linia_s"]])
         logos_a = logos_linies_html(row[cols["linia_a"]])
 
-        # BLOC ESTACIONS
         if s_est.lower() == a_est.lower():
             st.markdown(f'''
-                <div style="font-size: 18px; margin-bottom: 4px;">
-                    <b>🚉 Sortida/Arribada:</b> {s_est}
-                    <a href="https://www.google.com/maps/search/{s_est}+estacio" target="_blank" style="text-decoration:none;">📍</a>
-                </div>
-                <div style="margin-left: 24px; margin-bottom: 12px;">
-                    {bloc_s} {logos_s}
+                <div style="display: flex; gap: 12px; margin: 12px 0;">
+                    <div style="flex: 1; background: white; border: 1px solid #e0e0e0; border-radius: 10px; padding: 14px;">
+                        <div style="font-size: 12px; color: #2d9e6b; font-weight: bold;">Sortida/Arribada</div>
+                        <div style="font-size: 20px; font-weight: bold; margin: 4px 0;">🚉 {s_est} <a href="https://www.google.com/maps/search/{s_est}+estacio" target="_blank" style="text-decoration:none; font-size:16px;">📍</a></div>
+                        <div style="margin-top: 6px;">{bloc_s} {logos_s}</div>
+                    </div>
                 </div>
             ''', unsafe_allow_html=True)
         else:
             st.markdown(f'''
-                <div style="font-size: 18px; margin-bottom: 4px;">
-                    <b>🚉 Sortida:</b> {s_est}
-                    <a href="https://www.google.com/maps/search/{s_est}+estacio" target="_blank" style="text-decoration:none;">📍</a>
-                </div>
-                <div style="margin-left: 24px; margin-bottom: 12px;">
-                    {bloc_s} {logos_s}
-                </div>
-                <div style="font-size: 18px; margin-bottom: 4px;">
-                    <b>🏁 Arribada:</b> {a_est}
-                    <a href="https://www.google.com/maps/search/{a_est}+estacio" target="_blank" style="text-decoration:none;">📍</a>
-                </div>
-                <div style="margin-left: 24px; margin-bottom: 12px;">
-                    {bloc_a} {logos_a}
+                <div style="display: flex; gap: 12px; margin: 12px 0;">
+                    <div style="flex: 1; background: white; border: 1px solid #e0e0e0; border-radius: 10px; padding: 14px;">
+                        <div style="font-size: 12px; color: #2d9e6b; font-weight: bold;">Sortida</div>
+                        <div style="font-size: 20px; font-weight: bold; margin: 4px 0;">🚉 {s_est} <a href="https://www.google.com/maps/search/{s_est}+estacio" target="_blank" style="text-decoration:none; font-size:16px;">📍</a></div>
+                        <div style="margin-top: 6px;">{bloc_s} {logos_s}</div>
+                    </div>
+                    <div style="flex: 1; background: white; border: 1px solid #e0e0e0; border-radius: 10px; padding: 14px;">
+                        <div style="font-size: 12px; color: #2d9e6b; font-weight: bold;">Arribada</div>
+                        <div style="font-size: 20px; font-weight: bold; margin: 4px 0;">🏁 {a_est} <a href="https://www.google.com/maps/search/{a_est}+estacio" target="_blank" style="text-decoration:none; font-size:16px;">📍</a></div>
+                        <div style="margin-top: 6px;">{bloc_a} {logos_a}</div>
+                    </div>
                 </div>
             ''', unsafe_allow_html=True)
 
-        # MÈTRIQUES
-        st.markdown(f"""
-            <div style="display: flex; gap: 30px; margin: 15px 0; font-size: 20px;">
-                <span>📏 <b>{row[cols['km']]} km</b></span>
-                <span>📈 <b>{row[cols['desn']]} m</b></span>
-                <span>🧗 <b>{row[cols['dif']]}</b></span>
-            </div>
-        """, unsafe_allow_html=True)
-
-        # PUNTS D'INTERÈS
-        if cols["punts"] and pd.notna(row[cols["punts"]]):
-            st.markdown(punts_interes_html(row[cols["punts"]]), unsafe_allow_html=True)
-
         # MAPA GPX
-        if pd.notna(row[cols["id"]]):
+        if ruta_id:
             lat_s = row[cols["lat_s"]] if cols["lat_s"] and pd.notna(row[cols["lat_s"]]) else None
             lng_s = row[cols["lng_s"]] if cols["lng_s"] and pd.notna(row[cols["lng_s"]]) else None
             lat_a = row[cols["lat_a"]] if cols["lat_a"] and pd.notna(row[cols["lat_a"]]) else None
             lng_a = row[cols["lng_a"]] if cols["lng_a"] and pd.notna(row[cols["lng_a"]]) else None
-            mostrar_mapa_gpx(row[cols["id"]], lat_s, lng_s, lat_a, lng_a)
+            mostrar_mapa_gpx(ruta_id, lat_s, lng_s, lat_a, lng_a)
+
+        # PUNTS D'INTERÈS
+        elements_str = row[cols["elements"]] if cols["elements"] and pd.notna(row[cols["elements"]]) else ""
+        cats_str = row[cols["cats"]] if cols["cats"] and pd.notna(row[cols["cats"]]) else ""
+        if elements_str:
+            st.markdown(punts_interes_html(elements_str, cats_str), unsafe_allow_html=True)
 
         # WIKILOC
         if pd.notna(row[cols["wiki"]]):
-            st.markdown(f'<a href="{row[cols["wiki"]]}" target="_blank" style="background-color: #4CAF50; color: white; padding: 10px 20px; border-radius: 8px; text-decoration: none; font-size: 18px; font-weight: bold; display: inline-block; margin: 10px 0;">🔗 Veure a Wikiloc</a>', unsafe_allow_html=True)
+            st.markdown(f'<a href="{row[cols["wiki"]]}" target="_blank" style="background-color: #4CAF50; color: white; padding: 10px 20px; border-radius: 8px; text-decoration: none; font-size: 16px; font-weight: bold; display: inline-block; margin: 12px 0;">🔗 Veure a Wikiloc</a>', unsafe_allow_html=True)
 
-        st.markdown(f'<div style="font-size: 16px; color: #444;">📍 <b>Comarca:</b> {row[cols["comarca"]]} | 🌲 <b>Espai:</b> {row[cols["espai"]]}</div>', unsafe_allow_html=True)
-        st.markdown("<hr style='margin: 25px 0; opacity: 0.2;'>", unsafe_allow_html=True)
+        st.markdown(f'<div style="font-size: 14px; color: #888; margin-top: 8px;">📍 <b>Comarca:</b> {row[cols["comarca"]]} &nbsp;|&nbsp; 🌲 <b>Espai:</b> {row[cols["espai"]]}</div>', unsafe_allow_html=True)
+        st.markdown("<hr style='margin: 30px 0; opacity: 0.15;'>", unsafe_allow_html=True)
 
 except Exception as e:
     st.error(f"S'ha produït un error: {e}")
