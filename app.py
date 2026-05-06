@@ -261,6 +261,8 @@ try:
         "lng_s":    buscar_col(["lng_sortida", "lng_s"]),
         "lat_a":    buscar_col(["lat_arribada", "lat_a"]),
         "lng_a":    buscar_col(["lng_arribada", "lng_a"]),
+        "baixada":  buscar_col(["baixada"]),
+        "tipus":    buscar_col(["tipus"]),
     }
 
     df = df_raw.dropna(subset=[cols["ruta"]]).copy()
@@ -358,19 +360,40 @@ try:
             ''', unsafe_allow_html=True)
 
         # MÈTRIQUES
+        # MÈTRIQUES
+        tipus = str(row[cols["tipus"]]).strip().lower() if cols.get("tipus") and pd.notna(row[cols["tipus"]]) else ""
+        desn_pujada = row[cols["desn"]] if cols["desn"] and pd.notna(row[cols["desn"]]) else 0
+        desn_baixada = row[cols["baixada"]] if cols.get("baixada") and pd.notna(row[cols["baixada"]]) else 0
+
+        if "circular" in tipus:
+            desn_html = f'''
+                <div style="flex: 1; background: white; border: 1px solid #e0e0e0; border-radius: 10px; padding: 14px; text-align: center;">
+                    <div style="font-size: 16px; color: #888;">Desnivell</div>
+                    <div style="font-size: 28px; font-weight: bold; color: #111;">📈 +/- {desn_pujada} m</div>
+                </div>
+            '''
+        else:
+            desn_html = f'''
+                <div style="flex: 1; background: white; border: 1px solid #e0e0e0; border-radius: 10px; padding: 14px; text-align: center;">
+                    <div style="font-size: 16px; color: #888;">Desnivell pujada</div>
+                    <div style="font-size: 28px; font-weight: bold; color: #111;">📈 +{desn_pujada} m</div>
+                </div>
+                <div style="flex: 1; background: white; border: 1px solid #e0e0e0; border-radius: 10px; padding: 14px; text-align: center;">
+                    <div style="font-size: 16px; color: #888;">Desnivell baixada</div>
+                    <div style="font-size: 28px; font-weight: bold; color: #111;">📉 -{desn_baixada} m</div>
+                </div>
+            '''
+
         st.markdown(f'''
             <div style="display: flex; gap: 12px; margin: 12px 0;">
                 <div style="flex: 1; background: white; border: 1px solid #e0e0e0; border-radius: 10px; padding: 14px; text-align: center;">
                     <div style="font-size: 16px; color: #888;">Distància</div>
-                    <div style="font-size: 24px; font-weight: bold; color: #111;">📏 {row[cols["km"]]} km</div>
+                    <div style="font-size: 28px; font-weight: bold; color: #111;">📏 {row[cols["km"]]} km</div>
                 </div>
-                <div style="flex: 1; background: white; border: 1px solid #e0e0e0; border-radius: 10px; padding: 14px; text-align: center;">
-                    <div style="font-size: 16px; color: #888;">Desnivell</div>
-                    <div style="font-size: 24px; font-weight: bold; color: #111;">📈 +{row[cols["desn"]]} m</div>
-                </div>
+                {desn_html}
                 <div style="flex: 1; background: white; border: 1px solid #e0e0e0; border-radius: 10px; padding: 14px; text-align: center;">
                     <div style="font-size: 16px; color: #888;">Dificultat</div>
-                    <div style="font-size: 24px; font-weight: bold; color: #111;">🧗 {row[cols["dif"]]}</div>
+                    <div style="font-size: 28px; font-weight: bold; color: #111;">🧗 {row[cols["dif"]]}</div>
                 </div>
             </div>
         ''', unsafe_allow_html=True)
