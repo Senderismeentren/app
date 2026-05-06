@@ -335,7 +335,7 @@ try:
                     <img src="{imatge_url}" style="width: 100%; height: 220px; object-fit: cover; display: block;">
                     <div style="position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(transparent, rgba(0,0,0,0.75)); padding: 20px;">
                         <span style="background: {COLOR_VERD}; color: white; font-size: 20px; font-weight: bold; padding: 6px 18px; border-radius: 20px;">RUTA {ruta_id}</span>
-                        <div style="margin-top: 10px; font-size: 28px; font-weight: bold; color: #000000;">
+                        <div style="margin-top: 10px; font-size: 36px; font-weight: bold; color: #ffffff;">
                             {s_est} &nbsp;→&nbsp; {a_est}
                         </div>
                     </div>
