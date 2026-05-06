@@ -178,7 +178,7 @@ def punts_interes_html(elements_str, categories_str):
     grid = "".join(targetes)
     return (
         "<div style=\"margin-top:16px;\">"
-        "<div style=\"font-size:16px;font-weight:bold;color:#333;margin-bottom:10px;\">📌 Punts d'interès</div>"
+        "<div style=\"font-size:24px;font-weight:bold;color:#333;margin-bottom:10px;\">📌 Punts d'interès</div>"
         "<div style=\"display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;\">"
         f"{grid}"
         "</div></div>"
