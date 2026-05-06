@@ -154,7 +154,7 @@ def bloc_estacio_html(op_str, linies_str):
     for op in operadors:
         info = OPERADORS_INFO.get(op, OPERADORS_INFO["rodalies"])
         logo_op = f'<img src="{info["logo"]}" width="{LOGO_SIZE}" style="vertical-align:middle;margin-right:4px;">' if info.get("logo") else ""
-        horari = f'<a href="{info["url"]}" target="_blank" style="font-size:13px;color:{COLOR_NEGRE};text-decoration:none;font-weight:bold;margin-left:6px;">HORARI</a>'
+        horari = f'<a href="{info["url"]}" target="_blank" style="font-size:13px;color:{COLOR_BLAU};text-decoration:none;font-weight:bold;margin-left:6px;">HORARI</a>'
         parts.append(f'{logo_op}{logos_linies}{horari}')
     return " ".join(parts)
 
@@ -383,7 +383,7 @@ try:
             st.markdown(f'''
                 <div style="display: flex; gap: 12px; margin: 12px 0;">
                     <div style="flex: 1; background: white; border: 1px solid #e0e0e0; border-radius: 10px; padding: 14px;">
-                        <div style="font-size: 16px; color: {COLOR_VERD}; font-weight: bold;">Estació de sortida/arribada</div>
+                        <div style="font-size: 20px; color: {COLOR_VERD}; font-weight: bold;">Estació de sortida/arribada</div>
                         <div style="font-size: 22px; font-weight: bold; margin: 4px 0;">🚉 <a href="https://www.google.com/maps/search/{s_est}+estacio" target="_blank" style="text-decoration:none;color:#111;">{s_est}</a></div>
                         <div style="margin-top: 6px;">{bloc_s}</div>
                     </div>
@@ -393,12 +393,12 @@ try:
             st.markdown(f'''
                 <div style="display: flex; gap: 12px; margin: 12px 0;">
                     <div style="flex: 1; background: white; border: 1px solid #e0e0e0; border-radius: 10px; padding: 14px;">
-                        <div style="font-size: 16px; color: {COLOR_VERD}; font-weight: bold;">Estació de sortida</div>
+                        <div style="font-size: 20px; color: {COLOR_VERD}; font-weight: bold;">Estació de sortida</div>
                         <div style="font-size: 22px; font-weight: bold; margin: 4px 0;">🚉 <a href="https://www.google.com/maps/search/{s_est}+estacio" target="_blank" style="text-decoration:none;color:#111;">{s_est}</a></div>
                         <div style="margin-top: 6px;">{bloc_s}</div>
                     </div>
                     <div style="flex: 1; background: white; border: 1px solid #e0e0e0; border-radius: 10px; padding: 14px;">
-                        <div style="font-size: 16px; color: {COLOR_VERD}; font-weight: bold;">Estació d'arribada</div>
+                        <div style="font-size: 20px; color: {COLOR_VERD}; font-weight: bold;">Estació d'arribada</div>
                         <div style="font-size: 22px; font-weight: bold; margin: 4px 0;">🏁 <a href="https://www.google.com/maps/search/{a_est}+estacio" target="_blank" style="text-decoration:none;color:#111;">{a_est}</a></div>
                         <div style="margin-top: 6px;">{bloc_a}</div>
                     </div>
