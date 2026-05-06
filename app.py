@@ -397,12 +397,12 @@ try:
             st.markdown(f'''
                 <div style="display: flex; gap: 12px; margin: 12px 0;">
                     <div style="flex: 1; background: white; border: 1px solid #e0e0e0; border-radius: 10px; padding: 14px;">
-                        <div style="font-size: 18px; color: #2d9e6b; font-weight: bold;">Sortida</div>
+                        <div style="font-size: 18px; color: #2d9e6b; font-weight: bold;">Estació de sortida</div>
                         <div style="font-size: 22px; font-weight: bold; margin: 4px 0;">🚉 {s_est} <a href="https://www.google.com/maps/search/{s_est}+estacio" target="_blank" style="text-decoration:none; font-size:16px;">📍</a></div>
                         <div style="margin-top: 6px;">{bloc_s} {logos_s}</div>
                     </div>
                     <div style="flex: 1; background: white; border: 1px solid #e0e0e0; border-radius: 10px; padding: 14px;">
-                        <div style="font-size: 18px; color: #2d9e6b; font-weight: bold;">Arribada</div>
+                        <div style="font-size: 18px; color: #2d9e6b; font-weight: bold;">Estació d'arribada</div>
                         <div style="font-size: 22px; font-weight: bold; margin: 4px 0;">🏁 {a_est} <a href="https://www.google.com/maps/search/{a_est}+estacio" target="_blank" style="text-decoration:none; font-size:16px;">📍</a></div>
                         <div style="margin-top: 6px;">{bloc_a} {logos_a}</div>
                     </div>
