@@ -362,15 +362,15 @@ try:
             <div style="display: flex; gap: 12px; margin: 12px 0;">
                 <div style="flex: 1; background: white; border: 1px solid #e0e0e0; border-radius: 10px; padding: 14px; text-align: center;">
                     <div style="font-size: 18px; color: #888;">Distància</div>
-                    <div style="font-size: 22px; font-weight: bold; color: #111;">📏 {row[cols["km"]]} km</div>
+                    <div style="font-size: 22px; font-weight: bold; color: #111;"> {row[cols["km"]]} km</div>
                 </div>
                 <div style="flex: 1; background: white; border: 1px solid #e0e0e0; border-radius: 10px; padding: 14px; text-align: center;">
                     <div style="font-size: 18px; color: #888;">Desnivell</div>
-                    <div style="font-size: 22px; font-weight: bold; color: #111;">📈 +{row[cols["desn"]]} m</div>
+                    <div style="font-size: 22px; font-weight: bold; color: #111;"> +{row[cols["desn"]]} m</div>
                 </div>
                 <div style="flex: 1; background: white; border: 1px solid #e0e0e0; border-radius: 10px; padding: 14px; text-align: center;">
                     <div style="font-size: 18px; color: #888;">Dificultat</div>
-                    <div style="font-size: 22px; font-weight: bold; color: #111;">🧗 {row[cols["dif"]]}</div>
+                    <div style="font-size: 22px; font-weight: bold; color: #111;"> {row[cols["dif"]]}</div>
                 </div>
             </div>
         ''', unsafe_allow_html=True)
