@@ -1,5 +1,5 @@
 # ============================================================
-# SENDERISME EN TREN — v11
+# SENDERISME EN TREN — v12
 # ============================================================
 
 import streamlit as st
@@ -253,6 +253,8 @@ try:
         "comarca":  buscar_col(["comarca"]),
         "espai":    buscar_col(["espai_natural"]),
         "desn":     buscar_col(["desnivell_positiu", "desnivell"]),
+        "baixada":  buscar_col(["baixada"]),
+        "tipus":    buscar_col(["tipus"]),
         "dif":      buscar_col(["dificultat"]),
         "wiki":     buscar_col(["enllaç_wikiloc", "wikiloc"]),
         "elements": buscar_col(["elements_interès", "elements_interes"]),
@@ -261,14 +263,14 @@ try:
         "lng_s":    buscar_col(["lng_sortida", "lng_s"]),
         "lat_a":    buscar_col(["lat_arribada", "lat_a"]),
         "lng_a":    buscar_col(["lng_arribada", "lng_a"]),
-        "baixada":  buscar_col(["baixada"]),
-        "tipus":    buscar_col(["tipus"]),
     }
 
     df = df_raw.dropna(subset=[cols["ruta"]]).copy()
     df[cols["km"]] = pd.to_numeric(df[cols["km"]].astype(str).str.replace(',', '.'), errors='coerce').fillna(0)
     if cols["desn"]:
         df[cols["desn"]] = pd.to_numeric(df[cols["desn"]].astype(str).str.replace(',', '.'), errors='coerce').fillna(0)
+    if cols["baixada"]:
+        df[cols["baixada"]] = pd.to_numeric(df[cols["baixada"]].astype(str).str.replace(',', '.'), errors='coerce').fillna(0)
 
     def get_unique(col_name):
         if col_name and col_name in df.columns:
@@ -323,9 +325,11 @@ try:
         ruta_id = int(row[cols["id"]]) if pd.notna(row[cols["id"]]) else None
         nom_ruta = row[cols["ruta"]]
         desc = str(row[cols["desc"]]).strip() if cols["desc"] and pd.notna(row[cols["desc"]]) else ""
-
         s_est = str(row[cols["sortida"]]).strip()
         a_est = str(row[cols["arribada"]]).strip()
+        tipus = str(row[cols["tipus"]]).strip().lower() if cols["tipus"] and pd.notna(row[cols["tipus"]]) else ""
+        desn_pujada = row[cols["desn"]] if cols["desn"] and pd.notna(row[cols["desn"]]) else 0
+        desn_baixada = row[cols["baixada"]] if cols["baixada"] and pd.notna(row[cols["baixada"]]) else 0
 
         # CAPÇALERA DE LA RUTA
         imatge_url = BASE_IMATGE_URL.format(id=ruta_id) if ruta_id else None
@@ -337,7 +341,7 @@ try:
                     <img src="{imatge_url}" style="width: 100%; height: 220px; object-fit: cover; display: block;">
                     <div style="position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(transparent, rgba(0,0,0,0.75)); padding: 20px;">
                         <span style="background: {COLOR_VERD}; color: white; font-size: 20px; font-weight: bold; padding: 6px 18px; border-radius: 20px;">RUTA {ruta_id}</span>
-                        <div style="margin-top: 10px; font-size: 36px; font-weight: bold; color: #ffffff;">
+                        <div style="margin-top: 10px; font-size: 32px; font-weight: bold; color: #ffffff;">
                             {s_est} &nbsp;→&nbsp; {a_est}
                         </div>
                     </div>
@@ -351,7 +355,7 @@ try:
             st.markdown(f'''
                 <div style="background: #f0f2f6; border-radius: 12px; padding: 16px 20px; margin-top: 30px; margin-bottom: 10px;">
                     <span style="background: {COLOR_VERD}; color: white; font-size: 20px; font-weight: bold; padding: 6px 18px; border-radius: 20px;">RUTA {ruta_id}</span>
-                    <div style="margin-top: 10px; font-size: 28px; font-weight: bold; color: #111;">
+                    <div style="margin-top: 10px; font-size: 32px; font-weight: bold; color: #111;">
                         {s_est} &nbsp;→&nbsp; {a_est}
                     </div>
                     <h2 style="margin: 8px 0 4px 0; font-size: 24px; color: #111;">{nom_ruta}</h2>
@@ -360,27 +364,22 @@ try:
             ''', unsafe_allow_html=True)
 
         # MÈTRIQUES
-        # MÈTRIQUES
-        tipus = str(row[cols["tipus"]]).strip().lower() if cols.get("tipus") and pd.notna(row[cols["tipus"]]) else ""
-        desn_pujada = row[cols["desn"]] if cols["desn"] and pd.notna(row[cols["desn"]]) else 0
-        desn_baixada = row[cols["baixada"]] if cols.get("baixada") and pd.notna(row[cols["baixada"]]) else 0
-
         if "circular" in tipus:
             desn_html = f'''
                 <div style="flex: 1; background: white; border: 1px solid #e0e0e0; border-radius: 10px; padding: 14px; text-align: center;">
                     <div style="font-size: 16px; color: #888;">Desnivell</div>
-                    <div style="font-size: 28px; font-weight: bold; color: #111;">📈 +/- {desn_pujada} m</div>
+                    <div style="font-size: 22px; font-weight: bold; color: #111;">📈 +/- {desn_pujada} m</div>
                 </div>
             '''
         else:
             desn_html = f'''
                 <div style="flex: 1; background: white; border: 1px solid #e0e0e0; border-radius: 10px; padding: 14px; text-align: center;">
                     <div style="font-size: 16px; color: #888;">Desnivell pujada</div>
-                    <div style="font-size: 28px; font-weight: bold; color: #111;">📈 +{desn_pujada} m</div>
+                    <div style="font-size: 22px; font-weight: bold; color: #111;">📈 +{desn_pujada} m</div>
                 </div>
                 <div style="flex: 1; background: white; border: 1px solid #e0e0e0; border-radius: 10px; padding: 14px; text-align: center;">
                     <div style="font-size: 16px; color: #888;">Desnivell baixada</div>
-                    <div style="font-size: 28px; font-weight: bold; color: #111;">📉 -{desn_baixada} m</div>
+                    <div style="font-size: 22px; font-weight: bold; color: #111;">📉 -{desn_baixada} m</div>
                 </div>
             '''
 
@@ -388,12 +387,12 @@ try:
             <div style="display: flex; gap: 12px; margin: 12px 0;">
                 <div style="flex: 1; background: white; border: 1px solid #e0e0e0; border-radius: 10px; padding: 14px; text-align: center;">
                     <div style="font-size: 16px; color: #888;">Distància</div>
-                    <div style="font-size: 28px; font-weight: bold; color: #111;">📏 {row[cols["km"]]} km</div>
+                    <div style="font-size: 22px; font-weight: bold; color: #111;">📏 {row[cols["km"]]} km</div>
                 </div>
                 {desn_html}
                 <div style="flex: 1; background: white; border: 1px solid #e0e0e0; border-radius: 10px; padding: 14px; text-align: center;">
                     <div style="font-size: 16px; color: #888;">Dificultat</div>
-                    <div style="font-size: 28px; font-weight: bold; color: #111;">🧗 {row[cols["dif"]]}</div>
+                    <div style="font-size: 22px; font-weight: bold; color: #111;">🧗 {row[cols["dif"]]}</div>
                 </div>
             </div>
         ''', unsafe_allow_html=True)
@@ -406,7 +405,7 @@ try:
             st.markdown(f'''
                 <div style="display: flex; gap: 12px; margin: 12px 0;">
                     <div style="flex: 1; background: white; border: 1px solid #e0e0e0; border-radius: 10px; padding: 14px;">
-                        <div style="font-size: 20px; color: {COLOR_VERD}; font-weight: bold;">Estació de sortida/arribada</div>
+                        <div style="font-size: 18px; color: {COLOR_VERD}; font-weight: bold;">Estació de sortida/arribada</div>
                         <div style="font-size: 22px; font-weight: bold; margin: 4px 0;">🚉 <a href="https://www.google.com/maps/search/{s_est}+estacio" target="_blank" style="text-decoration:none;color:#111;">{s_est}</a></div>
                         <div style="margin-top: 6px;">{bloc_s}</div>
                     </div>
@@ -416,12 +415,12 @@ try:
             st.markdown(f'''
                 <div style="display: flex; gap: 12px; margin: 12px 0;">
                     <div style="flex: 1; background: white; border: 1px solid #e0e0e0; border-radius: 10px; padding: 14px;">
-                        <div style="font-size: 20px; color: {COLOR_VERD}; font-weight: bold;">Estació de sortida</div>
+                        <div style="font-size: 18px; color: {COLOR_VERD}; font-weight: bold;">Estació de sortida</div>
                         <div style="font-size: 22px; font-weight: bold; margin: 4px 0;">🚉 <a href="https://www.google.com/maps/search/{s_est}+estacio" target="_blank" style="text-decoration:none;color:#111;">{s_est}</a></div>
                         <div style="margin-top: 6px;">{bloc_s}</div>
                     </div>
                     <div style="flex: 1; background: white; border: 1px solid #e0e0e0; border-radius: 10px; padding: 14px;">
-                        <div style="font-size: 20px; color: {COLOR_VERD}; font-weight: bold;">Estació d'arribada</div>
+                        <div style="font-size: 18px; color: {COLOR_VERD}; font-weight: bold;">Estació d'arribada</div>
                         <div style="font-size: 22px; font-weight: bold; margin: 4px 0;">🏁 <a href="https://www.google.com/maps/search/{a_est}+estacio" target="_blank" style="text-decoration:none;color:#111;">{a_est}</a></div>
                         <div style="margin-top: 6px;">{bloc_a}</div>
                     </div>
