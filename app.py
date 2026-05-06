@@ -1,5 +1,5 @@
 # ============================================================
-# SENDERISME EN TREN — v9
+# SENDERISME EN TREN — v9.1
 # ============================================================
 
 import streamlit as st
@@ -321,6 +321,10 @@ try:
         nom_ruta = row[cols["ruta"]]
         desc = str(row[cols["desc"]]).strip() if cols["desc"] and pd.notna(row[cols["desc"]]) else ""
 
+        # Variables estacions (cal abans de la capçalera)
+        s_est = str(row[cols["sortida"]]).strip()
+        a_est = str(row[cols["arribada"]]).strip()
+
         # CAPÇALERA DE LA RUTA
         imatge_url = BASE_IMATGE_URL.format(id=ruta_id) if ruta_id else None
         te_imatge = imatge_existeix(imatge_url) if imatge_url else False
@@ -329,8 +333,11 @@ try:
             st.markdown(f'''
                 <div style="position: relative; border-radius: 12px; overflow: hidden; margin-top: 30px; margin-bottom: 0;">
                     <img src="{imatge_url}" style="width: 100%; height: 200px; object-fit: cover; display: block;">
-                    <div style="position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(transparent, rgba(0,0,0,0.7)); padding: 20px;">
-                        <span style="background: #2d9e6b; color: white; font-size: 12px; font-weight: bold; padding: 3px 10px; border-radius: 20px;">RUTA {ruta_id}</span>
+                    <div style="position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(transparent, rgba(0,0,0,0.75)); padding: 20px;">
+                        <span style="background: #2d9e6b; color: white; font-size: 16px; font-weight: bold; padding: 5px 14px; border-radius: 20px;">RUTA {ruta_id}</span>
+                        <div style="margin-top: 8px; font-size: 22px; font-weight: bold; color: white;">
+                            🚉 {s_est} &nbsp;→&nbsp; 🏁 {a_est}
+                        </div>
                     </div>
                 </div>
                 <div style="background: white; border: 1px solid #e0e0e0; border-top: none; border-radius: 0 0 12px 12px; padding: 16px 20px; margin-bottom: 10px;">
@@ -341,7 +348,10 @@ try:
         else:
             st.markdown(f'''
                 <div style="background: #f0f2f6; border-radius: 12px; padding: 16px 20px; margin-top: 30px; margin-bottom: 10px;">
-                    <span style="background: #2d9e6b; color: white; font-size: 12px; font-weight: bold; padding: 3px 10px; border-radius: 20px;">RUTA {ruta_id}</span>
+                    <span style="background: #2d9e6b; color: white; font-size: 16px; font-weight: bold; padding: 5px 14px; border-radius: 20px;">RUTA {ruta_id}</span>
+                    <div style="margin-top: 8px; font-size: 22px; font-weight: bold; color: #111;">
+                        🚉 {s_est} &nbsp;→&nbsp; 🏁 {a_est}
+                    </div>
                     <h2 style="margin: 8px 0 4px 0; font-size: 24px; color: #111;">{nom_ruta}</h2>
                     <p style="margin: 0; font-size: 14px; color: #666;">{desc}</p>
                 </div>
@@ -366,8 +376,6 @@ try:
         ''', unsafe_allow_html=True)
 
         # ESTACIONS
-        s_est = str(row[cols["sortida"]]).strip()
-        a_est = str(row[cols["arribada"]]).strip()
         op_s_raw = str(row[cols["op_s"]]) if pd.notna(row[cols["op_s"]]) else "rodalies"
         op_a_raw = str(row[cols["op_a"]]) if pd.notna(row[cols["op_a"]]) else "rodalies"
         bloc_s  = bloc_operadors_html(op_s_raw)
