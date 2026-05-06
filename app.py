@@ -166,23 +166,22 @@ def punts_interes_html(elements_str, categories_str):
     for i, element in enumerate(elements):
         categoria = categories[i] if i < len(categories) else ""
         icona = CATEGORIES_ICONES.get(categoria, "📍")
-        targetes.append(f'''
-            <div style="display: flex; align-items: center; gap: 10px; background: #f8f9fa; 
-                        border-radius: 10px; padding: 10px 14px; font-size: 14px; color: #333;">
-                <span style="font-size: 22px;">{icona}</span>
-                <span>{element}</span>
-            </div>
-        ''')
+        targetes.append(
+            "<div style=\"display:flex;align-items:center;gap:10px;background:#f8f9fa;"
+            "border-radius:10px;padding:10px 14px;font-size:14px;color:#333;\">"
+            f"<span style=\"font-size:22px;\">{icona}</span>"
+            f"<span>{element}</span>"
+            "</div>"
+        )
 
     grid = "".join(targetes)
-    return f'''
-        <div style="margin-top: 16px;">
-            <div style="font-size: 16px; font-weight: bold; color: #333; margin-bottom: 10px;">📌 Punts d'interès</div>
-            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px;">
-                {grid}
-            </div>
-        </div>
-    '''
+    return (
+        "<div style=\"margin-top:16px;\">"
+        "<div style=\"font-size:16px;font-weight:bold;color:#333;margin-bottom:10px;\">📌 Punts d'interès</div>"
+        "<div style=\"display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;\">"
+        f"{grid}"
+        "</div></div>"
+    )
 
 # --- FUNCIÓ: carrega i mostra el mapa GPX ---
 def mostrar_mapa_gpx(ruta_id, lat_s, lng_s, lat_a, lng_a):
