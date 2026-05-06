@@ -336,7 +336,7 @@ try:
                     <div style="position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(transparent, rgba(0,0,0,0.75)); padding: 20px;">
                         <span style="background: #2d9e6b; color: white; font-size: 16px; font-weight: bold; padding: 5px 14px; border-radius: 20px;">RUTA {ruta_id}</span>
                         <div style="margin-top: 8px; font-size: 38px; font-weight: bold; color: white;">
-                            🚉 {s_est} &nbsp;→&nbsp; 🏁 {a_est}
+                            {s_est} &nbsp;→&nbsp; {a_est}
                         </div>
                     </div>
                 </div>
