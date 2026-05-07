@@ -1,11 +1,10 @@
 # ============================================================
-# SENDERISME EN TREN — v14
+# SENDERISME EN TREN — v15
 # ============================================================
 
 import streamlit as st
 import pandas as pd
 import re
-import os
 import requests
 import folium
 from streamlit_folium import st_folium
@@ -66,7 +65,6 @@ OPERADORS_INFO = {
     },
 }
 
-# --- DICCIONARI DE CATEGORIES ---
 CATEGORIES_ICONES = {
     "100 cims": "🏔️", "búnquer": "🪖", "castell": "🏰", "cova": "🕳️",
     "dolmen": "🪨", "ermita": "⛪", "ferrocarril": "🚂", "jaciment ibèric": "🏛️",
@@ -77,7 +75,6 @@ CATEGORIES_ICONES = {
     "riu": "🏞️", "pantà": "💦",
 }
 
-# --- COLOR PER DIFICULTAT ---
 DIFICULTAT_COLOR = {
     "fàcil": "#1D9E75", "facil": "#1D9E75",
     "mitjana": "#EF9F27", "mitja": "#EF9F27",
@@ -93,7 +90,6 @@ SHEET_NAME      = "Rutes"
 COLOR_BLAU      = "#007bff"
 COLOR_VERD      = "#2d9e6b"
 
-# --- FUNCIÓ: carrega dades ---
 @st.cache_data(ttl=300)
 def carregar_dades():
     scopes = ["https://www.googleapis.com/auth/spreadsheets",
@@ -103,7 +99,6 @@ def carregar_dades():
     full   = client.open_by_key(SHEET_ID).worksheet(SHEET_NAME)
     return pd.DataFrame(full.get_all_records())
 
-# --- FUNCIÓ: parse coordenades ---
 def parse_coord(coord_str):
     try:
         parts = str(coord_str).split(",")
@@ -113,7 +108,6 @@ def parse_coord(coord_str):
         pass
     return None, None
 
-# --- FUNCIÓ: logos línies ---
 def logos_linies_html(linies_str):
     if not linies_str or str(linies_str).strip().lower() in ("nan", ""):
         return ""
@@ -123,21 +117,19 @@ def logos_linies_html(linies_str):
         for l in linies
     ])
 
-# --- FUNCIÓ: bloc estació ---
 def bloc_estacio_html(op_str, linies_str):
     if not op_str or str(op_str).strip().lower() in ("nan", ""):
         op_str = "rodalies"
-    operadors = [o.strip().lower() for o in re.split(r";", str(op_str)) if o.strip()]
+    operadors    = [o.strip().lower() for o in re.split(r";", str(op_str)) if o.strip()]
     logos_linies = logos_linies_html(linies_str)
     parts = []
     for op in operadors:
-        info = OPERADORS_INFO.get(op, OPERADORS_INFO["rodalies"])
+        info    = OPERADORS_INFO.get(op, OPERADORS_INFO["rodalies"])
         logo_op = f'<img src="{info["logo"]}" width="{LOGO_SIZE}" style="vertical-align:middle;margin-right:3px;">' if info.get("logo") else ""
         horari  = f'<a href="{info["url"]}" target="_blank" style="font-size:12px;color:{COLOR_BLAU};text-decoration:none;font-weight:bold;margin-left:5px;">HORARI</a>'
         parts.append(f'{logo_op}{logos_linies}{horari}')
     return " ".join(parts)
 
-# --- FUNCIÓ: punts d'interès ---
 def punts_interes_html(elements_str, categories_str):
     if not elements_str or str(elements_str).strip().lower() in ("nan", ""):
         return ""
@@ -146,7 +138,7 @@ def punts_interes_html(elements_str, categories_str):
     targetes = []
     for i, element in enumerate(elements):
         categoria = categories[i] if i < len(categories) else ""
-        icona = CATEGORIES_ICONES.get(categoria, "📍")
+        icona     = CATEGORIES_ICONES.get(categoria, "📍")
         targetes.append(
             "<div style=\"display:flex;align-items:center;gap:8px;background:#f8f9fa;"
             "border-radius:8px;padding:7px 10px;font-size:13px;color:#333;\">"
@@ -160,11 +152,19 @@ def punts_interes_html(elements_str, categories_str):
         f"{grid}</div></div>"
     )
 
-# --- FUNCIÓ: mapa GPX individual ---
+def metric_box(label, value):
+    return (
+        "<div style=\"flex:1;background:white;border:0.5px solid #e0e0e0;border-radius:8px;"
+        "padding:5px 8px;display:flex;align-items:center;gap:8px;\">"
+        f"<div style=\"font-size:11px;color:#888;white-space:nowrap;\">{label}</div>"
+        f"<div style=\"font-size:14px;font-weight:bold;color:#333;white-space:nowrap;\">{value}</div>"
+        "</div>"
+    )
+
 def mostrar_mapa_gpx(ruta_id, lat_s, lng_s, lat_a, lng_a):
     gpx_url = BASE_GPX_URL.format(id=int(ruta_id))
     try:
-        resp = requests.get(gpx_url, timeout=5)
+        resp  = requests.get(gpx_url, timeout=5)
         if resp.status_code != 200:
             return False
         gpx   = gpxpy.parse(resp.text)
@@ -185,28 +185,39 @@ def mostrar_mapa_gpx(ruta_id, lat_s, lng_s, lat_a, lng_a):
     except:
         return False
 
-# --- FUNCIÓ: mapa general ---
 def mostrar_mapa_general(df_filtrat, cols):
-    punts_mapa = []
+    punts_mapa = {}
     for _, row in df_filtrat.iterrows():
         lat, lng = parse_coord(row[cols["coord_s"]]) if cols.get("coord_s") and pd.notna(row[cols["coord_s"]]) else (None, None)
         if lat and lng:
-            nom = str(row[cols["ruta"]])
-            rid = int(row[cols["id"]]) if pd.notna(row[cols["id"]]) else ""
-            punts_mapa.append((lat, lng, nom, rid))
+            estacio = str(row[cols["sortida"]]).strip()
+            nom     = str(row[cols["ruta"]])
+            rid     = int(row[cols["id"]]) if pd.notna(row[cols["id"]]) else ""
+            key     = (lat, lng, estacio)
+            if key not in punts_mapa:
+                punts_mapa[key] = []
+            punts_mapa[key].append(f"Ruta {rid}: {nom}")
     if not punts_mapa:
         st.info("No hi ha coordenades disponibles per mostrar al mapa.")
         return
-    centre = (sum(p[0] for p in punts_mapa) / len(punts_mapa),
-              sum(p[1] for p in punts_mapa) / len(punts_mapa))
+    lats   = [k[0] for k in punts_mapa]
+    lngs   = [k[1] for k in punts_mapa]
+    centre = (sum(lats) / len(lats), sum(lngs) / len(lngs))
     m = folium.Map(location=centre, zoom_start=9, tiles="OpenStreetMap")
-    for lat, lng, nom, rid in punts_mapa:
+    for (lat, lng, estacio), rutes in punts_mapa.items():
+        tooltip_text = f"{estacio}: " + " | ".join(rutes)
         folium.Marker(
             location=[lat, lng],
-            tooltip=f"Ruta {rid}: {nom}",
+            tooltip=tooltip_text,
             icon=folium.Icon(color="blue", icon="train", prefix="fa")
         ).add_to(m)
-    st_folium(m, width=None, height=350, returned_objects=[])
+    resultat = st_folium(m, width=None, height=350, returned_objects=["last_object_clicked_tooltip"])
+    if resultat and resultat.get("last_object_clicked_tooltip"):
+        tooltip       = resultat["last_object_clicked_tooltip"]
+        estacio_clicada = tooltip.split(":")[0].strip()
+        if estacio_clicada != st.session_state.filtre_estacio:
+            st.session_state.filtre_estacio = estacio_clicada
+            st.rerun()
 
 # --- CÀRREGA DE DADES ---
 try:
@@ -259,7 +270,7 @@ try:
     def get_unique(col_name):
         if col_name and col_name in df.columns:
             vals = df[col_name].dropna().astype(str)
-            res = set()
+            res  = set()
             for v in vals:
                 for s in re.split(";|,", v):
                     if s.strip(): res.add(s.strip())
@@ -305,9 +316,21 @@ try:
     if cols["desn"]:
         f = f[(f[cols["desn"]] >= sel_desn[0]) & (f[cols["desn"]] <= sel_desn[1])]
 
+    # --- ESTAT FILTRE ESTACIÓ ---
+    if "filtre_estacio" not in st.session_state:
+        st.session_state.filtre_estacio = None
+
     # --- MAPA GENERAL DESPLEGABLE ---
     with st.expander(f"🗺️ Veure mapa de rutes ({len(f)})", expanded=False):
         mostrar_mapa_general(f, cols)
+
+    # --- FILTRE PER ESTACIÓ DES DEL MAPA ---
+    if st.session_state.filtre_estacio:
+        st.info(f"🚉 Filtrant per estació: **{st.session_state.filtre_estacio}**")
+        if st.button("✖ Treure filtre d'estació"):
+            st.session_state.filtre_estacio = None
+            st.rerun()
+        f = f[f[cols["sortida"]].astype(str).str.strip() == st.session_state.filtre_estacio]
 
     st.write(f"**Resultats: {len(f)} rutes**")
 
@@ -330,10 +353,10 @@ try:
         bloc_s = bloc_estacio_html(row[cols["op_s"]], row[cols["linia_s"]])
         bloc_a = bloc_estacio_html(row[cols["op_a"]], row[cols["linia_a"]])
 
-        # SEPARADOR ENTRE RUTES
+        # SEPARADOR
         st.markdown("<hr style='margin:20px 0 10px 0;border:none;border-top:3px solid #e0e0e0;'>", unsafe_allow_html=True)
 
-        # CAPÇALERA COMPACTA AMB COLOR DE DIFICULTAT
+        # CAPÇALERA
         st.markdown(
             f"<div style=\"border-left:4px solid {dif_color};background:#f8f9fa;border-radius:0 8px 8px 0;"
             f"padding:10px 14px;display:flex;align-items:center;gap:10px;\">"
@@ -350,34 +373,17 @@ try:
             unsafe_allow_html=True
         )
 
-        # MÈTRIQUES
+        # MÈTRIQUES COMPACTES
         if "circular" in tipus:
-            desn_html = (
-                "<div style=\"flex:1;background:white;border:0.5px solid #e0e0e0;border-radius:8px;padding:8px;text-align:center;\">"
-                "<div style=\"font-size:12px;color:#888;\">Desnivell</div>"
-                f"<div style=\"font-size:15px;font-weight:500;color:#111;\">+/- {desn_pujada} m</div>"
-                "</div>"
-            )
+            desn_html = metric_box("Desnivell", f"+/- {desn_pujada} m")
         else:
-            desn_html = (
-                "<div style=\"flex:1;background:white;border:0.5px solid #e0e0e0;border-radius:8px;padding:8px;text-align:center;\">"
-                "<div style=\"font-size:12px;color:#888;\">Pujada</div>"
-                f"<div style=\"font-size:15px;font-weight:500;color:#111;\">+{desn_pujada} m</div>"
-                "</div>"
-                "<div style=\"flex:1;background:white;border:0.5px solid #e0e0e0;border-radius:8px;padding:8px;text-align:center;\">"
-                "<div style=\"font-size:12px;color:#888;\">Baixada</div>"
-                f"<div style=\"font-size:15px;font-weight:500;color:#111;\">-{desn_baixada} m</div>"
-                "</div>"
-            )
+            desn_html = metric_box("Desnivell pujada", f"+{desn_pujada} m") + metric_box("Desnivell baixada", f"-{desn_baixada} m")
 
         st.markdown(
-            "<div style=\"display:flex;gap:8px;margin:6px 0;\">"
-            "<div style=\"flex:1;background:white;border:0.5px solid #e0e0e0;border-radius:8px;padding:8px;text-align:center;\">"
-            "<div style=\"font-size:12px;color:#888;\">Distància</div>"
-            f"<div style=\"font-size:15px;font-weight:500;color:#111;\">{row[cols['km']]} km</div>"
-            "</div>"
-            f"{desn_html}"
-            "</div>",
+            "<div style=\"display:flex;gap:6px;margin:6px 0;flex-wrap:wrap;\">"
+            + metric_box("Distància", f"{row[cols['km']]} km")
+            + desn_html
+            + "</div>",
             unsafe_allow_html=True
         )
 
