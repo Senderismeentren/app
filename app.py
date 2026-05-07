@@ -1,5 +1,5 @@
 # ============================================================
-# SENDERISME EN TREN — v13
+# SENDERISME EN TREN — v14
 # ============================================================
 
 import streamlit as st
@@ -87,7 +87,6 @@ DIFICULTAT_COLOR = {
 
 BASE_LOGO_LINIA = "https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/Logo-{linia}.svg"
 BASE_GPX_URL    = "https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/gpx/ruta-{id:03d}.gpx"
-BASE_IMATGE_URL = "https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/main/imatges/ruta-{id:03d}.jpg"
 LOGO_SIZE       = 18
 SHEET_ID        = "12SrgpFkVTowVdfjSMTprs-XBYR5zUKTr-uU3tyYeVEE"
 SHEET_NAME      = "Rutes"
@@ -104,13 +103,15 @@ def carregar_dades():
     full   = client.open_by_key(SHEET_ID).worksheet(SHEET_NAME)
     return pd.DataFrame(full.get_all_records())
 
-# --- FUNCIÓ: comprova imatge ---
-def imatge_existeix(url):
+# --- FUNCIÓ: parse coordenades ---
+def parse_coord(coord_str):
     try:
-        r = requests.head(url, timeout=3)
-        return r.status_code == 200
+        parts = str(coord_str).split(",")
+        if len(parts) == 2:
+            return float(parts[0].strip()), float(parts[1].strip())
     except:
-        return False
+        pass
+    return None, None
 
 # --- FUNCIÓ: logos línies ---
 def logos_linies_html(linies_str):
@@ -166,14 +167,12 @@ def mostrar_mapa_gpx(ruta_id, lat_s, lng_s, lat_a, lng_a):
         resp = requests.get(gpx_url, timeout=5)
         if resp.status_code != 200:
             return False
-        gpx  = gpxpy.parse(resp.text)
+        gpx   = gpxpy.parse(resp.text)
         punts = [(p.latitude, p.longitude) for t in gpx.tracks for s in t.segments for p in s.points]
         if not punts:
             return False
         centre = (sum(p[0] for p in punts) / len(punts), sum(p[1] for p in punts) / len(punts))
-        m = folium.Map(location=centre, tiles="OpenStreetMap")
-        m.fit_bounds([[min(p[0] for p in punts), min(p[1] for p in punts)],
-                      [max(p[0] for p in punts), max(p[1] for p in punts)]])
+        m = folium.Map(location=centre, zoom_start=13, tiles="OpenStreetMap")
         folium.PolyLine(punts, color=COLOR_BLAU, weight=4, opacity=0.9).add_to(m)
         if lat_s and lng_s:
             folium.Marker([lat_s, lng_s], tooltip="Sortida",
@@ -190,16 +189,17 @@ def mostrar_mapa_gpx(ruta_id, lat_s, lng_s, lat_a, lng_a):
 def mostrar_mapa_general(df_filtrat, cols):
     punts_mapa = []
     for _, row in df_filtrat.iterrows():
-        lat = row[cols["lat_s"]] if cols["lat_s"] and pd.notna(row[cols["lat_s"]]) else None
-        lng = row[cols["lng_s"]] if cols["lng_s"] and pd.notna(row[cols["lng_s"]]) else None
+        lat, lng = parse_coord(row[cols["coord_s"]]) if cols.get("coord_s") and pd.notna(row[cols["coord_s"]]) else (None, None)
         if lat and lng:
-            punts_mapa.append((float(lat), float(lng), str(row[cols["ruta"]]), int(row[cols["id"]]) if pd.notna(row[cols["id"]]) else ""))
+            nom = str(row[cols["ruta"]])
+            rid = int(row[cols["id"]]) if pd.notna(row[cols["id"]]) else ""
+            punts_mapa.append((lat, lng, nom, rid))
     if not punts_mapa:
         st.info("No hi ha coordenades disponibles per mostrar al mapa.")
         return
     centre = (sum(p[0] for p in punts_mapa) / len(punts_mapa),
               sum(p[1] for p in punts_mapa) / len(punts_mapa))
-    m = folium.Map(location=centre, tiles="OpenStreetMap", zoom_start=9)
+    m = folium.Map(location=centre, zoom_start=9, tiles="OpenStreetMap")
     for lat, lng, nom, rid in punts_mapa:
         folium.Marker(
             location=[lat, lng],
@@ -245,10 +245,8 @@ try:
         "wiki":     buscar_col(["enllaç_wikiloc", "wikiloc"]),
         "elements": buscar_col(["elements_interès", "elements_interes"]),
         "cats":     buscar_col(["categories_elements_interès", "categories_elements_interes"]),
-        "lat_s":    buscar_col(["lat_sortida", "lat_s"]),
-        "lng_s":    buscar_col(["lng_sortida", "lng_s"]),
-        "lat_a":    buscar_col(["lat_arribada", "lat_a"]),
-        "lng_a":    buscar_col(["lng_arribada", "lng_a"]),
+        "coord_s":  buscar_col(["coordenades_sortida"]),
+        "coord_a":  buscar_col(["coordenades_arribada"]),
     }
 
     df = df_raw.dropna(subset=[cols["ruta"]]).copy()
@@ -271,7 +269,7 @@ try:
     # --- FILTRES SIDEBAR ---
     st.sidebar.header("🔎 Filtres")
     st.sidebar.markdown(
-        f'<img src="https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/logo-100cims.svg" width="80" style="margin-bottom:5px;">',
+        '<img src="https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/logo-100cims.svg" width="80" style="margin-bottom:5px;">',
         unsafe_allow_html=True
     )
     sel_100cims = st.sidebar.checkbox("Rutes amb 100 Cims")
@@ -315,24 +313,30 @@ try:
 
     # --- BUCLE DE RUTES ---
     for _, row in f.iterrows():
-        ruta_id = int(row[cols["id"]]) if pd.notna(row[cols["id"]]) else None
-        nom_ruta = row[cols["ruta"]]
-        desc = str(row[cols["desc"]]).strip() if cols["desc"] and pd.notna(row[cols["desc"]]) else ""
-        s_est = str(row[cols["sortida"]]).strip()
-        a_est = str(row[cols["arribada"]]).strip()
-        dif_raw = str(row[cols["dif"]]).strip() if pd.notna(row[cols["dif"]]) else ""
-        dif_color = DIFICULTAT_COLOR.get(dif_raw.lower(), "#888888")
-        tipus = str(row[cols["tipus"]]).strip().lower() if cols["tipus"] and pd.notna(row[cols["tipus"]]) else ""
-        desn_pujada  = row[cols["desn"]]   if cols["desn"]   and pd.notna(row[cols["desn"]])   else 0
+        ruta_id      = int(row[cols["id"]]) if pd.notna(row[cols["id"]]) else None
+        nom_ruta     = row[cols["ruta"]]
+        desc         = str(row[cols["desc"]]).strip() if cols["desc"] and pd.notna(row[cols["desc"]]) else ""
+        s_est        = str(row[cols["sortida"]]).strip()
+        a_est        = str(row[cols["arribada"]]).strip()
+        dif_raw      = str(row[cols["dif"]]).strip() if pd.notna(row[cols["dif"]]) else ""
+        dif_color    = DIFICULTAT_COLOR.get(dif_raw.lower(), "#888888")
+        tipus        = str(row[cols["tipus"]]).strip().lower() if cols["tipus"] and pd.notna(row[cols["tipus"]]) else ""
+        desn_pujada  = row[cols["desn"]]    if cols["desn"]    and pd.notna(row[cols["desn"]])    else 0
         desn_baixada = row[cols["baixada"]] if cols["baixada"] and pd.notna(row[cols["baixada"]]) else 0
 
-        bloc_s  = bloc_estacio_html(row[cols["op_s"]], row[cols["linia_s"]])
-        bloc_a  = bloc_estacio_html(row[cols["op_a"]], row[cols["linia_a"]])
+        lat_s, lng_s = parse_coord(row[cols["coord_s"]]) if cols.get("coord_s") and pd.notna(row[cols["coord_s"]]) else (None, None)
+        lat_a, lng_a = parse_coord(row[cols["coord_a"]]) if cols.get("coord_a") and pd.notna(row[cols["coord_a"]]) else (None, None)
+
+        bloc_s = bloc_estacio_html(row[cols["op_s"]], row[cols["linia_s"]])
+        bloc_a = bloc_estacio_html(row[cols["op_a"]], row[cols["linia_a"]])
+
+        # SEPARADOR ENTRE RUTES
+        st.markdown("<hr style='margin:20px 0 10px 0;border:none;border-top:3px solid #e0e0e0;'>", unsafe_allow_html=True)
 
         # CAPÇALERA COMPACTA AMB COLOR DE DIFICULTAT
         st.markdown(
-            f"<div style=\"border-left:4px solid {dif_color};background:#f8f9fa;border-radius:0 8px 0 0;"
-            f"padding:10px 14px;display:flex;align-items:center;gap:10px;margin-top:14px;\">"
+            f"<div style=\"border-left:4px solid {dif_color};background:#f8f9fa;border-radius:0 8px 8px 0;"
+            f"padding:10px 14px;display:flex;align-items:center;gap:10px;\">"
             f"<div style=\"width:28px;height:28px;border-radius:50%;background:{dif_color};color:white;"
             f"font-size:13px;font-weight:500;display:flex;align-items:center;justify-content:center;"
             f"flex-shrink:0;\">{ruta_id}</div>"
@@ -421,10 +425,6 @@ try:
         # DESPLEGABLES
         with st.expander("🗺️ Mapa del recorregut"):
             if ruta_id:
-                lat_s = row[cols["lat_s"]] if cols["lat_s"] and pd.notna(row[cols["lat_s"]]) else None
-                lng_s = row[cols["lng_s"]] if cols["lng_s"] and pd.notna(row[cols["lng_s"]]) else None
-                lat_a = row[cols["lat_a"]] if cols["lat_a"] and pd.notna(row[cols["lat_a"]]) else None
-                lng_a = row[cols["lng_a"]] if cols["lng_a"] and pd.notna(row[cols["lng_a"]]) else None
                 if not mostrar_mapa_gpx(ruta_id, lat_s, lng_s, lat_a, lng_a):
                     st.info("Mapa no disponible per aquesta ruta.")
 
@@ -435,8 +435,6 @@ try:
                 st.markdown(punts_interes_html(elements_str, cats_str), unsafe_allow_html=True)
             else:
                 st.info("No hi ha punts d'interès registrats.")
-
-        st.markdown("<hr style='margin:12px 0;opacity:0.1;'>", unsafe_allow_html=True)
 
 except Exception as e:
     st.error(f"S'ha produït un error: {e}")
