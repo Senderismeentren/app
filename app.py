@@ -1,5 +1,5 @@
 # ============================================================
-# SENDERISME EN TREN — v15
+# SENDERISME EN TREN — v16
 # ============================================================
 
 import streamlit as st
@@ -84,11 +84,11 @@ DIFICULTAT_COLOR = {
 
 BASE_LOGO_LINIA = "https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/Logo-{linia}.svg"
 BASE_GPX_URL    = "https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/gpx/ruta-{id:03d}.gpx"
-LOGO_SIZE       = 18
-SHEET_ID        = "12SrgpFkVTowVdfjSMTprs-XBYR5zUKTr-uU3tyYeVEE"
-SHEET_NAME      = "Rutes"
-COLOR_BLAU      = "#007bff"
-COLOR_VERD      = "#2d9e6b"
+LOGO_SIZE        = 18
+SHEET_ID         = "12SrgpFkVTowVdfjSMTprs-XBYR5zUKTr-uU3tyYeVEE"
+SHEET_NAME       = "Rutes"
+COLOR_BLAU       = "#007bff"
+COLOR_VERD       = "#2d9e6b"
 
 @st.cache_data(ttl=300)
 def carregar_dades():
@@ -164,7 +164,7 @@ def metric_box(label, value):
 def mostrar_mapa_gpx(ruta_id, lat_s, lng_s, lat_a, lng_a):
     gpx_url = BASE_GPX_URL.format(id=int(ruta_id))
     try:
-        resp  = requests.get(gpx_url, timeout=5)
+        resp  = requests.get(gpx_url, timeout=10)
         if resp.status_code != 200:
             return False
         gpx   = gpxpy.parse(resp.text)
@@ -180,7 +180,7 @@ def mostrar_mapa_gpx(ruta_id, lat_s, lng_s, lat_a, lng_a):
         if lat_a and lng_a and (lat_s != lat_a or lng_s != lng_a):
             folium.Marker([lat_a, lng_a], tooltip="Arribada",
                           icon=folium.Icon(color="red", icon="flag", prefix="fa")).add_to(m)
-        st_folium(m, width=None, height=300, returned_objects=[])
+        st_folium(m, width=None, height=300, returned_objects=[], key=f"mapa_ruta_{ruta_id}")
         return True
     except:
         return False
@@ -197,24 +197,33 @@ def mostrar_mapa_general(df_filtrat, cols):
             if key not in punts_mapa:
                 punts_mapa[key] = []
             punts_mapa[key].append(f"Ruta {rid}: {nom}")
+            
     if not punts_mapa:
         st.info("No hi ha coordenades disponibles per mostrar al mapa.")
         return
+
     lats   = [k[0] for k in punts_mapa]
     lngs   = [k[1] for k in punts_mapa]
     centre = (sum(lats) / len(lats), sum(lngs) / len(lngs))
     m = folium.Map(location=centre, zoom_start=9, tiles="OpenStreetMap")
+    
     for (lat, lng, estacio), rutes in punts_mapa.items():
-        tooltip_text = f"{estacio}: " + " | ".join(rutes)
+        # Nou format de tooltip sol·licitat
+        tooltip_text = f"Estació de {estacio}"
         folium.Marker(
             location=[lat, lng],
             tooltip=tooltip_text,
             icon=folium.Icon(color="blue", icon="train", prefix="fa")
         ).add_to(m)
-    resultat = st_folium(m, width=None, height=350, returned_objects=["last_object_clicked_tooltip"])
+    
+    # Key dinàmica per permetre el reset del mapa al treure el filtre
+    map_key = f"mapa_general_{st.session_state.get('map_reset_counter', 0)}"
+    resultat = st_folium(m, width=None, height=350, returned_objects=["last_object_clicked_tooltip"], key=map_key)
+    
     if resultat and resultat.get("last_object_clicked_tooltip"):
-        tooltip       = resultat["last_object_clicked_tooltip"]
-        estacio_clicada = tooltip.split(":")[0].strip()
+        tooltip = resultat["last_object_clicked_tooltip"]
+        # Extraiem el nom de l'estació netejant el prefix
+        estacio_clicada = tooltip.replace("Estació de ", "").strip()
         if estacio_clicada != st.session_state.filtre_estacio:
             st.session_state.filtre_estacio = estacio_clicada
             st.rerun()
@@ -319,6 +328,8 @@ try:
     # --- ESTAT FILTRE ESTACIÓ ---
     if "filtre_estacio" not in st.session_state:
         st.session_state.filtre_estacio = None
+    if "map_reset_counter" not in st.session_state:
+        st.session_state.map_reset_counter = 0
 
     # --- MAPA GENERAL DESPLEGABLE ---
     with st.expander(f"🗺️ Veure mapa de rutes ({len(f)})", expanded=False):
@@ -329,6 +340,7 @@ try:
         st.info(f"🚉 Filtrant per estació: **{st.session_state.filtre_estacio}**")
         if st.button("✖ Treure filtre d'estació"):
             st.session_state.filtre_estacio = None
+            st.session_state.map_reset_counter += 1 # Reset del mapa
             st.rerun()
         f = f[f[cols["sortida"]].astype(str).str.strip() == st.session_state.filtre_estacio]
 
