@@ -154,10 +154,10 @@ def punts_interes_html(elements_str, categories_str):
 
 def metric_box(label, value):
     return (
-        "<div style=\"flex:1;background:white;border:0.5px solid #e0e0e0;border-radius:8px;"
-        "padding:5px 8px;display:flex;align-items:center;gap:8px;\">"
-        f"<div style=\"font-size:11px;color:#888;white-space:nowrap;\">{label}</div>"
-        f"<div style=\"font-size:14px;font-weight:bold;color:#333;white-space:nowrap;\">{value}</div>"
+        "<div style=\"flex:1;background:#f7f9fc;border:1px solid #e0e8f0;border-radius:8px;"
+        "padding:6px 10px;display:flex;flex-direction:column;align-items:flex-start;gap:1px;min-width:90px;\">"
+        f"<div style=\"font-size:10px;color:#999;text-transform:uppercase;letter-spacing:0.5px;white-space:nowrap;\">{label}</div>"
+        f"<div style=\"font-size:15px;font-weight:700;color:#222;white-space:nowrap;\">{value}</div>"
         "</div>"
     )
 
@@ -208,6 +208,7 @@ def mostrar_mapa_general(df_filtrat, cols):
     m = folium.Map(location=centre, zoom_start=9, tiles="OpenStreetMap")
     
     for (lat, lng, estacio), rutes in punts_mapa.items():
+        # Nou format de tooltip sol·licitat
         tooltip_text = f"Estació de {estacio}"
         folium.Marker(
             location=[lat, lng],
@@ -215,11 +216,13 @@ def mostrar_mapa_general(df_filtrat, cols):
             icon=folium.Icon(color="blue", icon="train", prefix="fa")
         ).add_to(m)
     
+    # Key dinàmica per permetre el reset del mapa al treure el filtre
     map_key = f"mapa_general_{st.session_state.get('map_reset_counter', 0)}"
     resultat = st_folium(m, width=None, height=350, returned_objects=["last_object_clicked_tooltip"], key=map_key)
     
     if resultat and resultat.get("last_object_clicked_tooltip"):
         tooltip = resultat["last_object_clicked_tooltip"]
+        # Extraiem el nom de l'estació netejant el prefix
         estacio_clicada = tooltip.replace("Estació de ", "").strip()
         if estacio_clicada != st.session_state.filtre_estacio:
             st.session_state.filtre_estacio = estacio_clicada
@@ -337,7 +340,7 @@ try:
         st.info(f"🚉 Filtrant per estació: **{st.session_state.filtre_estacio}**")
         if st.button("✖ Treure filtre d'estació"):
             st.session_state.filtre_estacio = None
-            st.session_state.map_reset_counter += 1 
+            st.session_state.map_reset_counter += 1 # Reset del mapa
             st.rerun()
         f = f[f[cols["sortida"]].astype(str).str.strip() == st.session_state.filtre_estacio]
 
@@ -362,22 +365,26 @@ try:
         bloc_s = bloc_estacio_html(row[cols["op_s"]], row[cols["linia_s"]])
         bloc_a = bloc_estacio_html(row[cols["op_a"]], row[cols["linia_a"]])
 
-        # SEPARADOR
-        st.markdown("<hr style='margin:20px 0 10px 0;border:none;border-top:3px solid #e0e0e0;'>", unsafe_allow_html=True)
+        # TARGETA CONTENIDORA
+        st.markdown(
+            f"<div style=\"background:white;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,0.10);"
+            f"border:1px solid #e8e8e8;border-left:6px solid {dif_color};"
+            f"padding:16px 18px;margin-bottom:18px;\">",
+            unsafe_allow_html=True
+        )
 
         # CAPÇALERA
         st.markdown(
-            f"<div style=\"border-left:4px solid {dif_color};background:#f8f9fa;border-radius:0 8px 8px 0;"
-            f"padding:10px 14px;display:flex;align-items:center;gap:10px;\">"
-            f"<div style=\"width:28px;height:28px;border-radius:50%;background:{dif_color};color:white;"
-            f"font-size:13px;font-weight:500;display:flex;align-items:center;justify-content:center;"
+            f"<div style=\"display:flex;align-items:center;gap:10px;margin-bottom:10px;\">"
+            f"<div style=\"width:30px;height:30px;border-radius:50%;background:{dif_color};color:white;"
+            f"font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:center;"
             f"flex-shrink:0;\">{ruta_id}</div>"
             f"<div style=\"flex:1;\">"
-            f"<div style=\"font-size:15px;font-weight:500;color:#111;\">{nom_ruta}</div>"
-            f"<div style=\"font-size:11px;color:#666;\">{desc}</div>"
+            f"<div style=\"font-size:16px;font-weight:600;color:#111;\">{nom_ruta}</div>"
+            f"<div style=\"font-size:11px;color:#666;margin-top:2px;\">{desc}</div>"
             f"</div>"
-            f"<span style=\"font-size:11px;font-weight:500;background:{dif_color}22;color:{dif_color};"
-            f"padding:2px 8px;border-radius:20px;border:0.5px solid {dif_color};flex-shrink:0;\">{dif_raw}</span>"
+            f"<span style=\"font-size:11px;font-weight:600;background:{dif_color}22;color:{dif_color};"
+            f"padding:3px 10px;border-radius:20px;border:1px solid {dif_color}66;flex-shrink:0;\">{dif_raw.upper()}</span>"
             f"</div>",
             unsafe_allow_html=True
         )
@@ -450,6 +457,9 @@ try:
                 st.markdown(punts_interes_html(elements_str, cats_str), unsafe_allow_html=True)
             else:
                 st.info("No hi ha punts d'interès registrats.")
+
+        # TANCAMENT TARGETA
+        st.markdown("</div>", unsafe_allow_html=True)
 
 except Exception as e:
     st.error(f"S'ha produït un error: {e}")
