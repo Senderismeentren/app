@@ -208,7 +208,6 @@ def mostrar_mapa_general(df_filtrat, cols):
     m = folium.Map(location=centre, zoom_start=9, tiles="OpenStreetMap")
     
     for (lat, lng, estacio), rutes in punts_mapa.items():
-        # Nou format de tooltip sol·licitat
         tooltip_text = f"Estació de {estacio}"
         folium.Marker(
             location=[lat, lng],
@@ -216,13 +215,11 @@ def mostrar_mapa_general(df_filtrat, cols):
             icon=folium.Icon(color="blue", icon="train", prefix="fa")
         ).add_to(m)
     
-    # Key dinàmica per permetre el reset del mapa al treure el filtre
     map_key = f"mapa_general_{st.session_state.get('map_reset_counter', 0)}"
     resultat = st_folium(m, width=None, height=350, returned_objects=["last_object_clicked_tooltip"], key=map_key)
     
     if resultat and resultat.get("last_object_clicked_tooltip"):
         tooltip = resultat["last_object_clicked_tooltip"]
-        # Extraiem el nom de l'estació netejant el prefix
         estacio_clicada = tooltip.replace("Estació de ", "").strip()
         if estacio_clicada != st.session_state.filtre_estacio:
             st.session_state.filtre_estacio = estacio_clicada
@@ -340,7 +337,7 @@ try:
         st.info(f"🚉 Filtrant per estació: **{st.session_state.filtre_estacio}**")
         if st.button("✖ Treure filtre d'estació"):
             st.session_state.filtre_estacio = None
-            st.session_state.map_reset_counter += 1 # Reset del mapa
+            st.session_state.map_reset_counter += 1
             st.rerun()
         f = f[f[cols["sortida"]].astype(str).str.strip() == st.session_state.filtre_estacio]
 
