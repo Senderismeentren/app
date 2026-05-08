@@ -1,5 +1,5 @@
 # ============================================================
-# SENDERISME EN TREN — v17
+# SENDERISME EN TREN — v16
 # ============================================================
 
 import streamlit as st
@@ -140,8 +140,8 @@ def punts_interes_html(elements_str, categories_str):
         categoria = categories[i] if i < len(categories) else ""
         icona     = CATEGORIES_ICONES.get(categoria, "📍")
         targetes.append(
-            "<div style=\"display:flex;align-items:center;gap:8px;background:white;"
-            "border-radius:8px;padding:7px 10px;font-size:13px;color:#333;border:0.5px solid #eee;\">"
+            "<div style=\"display:flex;align-items:center;gap:8px;background:#f8f9fa;"
+            "border-radius:8px;padding:7px 10px;font-size:13px;color:#333;\">"
             f"<span style=\"font-size:18px;\">{icona}</span><span>{element}</span></div>"
         )
     grid = "".join(targetes)
@@ -154,10 +154,10 @@ def punts_interes_html(elements_str, categories_str):
 
 def metric_box(label, value):
     return (
-        "<div style=\"flex:1;background:white;border:0.5px solid #ddd;border-radius:8px;"
-        "padding:6px 10px;display:flex;align-items:center;gap:8px;min-width:120px;\">"
-        f"<div style=\"font-size:11px;color:#777;white-space:nowrap;text-transform:uppercase;letter-spacing:0.5px;\">{label}</div>"
-        f"<div style=\"font-size:14px;font-weight:bold;color:#111;white-space:nowrap;\">{value}</div>"
+        "<div style=\"flex:1;background:white;border:0.5px solid #e0e0e0;border-radius:8px;"
+        "padding:5px 8px;display:flex;align-items:center;gap:8px;\">"
+        f"<div style=\"font-size:11px;color:#888;white-space:nowrap;\">{label}</div>"
+        f"<div style=\"font-size:14px;font-weight:bold;color:#333;white-space:nowrap;\">{value}</div>"
         "</div>"
     )
 
@@ -177,8 +177,8 @@ def mostrar_mapa_gpx(ruta_id, lat_s, lng_s, lat_a, lng_a):
         if lat_s and lng_s:
             folium.Marker([lat_s, lng_s], tooltip="Sortida",
                           icon=folium.Icon(color="blue", icon="train", prefix="fa")).add_to(m)
-        if lat_a and lng_a:
-             folium.Marker([lat_a, lng_a], tooltip="Arribada",
+        if lat_a and lng_a and (lat_s != lat_a or lng_s != lng_a):
+            folium.Marker([lat_a, lng_a], tooltip="Arribada",
                           icon=folium.Icon(color="red", icon="flag", prefix="fa")).add_to(m)
         st_folium(m, width=None, height=300, returned_objects=[], key=f"mapa_ruta_{ruta_id}")
         return True
@@ -208,6 +208,7 @@ def mostrar_mapa_general(df_filtrat, cols):
     m = folium.Map(location=centre, zoom_start=9, tiles="OpenStreetMap")
     
     for (lat, lng, estacio), rutes in punts_mapa.items():
+        # Nou format de tooltip sol·licitat
         tooltip_text = f"Estació de {estacio}"
         folium.Marker(
             location=[lat, lng],
@@ -215,11 +216,13 @@ def mostrar_mapa_general(df_filtrat, cols):
             icon=folium.Icon(color="blue", icon="train", prefix="fa")
         ).add_to(m)
     
+    # Key dinàmica per permetre el reset del mapa al treure el filtre
     map_key = f"mapa_general_{st.session_state.get('map_reset_counter', 0)}"
     resultat = st_folium(m, width=None, height=350, returned_objects=["last_object_clicked_tooltip"], key=map_key)
     
     if resultat and resultat.get("last_object_clicked_tooltip"):
         tooltip = resultat["last_object_clicked_tooltip"]
+        # Extraiem el nom de l'estació netejant el prefix
         estacio_clicada = tooltip.replace("Estació de ", "").strip()
         if estacio_clicada != st.session_state.filtre_estacio:
             st.session_state.filtre_estacio = estacio_clicada
@@ -322,19 +325,22 @@ try:
     if cols["desn"]:
         f = f[(f[cols["desn"]] >= sel_desn[0]) & (f[cols["desn"]] <= sel_desn[1])]
 
+    # --- ESTAT FILTRE ESTACIÓ ---
     if "filtre_estacio" not in st.session_state:
         st.session_state.filtre_estacio = None
     if "map_reset_counter" not in st.session_state:
         st.session_state.map_reset_counter = 0
 
+    # --- MAPA GENERAL DESPLEGABLE ---
     with st.expander(f"🗺️ Veure mapa de rutes ({len(f)})", expanded=False):
         mostrar_mapa_general(f, cols)
 
+    # --- FILTRE PER ESTACIÓ DES DEL MAPA ---
     if st.session_state.filtre_estacio:
         st.info(f"🚉 Filtrant per estació: **{st.session_state.filtre_estacio}**")
         if st.button("✖ Treure filtre d'estació"):
             st.session_state.filtre_estacio = None
-            st.session_state.map_reset_counter += 1
+            st.session_state.map_reset_counter += 1 # Reset del mapa
             st.rerun()
         f = f[f[cols["sortida"]].astype(str).str.strip() == st.session_state.filtre_estacio]
 
@@ -352,7 +358,6 @@ try:
         tipus        = str(row[cols["tipus"]]).strip().lower() if cols["tipus"] and pd.notna(row[cols["tipus"]]) else ""
         desn_pujada  = row[cols["desn"]]    if cols["desn"]    and pd.notna(row[cols["desn"]])    else 0
         desn_baixada = row[cols["baixada"]] if cols["baixada"] and pd.notna(row[cols["baixada"]]) else 0
-        wiki_url    = str(row[cols["wiki"]])    if pd.notna(row[cols["wiki"]])    else ""
 
         lat_s, lng_s = parse_coord(row[cols["coord_s"]]) if cols.get("coord_s") and pd.notna(row[cols["coord_s"]]) else (None, None)
         lat_a, lng_a = parse_coord(row[cols["coord_a"]]) if cols.get("coord_a") and pd.notna(row[cols["coord_a"]]) else (None, None)
@@ -360,59 +365,94 @@ try:
         bloc_s = bloc_estacio_html(row[cols["op_s"]], row[cols["linia_s"]])
         bloc_a = bloc_estacio_html(row[cols["op_a"]], row[cols["linia_a"]])
 
-        # CONTENIDOR DE RUTA AMB FONS GRIS I VORA
-        st.markdown(f"""
-            <div style="background-color:#f2f2f2; padding:20px; border-radius:12px; border:1px solid #e0e0e0; margin-bottom:30px;">
-                <div style="border-left:6px solid {dif_color}; background:white; border-radius:4px 8px 8px 4px; padding:12px 16px; display:flex; align-items:center; gap:12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-                    <div style="width:32px; height:32px; border-radius:50%; background:{dif_color}; color:white; font-size:14px; font-weight:bold; display:flex; align-items:center; justify-content:center; flex-shrink:0;">{ruta_id}</div>
-                    <div style="flex:1;">
-                        <div style="font-size:18px; font-weight:800; color:#000; line-height:1.2;">{nom_ruta}</div>
-                        <div style="font-size:12px; color:#555; margin-top:2px;">{desc}</div>
-                    </div>
-                    <span style="font-size:11px; font-weight:bold; background:{dif_color}; color:white; padding:4px 10px; border-radius:20px; text-transform:uppercase;">{dif_raw}</span>
-                </div>
-                
-                <div style="display:flex; gap:8px; margin:12px 0; flex-wrap:wrap;">
-                    {metric_box("Distància", f"{row[cols['km']]} km")}
-                    {metric_box("Desnivell", f"+/- {desn_pujada} m") if "circular" in tipus else metric_box("Pujada", f"+{desn_pujada} m") + metric_box("Baixada", f"-{desn_baixada} m")}
-                </div>
+        # SEPARADOR
+        st.markdown("<hr style='margin:20px 0 10px 0;border:none;border-top:3px solid #e0e0e0;'>", unsafe_allow_html=True)
 
-                <div style="background:white; padding:12px; border-radius:8px; border:1px solid #eee; margin-bottom:10px;">
-                    <div style="font-size:13px; margin-bottom:8px; display:flex; align-items:center; gap:8px;">
-                        <span style="width:10px; height:10px; border-radius:50%; background:#1D9E75; display:inline-block; flex-shrink:0;"></span>
-                        <strong style="color:#222;">SORTIDA: <a href="https://www.google.com/maps/search/{s_est}+estacio" target="_blank" style="text-decoration:none; color:#007bff;">{s_est}</a></strong>
-                        <span style="margin-left:auto;">{bloc_s}</span>
-                    </div>
-                    <div style="font-size:13px; display:flex; align-items:center; gap:8px;">
-                        <span style="width:10px; height:10px; border-radius:50%; background:#E24B4A; display:inline-block; flex-shrink:0;"></span>
-                        <strong style="color:#222;">ARRIBADA: <a href="https://www.google.com/maps/search/{a_est}+estacio" target="_blank" style="text-decoration:none; color:#007bff;">{a_est}</a></strong>
-                        <span style="margin-left:auto;">{bloc_a}</span>
-                    </div>
-                </div>
-            </div>
-        """, unsafe_allow_html=True)
+        # CAPÇALERA
+        st.markdown(
+            f"<div style=\"border-left:4px solid {dif_color};background:#f8f9fa;border-radius:0 8px 8px 0;"
+            f"padding:10px 14px;display:flex;align-items:center;gap:10px;\">"
+            f"<div style=\"width:28px;height:28px;border-radius:50%;background:{dif_color};color:white;"
+            f"font-size:13px;font-weight:500;display:flex;align-items:center;justify-content:center;"
+            f"flex-shrink:0;\">{ruta_id}</div>"
+            f"<div style=\"flex:1;\">"
+            f"<div style=\"font-size:15px;font-weight:500;color:#111;\">{nom_ruta}</div>"
+            f"<div style=\"font-size:11px;color:#666;\">{desc}</div>"
+            f"</div>"
+            f"<span style=\"font-size:11px;font-weight:500;background:{dif_color}22;color:{dif_color};"
+            f"padding:2px 8px;border-radius:20px;border:0.5px solid {dif_color};flex-shrink:0;\">{dif_raw}</span>"
+            f"</div>",
+            unsafe_allow_html=True
+        )
 
-        # Mantenim els expanders fora del div de color per estètica de Streamlit
-        col_map, col_info = st.columns(2)
-        with col_map:
-            with st.expander("🗺️ Mapa del recorregut"):
-                if ruta_id:
-                    if not mostrar_mapa_gpx(ruta_id, lat_s, lng_s, lat_a, lng_a):
-                        st.info("Mapa no disponible.")
-        with col_info:
-            with st.expander("📌 Punts d'interès i Enllaços"):
-                # ETIQUETES
-                comarca_val = str(row[cols["comarca"]]) if pd.notna(row[cols["comarca"]]) else ""
-                espai_val   = str(row[cols["espai"]])   if pd.notna(row[cols["espai"]])   else ""
-                if wiki_url and wiki_url != "nan":
-                    st.markdown(f'<a href="{wiki_url}" target="_blank" style="display:inline-block; font-size:12px; padding:5px 12px; border-radius:6px; background:#EAF3DE; color:#3B6D11; border:1px solid #C0DD97; text-decoration:none; margin-bottom:10px; font-weight:bold;">OBRIR A WIKILOC</a>', unsafe_allow_html=True)
-                
-                elements_str = row[cols["elements"]] if cols["elements"] and pd.notna(row[cols["elements"]]) else ""
-                cats_str     = row[cols["cats"]]     if cols["cats"]     and pd.notna(row[cols["cats"]])     else ""
-                if elements_str:
-                    st.markdown(punts_interes_html(elements_str, cats_str), unsafe_allow_html=True)
-                else:
-                    st.info("Sense punts d'interès.")
+        # MÈTRIQUES COMPACTES
+        if "circular" in tipus:
+            desn_html = metric_box("Desnivell", f"+/- {desn_pujada} m")
+        else:
+            desn_html = metric_box("Desnivell pujada", f"+{desn_pujada} m") + metric_box("Desnivell baixada", f"-{desn_baixada} m")
+
+        st.markdown(
+            "<div style=\"display:flex;gap:6px;margin:6px 0;flex-wrap:wrap;\">"
+            + metric_box("Distància", f"{row[cols['km']]} km")
+            + desn_html
+            + "</div>",
+            unsafe_allow_html=True
+        )
+
+        # ESTACIONS
+        if s_est.lower() == a_est.lower():
+            st.markdown(
+                f"<div style=\"font-size:13px;margin:4px 0 2px;display:flex;align-items:center;gap:6px;\">"
+                f"<span style=\"width:9px;height:9px;border-radius:50%;background:#1D9E75;display:inline-block;flex-shrink:0;\"></span>"
+                f"<strong><a href=\"https://www.google.com/maps/search/{s_est}+estacio\" target=\"_blank\" style=\"text-decoration:none;color:#111;\">{s_est}</a></strong>"
+                f"<span style=\"margin-left:auto;\">{bloc_s}</span></div>",
+                unsafe_allow_html=True
+            )
+        else:
+            st.markdown(
+                f"<div style=\"font-size:13px;margin:4px 0 2px;display:flex;align-items:center;gap:6px;\">"
+                f"<span style=\"width:9px;height:9px;border-radius:50%;background:#1D9E75;display:inline-block;flex-shrink:0;\"></span>"
+                f"<strong><a href=\"https://www.google.com/maps/search/{s_est}+estacio\" target=\"_blank\" style=\"text-decoration:none;color:#111;\">{s_est}</a></strong>"
+                f"<span style=\"margin-left:auto;\">{bloc_s}</span></div>"
+                f"<div style=\"font-size:13px;margin:2px 0 6px;display:flex;align-items:center;gap:6px;\">"
+                f"<span style=\"width:9px;height:9px;border-radius:50%;background:#E24B4A;display:inline-block;flex-shrink:0;\"></span>"
+                f"<strong><a href=\"https://www.google.com/maps/search/{a_est}+estacio\" target=\"_blank\" style=\"text-decoration:none;color:#111;\">{a_est}</a></strong>"
+                f"<span style=\"margin-left:auto;\">{bloc_a}</span></div>",
+                unsafe_allow_html=True
+            )
+
+        # ETIQUETES
+        comarca_val = str(row[cols["comarca"]]) if pd.notna(row[cols["comarca"]]) else ""
+        espai_val   = str(row[cols["espai"]])   if pd.notna(row[cols["espai"]])   else ""
+        cims_val    = str(row[cols["cims"]]).strip().lower() if cols["cims"] and pd.notna(row[cols["cims"]]) else ""
+        wiki_url    = str(row[cols["wiki"]])    if pd.notna(row[cols["wiki"]])    else ""
+
+        etiquetes = ""
+        if comarca_val and comarca_val != "nan":
+            etiquetes += f'<span style="font-size:11px;padding:2px 7px;border-radius:20px;background:#f0f2f6;color:#555;border:0.5px solid #ddd;margin-right:4px;">{comarca_val}</span>'
+        if espai_val and espai_val != "nan":
+            etiquetes += f'<span style="font-size:11px;padding:2px 7px;border-radius:20px;background:#f0f2f6;color:#555;border:0.5px solid #ddd;margin-right:4px;">{espai_val}</span>'
+        if cims_val == "si":
+            etiquetes += '<span style="font-size:11px;padding:2px 7px;border-radius:20px;background:#E1F5EE;color:#0F6E56;border:0.5px solid #9FE1CB;margin-right:4px;">100 Cims</span>'
+        if wiki_url and wiki_url != "nan":
+            etiquetes += f'<a href="{wiki_url}" target="_blank" style="font-size:11px;padding:2px 7px;border-radius:20px;background:#EAF3DE;color:#3B6D11;border:0.5px solid #C0DD97;text-decoration:none;margin-right:4px;">Wikiloc</a>'
+
+        if etiquetes:
+            st.markdown(f'<div style="margin:6px 0 4px;">{etiquetes}</div>', unsafe_allow_html=True)
+
+        # DESPLEGABLES
+        with st.expander("🗺️ Mapa del recorregut"):
+            if ruta_id:
+                if not mostrar_mapa_gpx(ruta_id, lat_s, lng_s, lat_a, lng_a):
+                    st.info("Mapa no disponible per aquesta ruta.")
+
+        with st.expander("📌 Punts d'interès"):
+            elements_str = row[cols["elements"]] if cols["elements"] and pd.notna(row[cols["elements"]]) else ""
+            cats_str     = row[cols["cats"]]     if cols["cats"]     and pd.notna(row[cols["cats"]])     else ""
+            if elements_str:
+                st.markdown(punts_interes_html(elements_str, cats_str), unsafe_allow_html=True)
+            else:
+                st.info("No hi ha punts d'interès registrats.")
 
 except Exception as e:
     st.error(f"S'ha produït un error: {e}")
