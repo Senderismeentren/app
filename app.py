@@ -1,5 +1,5 @@
 # ============================================================
-# SENDERISME EN TREN — v23
+# SENDERISME EN TREN — v16
 # ============================================================
 
 import streamlit as st
@@ -247,8 +247,8 @@ def perfil_elevacio_svg(ruta_id, dif_color):
             elevs_d.append(elevs[-1])
 
         # SVG
-        w, h = 420, 130
-        ml, mr, mt, mb = 42, 10, 8, 26
+        w, h = 600, 180
+        ml, mr, mt, mb = 48, 14, 10, 30
 
         def to_svg(dist, elev):
             x = ml + (dist / km_total) * (w - ml - mr)
@@ -275,7 +275,7 @@ def perfil_elevacio_svg(ruta_id, dif_color):
             eix_x += (f'<line x1="{x_s:.1f}" y1="{mt+h-mt-mb}" x2="{x_s:.1f}" y2="{mt+h-mt-mb+3}" stroke="#bbb" stroke-width="1"/>'
                       f'<text x="{x_s:.1f}" y="{mt+h-mt-mb+13}" text-anchor="middle" font-size="8" fill="#888">{val}</text>')
 
-        svg = f"""<svg viewBox="0 0 {w} {h}" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:480px;display:block;margin:0 auto 4px;">
+        svg = f"""<svg viewBox="0 0 {w} {h}" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:680px;display:block;margin:0 auto 4px;">
   <polygon points="{area}" fill="{dif_color}28"/>
   <polyline points="{poly}" fill="none" stroke="{dif_color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
   <line x1="{ml}" y1="{mt}" x2="{ml}" y2="{mt+h-mt-mb}" stroke="#ccc" stroke-width="1"/>
