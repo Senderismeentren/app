@@ -231,7 +231,8 @@ def mostrar_mapa_general(df_filtrat, cols):
         else:
             color_marker = "blue"
         n_rutes = len(info["rutes"])
-        tooltip_text = f"Estació de {estacio} ({n_rutes})"
+        paraula = "ruta" if n_rutes == 1 else "rutes"
+        tooltip_text = f"Estació de {estacio} ({n_rutes} {paraula})"
         folium.Marker(
             location=[lat, lng],
             tooltip=tooltip_text,
@@ -244,7 +245,7 @@ def mostrar_mapa_general(df_filtrat, cols):
 
     if resultat and resultat.get("last_object_clicked_tooltip"):
         tooltip = resultat["last_object_clicked_tooltip"]
-        estacio_clicada = re.sub(r"\s*\(\d+\)$", "", tooltip.replace("Estació de ", "")).strip()
+        estacio_clicada = re.sub(r"\s*\(\d+ rutes?\)$", "", tooltip.replace("Estació de ", "")).strip()
         if estacio_clicada != st.session_state.filtre_estacio:
             st.session_state.filtre_estacio = estacio_clicada
             st.rerun()
