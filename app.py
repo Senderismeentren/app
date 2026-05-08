@@ -154,10 +154,10 @@ def punts_interes_html(elements_str, categories_str):
 
 def metric_box(label, value):
     return (
-        "<div style=\"flex:1;background:#f7f9fc;border:1px solid #e0e8f0;border-radius:8px;"
-        "padding:6px 10px;display:flex;flex-direction:column;align-items:flex-start;gap:1px;min-width:90px;\">"
-        f"<div style=\"font-size:10px;color:#999;text-transform:uppercase;letter-spacing:0.5px;white-space:nowrap;\">{label}</div>"
-        f"<div style=\"font-size:15px;font-weight:700;color:#222;white-space:nowrap;\">{value}</div>"
+        "<div style=\"flex:1;background:white;border:0.5px solid #e0e0e0;border-radius:8px;"
+        "padding:5px 8px;display:flex;align-items:center;gap:8px;\">"
+        f"<div style=\"font-size:11px;color:#888;white-space:nowrap;\">{label}</div>"
+        f"<div style=\"font-size:14px;font-weight:bold;color:#333;white-space:nowrap;\">{value}</div>"
         "</div>"
     )
 
@@ -365,26 +365,23 @@ try:
         bloc_s = bloc_estacio_html(row[cols["op_s"]], row[cols["linia_s"]])
         bloc_a = bloc_estacio_html(row[cols["op_a"]], row[cols["linia_a"]])
 
-        # TARGETA CONTENIDORA
-        st.markdown(
-            f"<div style=\"background:white;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,0.10);"
-            f"border:1px solid #e8e8e8;border-left:6px solid {dif_color};"
-            f"padding:16px 18px;margin-bottom:18px;\">",
-            unsafe_allow_html=True
-        )
+        # SEPARADOR LLEUGER
+        st.markdown("<div style='border-top:1px solid #e0e0e0;margin:6px 0 4px 0;'></div>", unsafe_allow_html=True)
 
-        # CAPÇALERA
+        # CAPÇALERA AMB DEGRADAT DE COLOR
         st.markdown(
-            f"<div style=\"display:flex;align-items:center;gap:10px;margin-bottom:10px;\">"
-            f"<div style=\"width:30px;height:30px;border-radius:50%;background:{dif_color};color:white;"
-            f"font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:center;"
+            f"<div style=\"background:linear-gradient(90deg,{dif_color}cc 0%,{dif_color}33 60%,transparent 100%);"
+            f"border-radius:6px;padding:8px 12px;display:flex;align-items:center;gap:10px;\">"
+            f"<div style=\"width:26px;height:26px;border-radius:50%;background:{dif_color};color:white;"
+            f"font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;"
             f"flex-shrink:0;\">{ruta_id}</div>"
             f"<div style=\"flex:1;\">"
-            f"<div style=\"font-size:16px;font-weight:600;color:#111;\">{nom_ruta}</div>"
-            f"<div style=\"font-size:11px;color:#666;margin-top:2px;\">{desc}</div>"
+            f"<div style=\"font-size:15px;font-weight:600;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,0.3);\">{nom_ruta}</div>"
+            f"<div style=\"font-size:11px;color:rgba(255,255,255,0.85);\">{desc}</div>"
             f"</div>"
-            f"<span style=\"font-size:11px;font-weight:600;background:{dif_color}22;color:{dif_color};"
-            f"padding:3px 10px;border-radius:20px;border:1px solid {dif_color}66;flex-shrink:0;\">{dif_raw.upper()}</span>"
+            f"<span style=\"font-size:10px;font-weight:700;background:rgba(255,255,255,0.25);color:white;"
+            f"padding:2px 8px;border-radius:20px;border:1px solid rgba(255,255,255,0.5);flex-shrink:0;"
+            f"text-transform:uppercase;letter-spacing:0.5px;\">{dif_raw}</span>"
             f"</div>",
             unsafe_allow_html=True
         )
@@ -457,9 +454,6 @@ try:
                 st.markdown(punts_interes_html(elements_str, cats_str), unsafe_allow_html=True)
             else:
                 st.info("No hi ha punts d'interès registrats.")
-
-        # TANCAMENT TARGETA
-        st.markdown("</div>", unsafe_allow_html=True)
 
 except Exception as e:
     st.error(f"S'ha produït un error: {e}")
