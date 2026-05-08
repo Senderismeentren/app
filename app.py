@@ -1,5 +1,5 @@
 # ============================================================
-# SENDERISME EN TREN — v16
+# SENDERISME EN TREN — v23
 # ============================================================
 
 import streamlit as st
@@ -18,6 +18,28 @@ st.set_page_config(
     layout="wide",
     page_icon="https://avatars.githubusercontent.com/u/279401247?v=4"
 )
+
+st.markdown("""
+<style>
+/* Compactar espai entre expanders */
+div[data-testid="stExpander"] {
+    margin-bottom: 2px !important;
+}
+div[data-testid="stExpander"] > details {
+    border: none !important;
+    border-top: 1px solid #ebebeb !important;
+    border-radius: 0 !important;
+    padding: 0 !important;
+}
+div[data-testid="stExpander"] > details > summary {
+    padding: 5px 8px !important;
+    font-size: 13px !important;
+}
+div[data-testid="stExpander"] > details[open] > summary {
+    border-bottom: 1px solid #ebebeb;
+}
+</style>
+""", unsafe_allow_html=True)
 
 # --- CAPÇALERA ---
 st.markdown('''
@@ -146,8 +168,7 @@ def punts_interes_html(elements_str, categories_str):
         )
     grid = "".join(targetes)
     return (
-        "<div style=\"margin-top:10px;\">"
-        "<div style=\"font-size:14px;font-weight:bold;color:#333;margin-bottom:8px;\">📌 Punts d'interès</div>"
+        "<div style=\"margin-top:4px;\">"
         "<div style=\"display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:6px;\">"
         f"{grid}</div></div>"
     )
