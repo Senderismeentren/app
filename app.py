@@ -187,17 +187,31 @@ def mostrar_mapa_gpx(ruta_id, lat_s, lng_s, lat_a, lng_a):
 
 def mostrar_mapa_general(df_filtrat, cols):
     punts_mapa = {}
+
+    def afegir_estacio(lat, lng, estacio, rid, nom, tipus):
+        if not lat or not lng:
+            return
+        key = (lat, lng, estacio)
+        if key not in punts_mapa:
+            punts_mapa[key] = {"tipus": set(), "rutes": []}
+        punts_mapa[key]["tipus"].add(tipus)
+        punts_mapa[key]["rutes"].append(f"Ruta {rid}: {nom}")
+
     for _, row in df_filtrat.iterrows():
-        lat, lng = parse_coord(row[cols["coord_s"]]) if cols.get("coord_s") and pd.notna(row[cols["coord_s"]]) else (None, None)
-        if lat and lng:
-            estacio = str(row[cols["sortida"]]).strip()
-            nom     = str(row[cols["ruta"]])
-            rid     = int(row[cols["id"]]) if pd.notna(row[cols["id"]]) else ""
-            key     = (lat, lng, estacio)
-            if key not in punts_mapa:
-                punts_mapa[key] = []
-            punts_mapa[key].append(f"Ruta {rid}: {nom}")
-            
+        nom = str(row[cols["ruta"]])
+        rid = int(row[cols["id"]]) if pd.notna(row[cols["id"]]) else ""
+
+        # Estació de sortida
+        lat_s, lng_s = parse_coord(row[cols["coord_s"]]) if cols.get("coord_s") and pd.notna(row[cols["coord_s"]]) else (None, None)
+        s_est = str(row[cols["sortida"]]).strip()
+        afegir_estacio(lat_s, lng_s, s_est, rid, nom, "sortida")
+
+        # Estació d'arribada (si té coordenades i és diferent de la sortida)
+        lat_a, lng_a = parse_coord(row[cols["coord_a"]]) if cols.get("coord_a") and pd.notna(row[cols["coord_a"]]) else (None, None)
+        a_est = str(row[cols["arribada"]]).strip()
+        if a_est.lower() != s_est.lower():
+            afegir_estacio(lat_a, lng_a, a_est, rid, nom, "arribada")
+
     if not punts_mapa:
         st.info("No hi ha coordenades disponibles per mostrar al mapa.")
         return
@@ -206,23 +220,29 @@ def mostrar_mapa_general(df_filtrat, cols):
     lngs   = [k[1] for k in punts_mapa]
     centre = (sum(lats) / len(lats), sum(lngs) / len(lngs))
     m = folium.Map(location=centre, zoom_start=9, tiles="OpenStreetMap")
-    
-    for (lat, lng, estacio), rutes in punts_mapa.items():
-        # Nou format de tooltip sol·licitat
+
+    for (lat, lng, estacio), info in punts_mapa.items():
+        tipus = info["tipus"]
+        # Blau = només sortida | Vermell = només arribada | Verd = ambdues
+        if "sortida" in tipus and "arribada" in tipus:
+            color_marker = "green"
+        elif "arribada" in tipus:
+            color_marker = "red"
+        else:
+            color_marker = "blue"
         tooltip_text = f"Estació de {estacio}"
         folium.Marker(
             location=[lat, lng],
             tooltip=tooltip_text,
-            icon=folium.Icon(color="blue", icon="train", prefix="fa")
+            icon=folium.Icon(color=color_marker, icon="train", prefix="fa")
         ).add_to(m)
-    
+
     # Key dinàmica per permetre el reset del mapa al treure el filtre
     map_key = f"mapa_general_{st.session_state.get('map_reset_counter', 0)}"
     resultat = st_folium(m, width=None, height=350, returned_objects=["last_object_clicked_tooltip"], key=map_key)
-    
+
     if resultat and resultat.get("last_object_clicked_tooltip"):
         tooltip = resultat["last_object_clicked_tooltip"]
-        # Extraiem el nom de l'estació netejant el prefix
         estacio_clicada = tooltip.replace("Estació de ", "").strip()
         if estacio_clicada != st.session_state.filtre_estacio:
             st.session_state.filtre_estacio = estacio_clicada
@@ -342,7 +362,10 @@ try:
             st.session_state.filtre_estacio = None
             st.session_state.map_reset_counter += 1 # Reset del mapa
             st.rerun()
-        f = f[f[cols["sortida"]].astype(str).str.strip() == st.session_state.filtre_estacio]
+        f = f[
+            (f[cols["sortida"]].astype(str).str.strip() == st.session_state.filtre_estacio) |
+            (f[cols["arribada"]].astype(str).str.strip() == st.session_state.filtre_estacio)
+        ]
 
     st.write(f"**Resultats: {len(f)} rutes**")
 
