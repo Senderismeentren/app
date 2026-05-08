@@ -226,7 +226,7 @@ def perfil_elevacio_svg(ruta_id, dif_color):
             elevs_d.append(elevs[-1])
 
         # SVG
-        w, h = 340, 100
+        w, h = 420, 130
         ml, mr, mt, mb = 42, 10, 8, 26
 
         def to_svg(dist, elev):
@@ -254,7 +254,7 @@ def perfil_elevacio_svg(ruta_id, dif_color):
             eix_x += (f'<line x1="{x_s:.1f}" y1="{mt+h-mt-mb}" x2="{x_s:.1f}" y2="{mt+h-mt-mb+3}" stroke="#bbb" stroke-width="1"/>'
                       f'<text x="{x_s:.1f}" y="{mt+h-mt-mb+13}" text-anchor="middle" font-size="8" fill="#888">{val}</text>')
 
-        svg = f"""<svg viewBox="0 0 {w} {h}" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:380px;display:block;margin:0 auto 4px;">
+        svg = f"""<svg viewBox="0 0 {w} {h}" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:480px;display:block;margin:0 auto 4px;">
   <polygon points="{area}" fill="{dif_color}28"/>
   <polyline points="{poly}" fill="none" stroke="{dif_color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
   <line x1="{ml}" y1="{mt}" x2="{ml}" y2="{mt+h-mt-mb}" stroke="#ccc" stroke-width="1"/>
@@ -568,39 +568,45 @@ try:
                 else:
                     st.info("Perfil d'elevació no disponible per aquesta ruta.")
 
-            # Barra de dificultat
+            # Barra de dificultat — 5 nivells
             nivells = [
+                ("Molt fàcil",   "#2196A6"),
                 ("Fàcil",        "#1D9E75"),
-                ("Mitjana",      "#EF9F27"),
+                ("Moderada",     "#EF9F27"),
                 ("Difícil",      "#E24B4A"),
                 ("Molt difícil", "#9B1B1B"),
             ]
-            dif_norm  = dif_raw.lower().strip()
-            claus     = ["fàcil", "mitjana", "difícil", "molt difícil"]
-            pos_actual = next((i for i, c in enumerate(claus)
-                               if c.replace("í","i").replace("à","a") == dif_norm.replace("í","i").replace("à","a")), -1)
+            dif_norm   = dif_raw.lower().strip()
+            claus_norm = ["molt facil", "facil", "moderada", "dificil", "molt dificil"]
+
+            def normalitza(s):
+                return s.lower().replace("í","i").replace("à","a").replace("è","e").replace("ó","o").replace("ú","u").strip()
+
+            pos_actual = next((i for i, c in enumerate(claus_norm) if c == normalitza(dif_raw)), -1)
 
             segments = ""
             for i, (nom_niv, color_niv) in enumerate(nivells):
                 actiu   = (i == pos_actual)
-                opacity = "1" if actiu else "0.25"
-                dot     = (f'<div style="width:10px;height:10px;border-radius:50%;'
-                           f'background:white;border:2px solid white;'
-                           f'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);'
-                           f'box-shadow:0 0 3px rgba(0,0,0,0.4);"></div>') if actiu else ""
+                opacity = "1" if actiu else "0.22"
+                radius  = ("6px 0 0 6px" if i == 0 else ("0 6px 6px 0" if i == 4 else "0"))
+                dot     = (
+                    f'<div style="width:13px;height:13px;border-radius:50%;'
+                    f'background:{color_niv};border:2.5px solid #111;'
+                    f'position:absolute;top:-8px;left:50%;transform:translateX(-50%);'
+                    f'box-shadow:0 1px 4px rgba(0,0,0,0.35);z-index:2;"></div>'
+                ) if actiu else ""
                 segments += (
                     f'<div style="flex:1;position:relative;">'
-                    f'<div style="height:10px;background:{color_niv};opacity:{opacity};'
-                    f'border-radius:{"6px 0 0 6px" if i==0 else ("0 6px 6px 0" if i==3 else "0")};"></div>'
                     f'{dot}'
-                    f'<div style="font-size:9px;color:#555;text-align:center;margin-top:3px;'
+                    f'<div style="height:10px;background:{color_niv};opacity:{opacity};border-radius:{radius};"></div>'
+                    f'<div style="font-size:9px;color:#555;text-align:center;margin-top:4px;'
                     f'font-weight:{"700" if actiu else "400"};">{nom_niv}</div>'
                     f'</div>'
                 )
 
             st.markdown(
-                f'<div style="margin-top:4px;">'
-                f'<div style="font-size:11px;color:#888;margin-bottom:5px;">Dificultat</div>'
+                f'<div style="margin-top:6px;">'
+                f'<div style="font-size:11px;color:#888;margin-bottom:12px;">Dificultat</div>'
                 f'<div style="display:flex;gap:2px;">{segments}</div>'
                 f'</div>',
                 unsafe_allow_html=True
