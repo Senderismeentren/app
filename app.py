@@ -185,6 +185,89 @@ def mostrar_mapa_gpx(ruta_id, lat_s, lng_s, lat_a, lng_a):
     except:
         return False
 
+def perfil_elevacio_svg(ruta_id, dif_color):
+    gpx_url = BASE_GPX_URL.format(id=int(ruta_id))
+    try:
+        resp = requests.get(gpx_url, timeout=10)
+        if resp.status_code != 200:
+            return None, None, None
+        gpx   = gpxpy.parse(resp.text)
+        punts = [(p.latitude, p.longitude, p.elevation)
+                 for t in gpx.tracks for s in t.segments for p in s.points
+                 if p.elevation is not None]
+        if len(punts) < 2:
+            return None, None, None
+
+        # Distàncies acumulades (km)
+        import math
+        def haversine(p1, p2):
+            R = 6371
+            lat1, lon1 = math.radians(p1[0]), math.radians(p1[1])
+            lat2, lon2 = math.radians(p2[0]), math.radians(p2[1])
+            dlat, dlon = lat2 - lat1, lon2 - lon1
+            a = math.sin(dlat/2)**2 + math.cos(lat1)*math.cos(lat2)*math.sin(dlon/2)**2
+            return R * 2 * math.asin(math.sqrt(a))
+
+        dists = [0.0]
+        for i in range(1, len(punts)):
+            dists.append(dists[-1] + haversine(punts[i-1], punts[i]))
+
+        elevs = [p[2] for p in punts]
+        km_total = dists[-1]
+        alt_min, alt_max = min(elevs), max(elevs)
+        alt_rang = max(alt_max - alt_min, 1)
+
+        # Diezmem a ~200 punts per rendiment
+        pas = max(1, len(punts) // 200)
+        dists_d = dists[::pas]
+        elevs_d = elevs[::pas]
+        if dists_d[-1] != dists[-1]:
+            dists_d.append(dists[-1])
+            elevs_d.append(elevs[-1])
+
+        # SVG
+        w, h = 340, 100
+        ml, mr, mt, mb = 42, 10, 8, 26
+
+        def to_svg(dist, elev):
+            x = ml + (dist / km_total) * (w - ml - mr)
+            y = mt + (1 - (elev - alt_min) / alt_rang) * (h - mt - mb)
+            return x, y
+
+        svg_pts = [to_svg(d, e) for d, e in zip(dists_d, elevs_d)]
+        poly    = " ".join(f"{x:.1f},{y:.1f}" for x, y in svg_pts)
+        area    = poly + f" {svg_pts[-1][0]:.1f},{mt+h-mt-mb:.1f} {svg_pts[0][0]:.1f},{mt+h-mt-mb:.1f}"
+
+        # Eixos Y (altitud)
+        eix_y = ""
+        for frac in [0, 0.5, 1]:
+            y_s = mt + (1 - frac) * (h - mt - mb)
+            val = int(alt_min + frac * alt_rang)
+            eix_y += (f'<line x1="{ml-3}" y1="{y_s:.1f}" x2="{ml}" y2="{y_s:.1f}" stroke="#bbb" stroke-width="1"/>'
+                      f'<text x="{ml-5}" y="{y_s+3:.1f}" text-anchor="end" font-size="8" fill="#888">{val}</text>')
+
+        # Eixos X (km)
+        eix_x = ""
+        for frac in [0, 0.25, 0.5, 0.75, 1]:
+            x_s = ml + frac * (w - ml - mr)
+            val = f"{frac * km_total:.1f}"
+            eix_x += (f'<line x1="{x_s:.1f}" y1="{mt+h-mt-mb}" x2="{x_s:.1f}" y2="{mt+h-mt-mb+3}" stroke="#bbb" stroke-width="1"/>'
+                      f'<text x="{x_s:.1f}" y="{mt+h-mt-mb+13}" text-anchor="middle" font-size="8" fill="#888">{val}</text>')
+
+        svg = f"""<svg viewBox="0 0 {w} {h}" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:380px;display:block;margin:0 auto 4px;">
+  <polygon points="{area}" fill="{dif_color}28"/>
+  <polyline points="{poly}" fill="none" stroke="{dif_color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+  <line x1="{ml}" y1="{mt}" x2="{ml}" y2="{mt+h-mt-mb}" stroke="#ccc" stroke-width="1"/>
+  <line x1="{ml}" y1="{mt+h-mt-mb}" x2="{w-mr}" y2="{mt+h-mt-mb}" stroke="#ccc" stroke-width="1"/>
+  {eix_y}{eix_x}
+  <text x="{ml-28}" y="{mt+(h-mt-mb)//2+3}" text-anchor="middle" font-size="8" fill="#aaa" transform="rotate(-90,{ml-28},{mt+(h-mt-mb)//2})">m</text>
+  <text x="{(ml+w-mr)//2}" y="{h}" text-anchor="middle" font-size="8" fill="#aaa">km</text>
+</svg>"""
+        return svg, alt_min, alt_max
+    except:
+        return None, None, None
+
+
 def mostrar_mapa_general(df_filtrat, cols):
     punts_mapa = {}
 
@@ -471,6 +554,57 @@ try:
             if ruta_id:
                 if not mostrar_mapa_gpx(ruta_id, lat_s, lng_s, lat_a, lng_a):
                     st.info("Mapa no disponible per aquesta ruta.")
+
+        with st.expander("⛰️ Terreny i dificultat"):
+            if ruta_id:
+                svg_perfil, alt_min, alt_max = perfil_elevacio_svg(ruta_id, dif_color)
+                if svg_perfil:
+                    st.markdown(svg_perfil, unsafe_allow_html=True)
+                    st.markdown(
+                        f"<div style='font-size:10px;color:#888;text-align:center;margin-bottom:10px;'>"
+                        f"Altitud mín: <b>{int(alt_min)} m</b> · Altitud màx: <b>{int(alt_max)} m</b></div>",
+                        unsafe_allow_html=True
+                    )
+                else:
+                    st.info("Perfil d'elevació no disponible per aquesta ruta.")
+
+            # Barra de dificultat
+            nivells = [
+                ("Fàcil",        "#1D9E75"),
+                ("Mitjana",      "#EF9F27"),
+                ("Difícil",      "#E24B4A"),
+                ("Molt difícil", "#9B1B1B"),
+            ]
+            dif_norm  = dif_raw.lower().strip()
+            claus     = ["fàcil", "mitjana", "difícil", "molt difícil"]
+            pos_actual = next((i for i, c in enumerate(claus)
+                               if c.replace("í","i").replace("à","a") == dif_norm.replace("í","i").replace("à","a")), -1)
+
+            segments = ""
+            for i, (nom_niv, color_niv) in enumerate(nivells):
+                actiu   = (i == pos_actual)
+                opacity = "1" if actiu else "0.25"
+                dot     = (f'<div style="width:10px;height:10px;border-radius:50%;'
+                           f'background:white;border:2px solid white;'
+                           f'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);'
+                           f'box-shadow:0 0 3px rgba(0,0,0,0.4);"></div>') if actiu else ""
+                segments += (
+                    f'<div style="flex:1;position:relative;">'
+                    f'<div style="height:10px;background:{color_niv};opacity:{opacity};'
+                    f'border-radius:{"6px 0 0 6px" if i==0 else ("0 6px 6px 0" if i==3 else "0")};"></div>'
+                    f'{dot}'
+                    f'<div style="font-size:9px;color:#555;text-align:center;margin-top:3px;'
+                    f'font-weight:{"700" if actiu else "400"};">{nom_niv}</div>'
+                    f'</div>'
+                )
+
+            st.markdown(
+                f'<div style="margin-top:4px;">'
+                f'<div style="font-size:11px;color:#888;margin-bottom:5px;">Dificultat</div>'
+                f'<div style="display:flex;gap:2px;">{segments}</div>'
+                f'</div>',
+                unsafe_allow_html=True
+            )
 
         with st.expander("📌 Punts d'interès"):
             elements_str = row[cols["elements"]] if cols["elements"] and pd.notna(row[cols["elements"]]) else ""
