@@ -1,5 +1,5 @@
 # ============================================================
-# SENDERISME EN TREN — v26
+# SENDERISME EN TREN — v16
 # ============================================================
 
 import streamlit as st
@@ -393,6 +393,7 @@ try:
         "cats":     buscar_col(["categories_elements_interès", "categories_elements_interes"]),
         "coord_s":  buscar_col(["coordenades_sortida"]),
         "coord_a":  buscar_col(["coordenades_arribada"]),
+        "temps":    df_raw.columns[20] if len(df_raw.columns) > 20 else None,
     }
 
     df = df_raw.dropna(subset=[cols["ruta"]]).copy()
@@ -488,6 +489,22 @@ try:
         desn_pujada  = row[cols["desn"]]    if cols["desn"]    and pd.notna(row[cols["desn"]])    else 0
         desn_baixada = row[cols["baixada"]] if cols["baixada"] and pd.notna(row[cols["baixada"]]) else 0
 
+        # Format temps columna U → XXhXXmin
+        temps_fmt = "—"
+        if cols.get("temps") and pd.notna(row[cols["temps"]]):
+            try:
+                mins_total = int(float(str(row[cols["temps"]]).replace(",", ".")))
+                hores = mins_total // 60
+                mins  = mins_total % 60
+                if hores > 0 and mins > 0:
+                    temps_fmt = f"{hores}h{mins:02d}min"
+                elif hores > 0:
+                    temps_fmt = f"{hores}h"
+                else:
+                    temps_fmt = f"{mins}min"
+            except:
+                temps_fmt = str(row[cols["temps"]])
+
         lat_s, lng_s = parse_coord(row[cols["coord_s"]]) if cols.get("coord_s") and pd.notna(row[cols["coord_s"]]) else (None, None)
         lat_a, lng_a = parse_coord(row[cols["coord_a"]]) if cols.get("coord_a") and pd.notna(row[cols["coord_a"]]) else (None, None)
 
@@ -497,7 +514,7 @@ try:
         # SEPARADOR LLEUGER
         st.markdown("<div style='border-top:1px solid #e0e0e0;margin:6px 0 4px 0;'></div>", unsafe_allow_html=True)
 
-        circular_badge = ' <span style="font-size:11px;font-weight:500;color:#555;">(circular)</span>' if "circular" in tipus else ""
+        circular_badge = ""
         # CAPÇALERA SENSE DEGRADAT — fons clar del color de dificultat, text negre
         st.markdown(
             f"<div style=\"background:{dif_color}22;border-left:4px solid {dif_color};"
@@ -506,7 +523,7 @@ try:
             f"font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;"
             f"flex-shrink:0;\">{ruta_id}</div>"
             f"<div style=\"flex:1;\">"
-            f"<div style=\"font-size:15px;font-weight:700;color:#111;\">{nom_ruta}{circular_badge}</div>"
+            f"<div style=\"font-size:15px;font-weight:700;color:#111;\">{nom_ruta}</div>"
             f"<div style=\"font-size:11px;color:#555;\">{desc}</div>"
             f"</div>"
             f"<span style=\"font-size:10px;font-weight:700;background:{dif_color};color:white;"
@@ -546,8 +563,8 @@ try:
                 f"<div style='font-size:10px;color:#999;text-transform:uppercase;letter-spacing:0.4px;'>Desnivell pujada</div>"
                 f"<div style='font-size:16px;font-weight:700;color:#111;'>+{int(desn_pujada)} m</div></div>"
                 f"<div style='background:#f7f9fc;border:1px solid #e4e8f0;border-radius:8px;padding:8px 12px;'>"
-                f"<div style='font-size:10px;color:#999;text-transform:uppercase;letter-spacing:0.4px;'>Tipus</div>"
-                f"<div style='font-size:16px;font-weight:700;color:#111;text-transform:capitalize;'>{tipus if tipus else '—'}</div></div>"
+                f"<div style='font-size:10px;color:#999;text-transform:uppercase;letter-spacing:0.4px;'>Temps</div>"
+                f"<div style='font-size:16px;font-weight:700;color:#111;'>{temps_fmt}</div></div>"
                 f"<div style='background:#f7f9fc;border:1px solid #e4e8f0;border-radius:8px;padding:8px 12px;'>"
                 f"<div style='font-size:10px;color:#999;text-transform:uppercase;letter-spacing:0.4px;'>Desnivell baixada</div>"
                 f"<div style='font-size:16px;font-weight:700;color:#111;'>-{int(desn_baixada)} m</div></div>"
@@ -556,11 +573,13 @@ try:
             )
 
         # ESTACIONS
+        circular_label = ' <span style="font-size:12px;font-weight:400;color:#777;">(circular)</span>' if s_est.lower() == a_est.lower() else ""
         if s_est.lower() == a_est.lower():
             st.markdown(
                 f"<div style=\"font-size:16px;font-weight:700;margin:4px 0 2px;display:flex;align-items:center;gap:8px;\">"
                 f"<span style=\"width:10px;height:10px;border-radius:50%;background:#1D9E75;display:inline-block;flex-shrink:0;\"></span>"
                 f"<a href=\"https://www.google.com/maps/search/{s_est}+estacio\" target=\"_blank\" style=\"text-decoration:none;color:#111;\">{s_est}</a>"
+                f"{circular_label}"
                 f"<span style=\"margin-left:auto;font-size:12px;font-weight:400;\">{bloc_s}</span></div>",
                 unsafe_allow_html=True
             )
