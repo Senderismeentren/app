@@ -21,6 +21,12 @@ st.set_page_config(
 
 st.markdown("""
 <style>
+/* Pestanyes principals més grans */
+div[data-testid="stTabs"] button[data-baseweb="tab"] {
+    font-size: 16px !important;
+    font-weight: 600 !important;
+    padding: 10px 20px !important;
+}
 /* Compactar espai entre expanders */
 div[data-testid="stExpander"] {
     margin-bottom: 2px !important;
@@ -392,8 +398,9 @@ try:
         "elements": buscar_col(["elements_interès", "elements_interes"]),
         "cats":     buscar_col(["categories_elements_interès", "categories_elements_interes"]),
         "coord_s":  buscar_col(["coordenades_sortida"]),
-        "coord_a":  buscar_col(["coordenades_arribada"]),
-        "temps":    df_raw.columns[20] if len(df_raw.columns) > 20 else None,
+        "coord_a":    buscar_col(["coordenades_arribada"]),
+        "temps":      df_raw.columns[20] if len(df_raw.columns) > 20 else None,
+        "cims_noms":  df_raw.columns[22] if len(df_raw.columns) > 22 else None,
     }
 
     df = df_raw.dropna(subset=[cols["ruta"]]).copy()
@@ -459,7 +466,7 @@ try:
         st.session_state.map_reset_counter = 0
 
     # --- PESTANYES ---
-    tab_llista, tab_mapa, tab_cims = st.tabs(["📋 Llista", "🗺️ Mapa", "🏔️ 100 Cims"])
+    tab_llista, tab_mapa, tab_cims = st.tabs(["🥾 Rutes", "🗺️ Mapa", "🏔️ 100 Cims"])
 
     with tab_mapa:
         mostrar_mapa_general(f, cols)
@@ -471,18 +478,64 @@ try:
                 st.rerun()
 
     with tab_cims:
-        f_cims = df[df[cols["cims"]].astype(str).str.strip().str.lower() == "si"] if cols["cims"] else df.iloc[0:0]
-        st.write(f"**{len(f_cims)} rutes amb 100 Cims**")
-        for _, row_c in f_cims.iterrows():
-            nom_c   = row_c[cols["ruta"]]
-            dif_c   = str(row_c[cols["dif"]]).strip() if pd.notna(row_c[cols["dif"]]) else ""
-            color_c = DIFICULTAT_COLOR.get(dif_c.lower(), "#888888")
-            st.markdown(
-                f"<div style='background:{color_c}1a;border-left:4px solid {color_c};"
-                f"border-radius:6px;padding:6px 10px;margin-bottom:4px;font-size:14px;font-weight:600;color:#111;'>"
-                f"{nom_c}</div>",
-                unsafe_allow_html=True
-            )
+        # Inicialitzar filtre de cim
+        if "filtre_cim" not in st.session_state:
+            st.session_state.filtre_cim = None
+
+        if st.session_state.filtre_cim:
+            # MODE FILTRE: mostrar rutes que visiten aquest cim
+            st.markdown(f"### 🏔️ {st.session_state.filtre_cim}")
+            if st.button("← Tornar a la llista de cims"):
+                st.session_state.filtre_cim = None
+                st.rerun()
+            # Filtrar rutes que contenen el cim a la columna W
+            if cols.get("cims_noms"):
+                f_cim = df[df[cols["cims_noms"]].astype(str).str.contains(
+                    st.session_state.filtre_cim, case=False, na=False, regex=False
+                )]
+            else:
+                f_cim = df.iloc[0:0]
+            st.write(f"**{len(f_cim)} rutes visiten aquest cim**")
+            for _, row_c in f_cim.iterrows():
+                nom_c   = row_c[cols["ruta"]]
+                dif_c   = str(row_c[cols["dif"]]).strip() if pd.notna(row_c[cols["dif"]]) else ""
+                color_c = DIFICULTAT_COLOR.get(dif_c.lower(), "#888888")
+                km_c    = row_c[cols["km"]] if cols["km"] and pd.notna(row_c[cols["km"]]) else "—"
+                st.markdown(
+                    f"<div style='background:{color_c}1a;border-left:4px solid {color_c};"
+                    f"border-radius:6px;padding:8px 12px;margin-bottom:6px;'>"
+                    f"<div style='font-size:14px;font-weight:600;color:#111;'>{nom_c}</div>"
+                    f"<div style='font-size:12px;color:#666;margin-top:2px;'>{km_c} km · {dif_c}</div>"
+                    f"</div>",
+                    unsafe_allow_html=True
+                )
+        else:
+            # MODE LLISTA: tots els cims únics de la columna W
+            if cols.get("cims_noms"):
+                # Extreure tots els cims únics (poden ser llistes separades per comes)
+                tots_cims = set()
+                for val in df[cols["cims_noms"]].dropna():
+                    for c in str(val).split(","):
+                        c = c.strip()
+                        if c and c.lower() not in ("nan", "no", ""):
+                            tots_cims.add(c)
+                cims_ordenats = sorted(tots_cims)
+            else:
+                cims_ordenats = []
+
+            st.write(f"**{len(cims_ordenats)} cims**")
+            for nom_cim in cims_ordenats:
+                # Comptar quantes rutes el visiten
+                if cols.get("cims_noms"):
+                    n_rutes_cim = df[cols["cims_noms"]].astype(str).str.contains(
+                        nom_cim, case=False, na=False, regex=False
+                    ).sum()
+                else:
+                    n_rutes_cim = 0
+                paraula = "ruta" if n_rutes_cim == 1 else "rutes"
+                if st.button(f"🏔️ {nom_cim}  ·  {n_rutes_cim} {paraula}", key=f"cim_{nom_cim}"):
+                    st.session_state.filtre_cim = nom_cim
+                    st.rerun()
 
     with tab_llista:
         # --- FILTRE PER ESTACIÓ DES DEL MAPA ---
