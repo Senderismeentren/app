@@ -542,9 +542,9 @@ try:
         if "circular" in tipus:
             grid_html = (
                 cel("Distància", f"{row[cols['km']]} km") +
+                cel("Desnivell", f"+/- {int(desn_pujada)} m") +
                 cel("Temps", temps_fmt) +
-                cel("Desnivell pujada", f"+{int(desn_pujada)} m") +
-                cel("Desnivell baixada", f"-{int(desn_pujada)} m")
+                cel("Dificultat", dif_raw)
             )
         else:
             grid_html = (
@@ -553,6 +553,11 @@ try:
                 cel("Temps", temps_fmt) +
                 cel("Desnivell baixada", f"-{int(desn_baixada)} m")
             )
+
+        st.markdown(
+            f"<div style='display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:8px 0;'>{grid_html}</div>",
+            unsafe_allow_html=True
+        )
 
         st.markdown(
             f"<div style='display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:8px 0;'>{grid_html}</div>",
