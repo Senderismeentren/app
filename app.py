@@ -1,5 +1,5 @@
 # ============================================================
-# SENDERISME EN TREN — v16
+# SENDERISME EN TREN — v26
 # ============================================================
 
 import streamlit as st
@@ -497,6 +497,7 @@ try:
         # SEPARADOR LLEUGER
         st.markdown("<div style='border-top:1px solid #e0e0e0;margin:6px 0 4px 0;'></div>", unsafe_allow_html=True)
 
+        circular_badge = ' <span style="font-size:11px;font-weight:500;color:#555;">(circular)</span>' if "circular" in tipus else ""
         # CAPÇALERA SENSE DEGRADAT — fons clar del color de dificultat, text negre
         st.markdown(
             f"<div style=\"background:{dif_color}22;border-left:4px solid {dif_color};"
@@ -505,7 +506,7 @@ try:
             f"font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;"
             f"flex-shrink:0;\">{ruta_id}</div>"
             f"<div style=\"flex:1;\">"
-            f"<div style=\"font-size:15px;font-weight:700;color:#111;\">{nom_ruta}</div>"
+            f"<div style=\"font-size:15px;font-weight:700;color:#111;\">{nom_ruta}{circular_badge}</div>"
             f"<div style=\"font-size:11px;color:#555;\">{desc}</div>"
             f"</div>"
             f"<span style=\"font-size:10px;font-weight:700;background:{dif_color};color:white;"
@@ -557,22 +558,22 @@ try:
         # ESTACIONS
         if s_est.lower() == a_est.lower():
             st.markdown(
-                f"<div style=\"font-size:13px;margin:4px 0 2px;display:flex;align-items:center;gap:6px;\">"
-                f"<span style=\"width:9px;height:9px;border-radius:50%;background:#1D9E75;display:inline-block;flex-shrink:0;\"></span>"
-                f"<strong><a href=\"https://www.google.com/maps/search/{s_est}+estacio\" target=\"_blank\" style=\"text-decoration:none;color:#111;\">{s_est}</a></strong>"
-                f"<span style=\"margin-left:auto;\">{bloc_s}</span></div>",
+                f"<div style=\"font-size:16px;font-weight:700;margin:4px 0 2px;display:flex;align-items:center;gap:8px;\">"
+                f"<span style=\"width:10px;height:10px;border-radius:50%;background:#1D9E75;display:inline-block;flex-shrink:0;\"></span>"
+                f"<a href=\"https://www.google.com/maps/search/{s_est}+estacio\" target=\"_blank\" style=\"text-decoration:none;color:#111;\">{s_est}</a>"
+                f"<span style=\"margin-left:auto;font-size:12px;font-weight:400;\">{bloc_s}</span></div>",
                 unsafe_allow_html=True
             )
         else:
             st.markdown(
-                f"<div style=\"font-size:13px;margin:4px 0 2px;display:flex;align-items:center;gap:6px;\">"
-                f"<span style=\"width:9px;height:9px;border-radius:50%;background:#1D9E75;display:inline-block;flex-shrink:0;\"></span>"
-                f"<strong><a href=\"https://www.google.com/maps/search/{s_est}+estacio\" target=\"_blank\" style=\"text-decoration:none;color:#111;\">{s_est}</a></strong>"
-                f"<span style=\"margin-left:auto;\">{bloc_s}</span></div>"
-                f"<div style=\"font-size:13px;margin:2px 0 6px;display:flex;align-items:center;gap:6px;\">"
-                f"<span style=\"width:9px;height:9px;border-radius:50%;background:#E24B4A;display:inline-block;flex-shrink:0;\"></span>"
-                f"<strong><a href=\"https://www.google.com/maps/search/{a_est}+estacio\" target=\"_blank\" style=\"text-decoration:none;color:#111;\">{a_est}</a></strong>"
-                f"<span style=\"margin-left:auto;\">{bloc_a}</span></div>",
+                f"<div style=\"font-size:16px;font-weight:700;margin:4px 0 2px;display:flex;align-items:center;gap:8px;\">"
+                f"<span style=\"width:10px;height:10px;border-radius:50%;background:#1D9E75;display:inline-block;flex-shrink:0;\"></span>"
+                f"<a href=\"https://www.google.com/maps/search/{s_est}+estacio\" target=\"_blank\" style=\"text-decoration:none;color:#111;\">{s_est}</a>"
+                f"<span style=\"margin-left:auto;font-size:12px;font-weight:400;\">{bloc_s}</span></div>"
+                f"<div style=\"font-size:16px;font-weight:700;margin:2px 0 6px;display:flex;align-items:center;gap:8px;\">"
+                f"<span style=\"width:10px;height:10px;border-radius:50%;background:#E24B4A;display:inline-block;flex-shrink:0;\"></span>"
+                f"<a href=\"https://www.google.com/maps/search/{a_est}+estacio\" target=\"_blank\" style=\"text-decoration:none;color:#111;\">{a_est}</a>"
+                f"<span style=\"margin-left:auto;font-size:12px;font-weight:400;\">{bloc_a}</span></div>",
                 unsafe_allow_html=True
             )
 
