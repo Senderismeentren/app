@@ -559,11 +559,6 @@ try:
             unsafe_allow_html=True
         )
 
-        st.markdown(
-            f"<div style='display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:8px 0;'>{grid_html}</div>",
-            unsafe_allow_html=True
-        )
-
         # ESTACIONS
         circular_label = ' <span style="font-size:12px;font-weight:400;color:#777;">(circular)</span>' if s_est.lower() == a_est.lower() else ""
         if s_est.lower() == a_est.lower():
