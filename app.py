@@ -476,6 +476,26 @@ try:
 
     st.write(f"**Resultats: {len(f)} rutes**")
 
+    # CSS de colors per expander principal de cada ruta (nth-child dins el contenidor)
+    # Streamlit renderitza cada expander com un div[data-testid="stExpander"] en ordre
+    # Saltem el primer expander (mapa general) amb offset +2 (mapa + possible filtre)
+    css_rules = ""
+    for idx_r, (_, row_c) in enumerate(f.iterrows()):
+        dif_c = str(row_c[cols["dif"]]).strip().lower() if cols.get("dif") and pd.notna(row_c[cols["dif"]]) else ""
+        color_c = DIFICULTAT_COLOR.get(dif_c, "#888888")
+        # nth-child comença en 1; el primer expander és el mapa general
+        n = idx_r + 2
+        css_rules += (
+            f"div[data-testid='stVerticalBlock'] > div:nth-child({n}) "
+            f"div[data-testid='stExpander'] > details > summary {{"
+            f"background:{color_c}1a !important;"
+            f"border-left:5px solid {color_c} !important;"
+            f"border-radius:4px !important;"
+            f"}}\n"
+        )
+    if css_rules:
+        st.markdown(f"<style>{css_rules}</style>", unsafe_allow_html=True)
+
     # --- BUCLE DE RUTES ---
     for _, row in f.iterrows():
         ruta_id      = int(row[cols["id"]]) if pd.notna(row[cols["id"]]) else None
@@ -512,40 +532,19 @@ try:
         bloc_a = bloc_estacio_html(row[cols["op_a"]], row[cols["linia_a"]])
 
         # SEPARADOR LLEUGER
-        st.markdown("<div style='border-top:1px solid #e0e0e0;margin:6px 0 4px 0;'></div>", unsafe_allow_html=True)
+        st.markdown("<div style='border-top:1px solid #e0e0e0;margin:6px 0 2px 0;'></div>", unsafe_allow_html=True)
 
-        # CAPÇALERA — actua com a label de l'expander
-        expander_label = (
-            f"**{ruta_id}** · {nom_ruta}   `{dif_raw.upper()}`"
-        )
+        expander_label = f"**{ruta_id}** · {nom_ruta}  —  {dif_raw.upper()}"
 
         with st.expander(expander_label):
-            # CAPÇALERA INTERIOR amb color de dificultat
-            st.markdown(
-                f"<div style=\"background:{dif_color}22;border-left:4px solid {dif_color};"
-                f"border-radius:6px;padding:8px 12px;display:flex;align-items:center;gap:10px;margin-bottom:10px;\">"
-                f"<div style=\"width:26px;height:26px;border-radius:50%;background:{dif_color};color:white;"
-                f"font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;"
-                f"flex-shrink:0;\">{ruta_id}</div>"
-                f"<div style=\"flex:1;\">"
-                f"<div style=\"font-size:15px;font-weight:700;color:#111;\">{nom_ruta}</div>"
-                f"<div style=\"font-size:11px;color:#555;\">{desc}</div>"
-                f"</div>"
-                f"<span style=\"font-size:10px;font-weight:700;background:{dif_color};color:white;"
-                f"padding:2px 9px;border-radius:20px;flex-shrink:0;"
-                f"text-transform:uppercase;letter-spacing:0.5px;\">{dif_raw}</span>"
-                f"</div>",
-                unsafe_allow_html=True
-            )
-
-            # MÈTRIQUES COMPACTES — distància, desnivell, temps en gran
+            # MÈTRIQUES COMPACTES
             if "circular" in tipus:
                 desn_txt = f"+/- {int(desn_pujada)} m"
             else:
                 desn_txt = f"+{int(desn_pujada)} m / -{int(desn_baixada)} m"
 
             st.markdown(
-                f"<div style='display:flex;gap:24px;margin:8px 0 12px;flex-wrap:wrap;'>"
+                f"<div style='display:flex;gap:32px;margin:8px 0 14px;flex-wrap:wrap;'>"
                 f"<div><div style='font-size:10px;color:#999;text-transform:uppercase;letter-spacing:0.4px;'>Distància</div>"
                 f"<div style='font-size:22px;font-weight:700;color:#111;'>{row[cols['km']]} km</div></div>"
                 f"<div><div style='font-size:10px;color:#999;text-transform:uppercase;letter-spacing:0.4px;'>Desnivell</div>"
