@@ -497,37 +497,62 @@ try:
         # SEPARADOR LLEUGER
         st.markdown("<div style='border-top:1px solid #e0e0e0;margin:6px 0 4px 0;'></div>", unsafe_allow_html=True)
 
-        # CAPÇALERA AMB DEGRADAT DE COLOR
+        # CAPÇALERA SENSE DEGRADAT — fons clar del color de dificultat, text negre
         st.markdown(
-            f"<div style=\"background:linear-gradient(90deg,{dif_color}cc 0%,{dif_color}33 60%,transparent 100%);"
+            f"<div style=\"background:{dif_color}22;border-left:4px solid {dif_color};"
             f"border-radius:6px;padding:8px 12px;display:flex;align-items:center;gap:10px;\">"
             f"<div style=\"width:26px;height:26px;border-radius:50%;background:{dif_color};color:white;"
             f"font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;"
             f"flex-shrink:0;\">{ruta_id}</div>"
             f"<div style=\"flex:1;\">"
-            f"<div style=\"font-size:15px;font-weight:600;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,0.3);\">{nom_ruta}</div>"
-            f"<div style=\"font-size:11px;color:rgba(255,255,255,0.85);\">{desc}</div>"
+            f"<div style=\"font-size:15px;font-weight:700;color:#111;\">{nom_ruta}</div>"
+            f"<div style=\"font-size:11px;color:#555;\">{desc}</div>"
             f"</div>"
-            f"<span style=\"font-size:10px;font-weight:700;background:rgba(255,255,255,0.25);color:white;"
-            f"padding:2px 8px;border-radius:20px;border:1px solid rgba(255,255,255,0.5);flex-shrink:0;"
+            f"<span style=\"font-size:10px;font-weight:700;background:{dif_color};color:white;"
+            f"padding:2px 9px;border-radius:20px;flex-shrink:0;"
             f"text-transform:uppercase;letter-spacing:0.5px;\">{dif_raw}</span>"
             f"</div>",
             unsafe_allow_html=True
         )
 
-        # MÈTRIQUES COMPACTES
+        # MÈTRIQUES EN GRAELLA 2x2
         if "circular" in tipus:
-            desn_html = metric_box("Desnivell", f"+/- {desn_pujada} m")
+            cel_desn = (
+                f"<div style='background:#f7f9fc;border:1px solid #e4e8f0;border-radius:8px;padding:8px 12px;'>"
+                f"<div style='font-size:10px;color:#999;text-transform:uppercase;letter-spacing:0.4px;'>Desnivell</div>"
+                f"<div style='font-size:16px;font-weight:700;color:#111;'>+/- {int(desn_pujada)} m</div></div>"
+            )
+            grid_desn = cel_desn + cel_desn.replace(f"+/- {int(desn_pujada)} m", "")  # ocupa 2 cel·les
+            # Versió simplificada per circular: 1 fila
+            st.markdown(
+                f"<div style='display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:8px 0;'>"
+                f"<div style='background:#f7f9fc;border:1px solid #e4e8f0;border-radius:8px;padding:8px 12px;'>"
+                f"<div style='font-size:10px;color:#999;text-transform:uppercase;letter-spacing:0.4px;'>Distància</div>"
+                f"<div style='font-size:16px;font-weight:700;color:#111;'>{row[cols['km']]} km</div></div>"
+                f"<div style='background:#f7f9fc;border:1px solid #e4e8f0;border-radius:8px;padding:8px 12px;'>"
+                f"<div style='font-size:10px;color:#999;text-transform:uppercase;letter-spacing:0.4px;'>Desnivell</div>"
+                f"<div style='font-size:16px;font-weight:700;color:#111;'>+/- {int(desn_pujada)} m</div></div>"
+                f"</div>",
+                unsafe_allow_html=True
+            )
         else:
-            desn_html = metric_box("Desnivell pujada", f"+{desn_pujada} m") + metric_box("Desnivell baixada", f"-{desn_baixada} m")
-
-        st.markdown(
-            "<div style=\"display:flex;gap:6px;margin:6px 0;flex-wrap:wrap;\">"
-            + metric_box("Distància", f"{row[cols['km']]} km")
-            + desn_html
-            + "</div>",
-            unsafe_allow_html=True
-        )
+            st.markdown(
+                f"<div style='display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:8px 0;'>"
+                f"<div style='background:#f7f9fc;border:1px solid #e4e8f0;border-radius:8px;padding:8px 12px;'>"
+                f"<div style='font-size:10px;color:#999;text-transform:uppercase;letter-spacing:0.4px;'>Distància</div>"
+                f"<div style='font-size:16px;font-weight:700;color:#111;'>{row[cols['km']]} km</div></div>"
+                f"<div style='background:#f7f9fc;border:1px solid #e4e8f0;border-radius:8px;padding:8px 12px;'>"
+                f"<div style='font-size:10px;color:#999;text-transform:uppercase;letter-spacing:0.4px;'>Desnivell pujada</div>"
+                f"<div style='font-size:16px;font-weight:700;color:#111;'>+{int(desn_pujada)} m</div></div>"
+                f"<div style='background:#f7f9fc;border:1px solid #e4e8f0;border-radius:8px;padding:8px 12px;'>"
+                f"<div style='font-size:10px;color:#999;text-transform:uppercase;letter-spacing:0.4px;'>Tipus</div>"
+                f"<div style='font-size:16px;font-weight:700;color:#111;text-transform:capitalize;'>{tipus if tipus else '—'}</div></div>"
+                f"<div style='background:#f7f9fc;border:1px solid #e4e8f0;border-radius:8px;padding:8px 12px;'>"
+                f"<div style='font-size:10px;color:#999;text-transform:uppercase;letter-spacing:0.4px;'>Desnivell baixada</div>"
+                f"<div style='font-size:16px;font-weight:700;color:#111;'>-{int(desn_baixada)} m</div></div>"
+                f"</div>",
+                unsafe_allow_html=True
+            )
 
         # ESTACIONS
         if s_est.lower() == a_est.lower():
