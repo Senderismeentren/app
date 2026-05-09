@@ -621,11 +621,10 @@ try:
                 etiquetes += f'<a href="{wiki_url}" target="_blank" style="font-size:11px;padding:2px 7px;border-radius:20px;background:#EAF3DE;color:#3B6D11;border:0.5px solid #C0DD97;text-decoration:none;margin-right:4px;">Wikiloc</a>'
 
             # TARGETA COMPLETA amb details/summary natiu integrat
-            st.markdown(
+            etiquetes_html = f"<div style='padding:2px 12px 8px;'>{etiquetes}</div>" if etiquetes else ""
+            card_html = (
                 f"<div style='margin-top:10px;border:1px solid {dif_color}44;border-left:5px solid {dif_color};"
                 f"border-radius:8px;overflow:hidden;'>"
-
-                # Capçalera
                 f"<div style='background:{dif_color}1a;padding:10px 12px;display:flex;align-items:center;gap:10px;'>"
                 f"<div style='width:26px;height:26px;border-radius:50%;background:{dif_color};color:white;"
                 f"font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;'>{ruta_id}</div>"
@@ -633,8 +632,6 @@ try:
                 f"<span style='font-size:10px;font-weight:700;background:{dif_color};color:white;"
                 f"padding:2px 9px;border-radius:20px;flex-shrink:0;text-transform:uppercase;letter-spacing:0.5px;'>{dif_raw}</span>"
                 f"</div>"
-
-                # Mètriques
                 f"<div style='display:flex;gap:20px;padding:8px 12px 4px;flex-wrap:wrap;'>"
                 f"<div><div style='font-size:10px;color:#999;text-transform:uppercase;letter-spacing:0.4px;'>Distància</div>"
                 f"<div style='font-size:20px;font-weight:700;color:#111;'>{row[cols['km']]} km</div></div>"
@@ -643,19 +640,15 @@ try:
                 f"<div><div style='font-size:10px;color:#999;text-transform:uppercase;letter-spacing:0.4px;'>Temps</div>"
                 f"<div style='font-size:20px;font-weight:700;color:#111;'>{temps_fmt}</div></div>"
                 f"</div>"
-
-                # Etiquetes
-                + (f"<div style='padding:2px 12px 8px;'>{etiquetes}</div>" if etiquetes else "")
-
-                # "Veure detalls" integrat com a details/summary natiu
+                + etiquetes_html +
                 f"<details style='border-top:1px solid {dif_color}33;'>"
                 f"<summary style='padding:8px 12px;font-size:13px;font-weight:600;color:{dif_color};"
                 f"cursor:pointer;background:{dif_color}08;list-style:none;display:flex;align-items:center;gap:6px;'>"
                 f"<span style='font-size:10px;'>▼</span> Veure detalls"
                 f"</summary>"
-                f"<div style='padding:10px 12px;' id='detalls_{ruta_id}'>",
-                unsafe_allow_html=True
+                f"<div style='padding:10px 12px;'>"
             )
+            st.markdown(card_html, unsafe_allow_html=True)
 
             # Contingut dels detalls (Streamlit elements dins el div obert)
             circular_label = ' <span style="font-size:12px;font-weight:400;color:#777;">(circular)</span>' if s_est.lower() == a_est.lower() else ""
