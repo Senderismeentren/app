@@ -497,18 +497,34 @@ try:
                 f_cim = df.iloc[0:0]
             st.write(f"**{len(f_cim)} rutes visiten aquest cim**")
             for _, row_c in f_cim.iterrows():
+                rid_c   = int(row_c[cols["id"]]) if pd.notna(row_c[cols["id"]]) else ""
                 nom_c   = row_c[cols["ruta"]]
                 dif_c   = str(row_c[cols["dif"]]).strip() if pd.notna(row_c[cols["dif"]]) else ""
                 color_c = DIFICULTAT_COLOR.get(dif_c.lower(), "#888888")
                 km_c    = row_c[cols["km"]] if cols["km"] and pd.notna(row_c[cols["km"]]) else "—"
+                desn_c  = int(row_c[cols["desn"]]) if cols["desn"] and pd.notna(row_c[cols["desn"]]) else 0
+
                 st.markdown(
-                    f"<div style='background:{color_c}1a;border-left:4px solid {color_c};"
-                    f"border-radius:6px;padding:8px 12px;margin-bottom:6px;'>"
-                    f"<div style='font-size:14px;font-weight:600;color:#111;'>{nom_c}</div>"
-                    f"<div style='font-size:12px;color:#666;margin-top:2px;'>{km_c} km · {dif_c}</div>"
+                    f"<div style='margin-top:8px;background:{color_c}1a;border-left:5px solid {color_c};"
+                    f"border-radius:8px;padding:8px 12px;display:flex;align-items:center;gap:10px;'>"
+                    f"<div style='width:24px;height:24px;border-radius:50%;background:{color_c};color:white;"
+                    f"font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;'>{rid_c}</div>"
+                    f"<div style='flex:1;font-size:14px;font-weight:600;color:#111;'>{nom_c}</div>"
+                    f"<span style='font-size:10px;font-weight:700;background:{color_c};color:white;"
+                    f"padding:2px 8px;border-radius:20px;flex-shrink:0;text-transform:uppercase;'>{dif_c}</span>"
                     f"</div>",
                     unsafe_allow_html=True
                 )
+                with st.expander("∨  Veure detalls", key=f"cim_det_{rid_c}_{nom_cim}"):
+                    st.markdown(
+                        f"<div style='display:flex;gap:20px;padding:4px 0 8px;flex-wrap:wrap;'>"
+                        f"<div><div style='font-size:10px;color:#999;text-transform:uppercase;'>Distància</div>"
+                        f"<div style='font-size:18px;font-weight:700;color:#111;'>{km_c} km</div></div>"
+                        f"<div><div style='font-size:10px;color:#999;text-transform:uppercase;'>Desnivell</div>"
+                        f"<div style='font-size:18px;font-weight:700;color:#111;'>+{desn_c} m</div></div>"
+                        f"</div>",
+                        unsafe_allow_html=True
+                    )
         else:
             # MODE LLISTA: tots els cims únics de la columna W
             if cols.get("cims_noms"):
@@ -604,10 +620,16 @@ try:
             if wiki_url and wiki_url != "nan":
                 etiquetes += f'<a href="{wiki_url}" target="_blank" style="font-size:11px;padding:2px 7px;border-radius:20px;background:#EAF3DE;color:#3B6D11;border:0.5px solid #C0DD97;text-decoration:none;margin-right:4px;">Wikiloc</a>'
 
-            # CAPÇALERA DE COLOR — sempre visible
+            # CONTENIDOR TARGETA — obertura
             st.markdown(
-                f"<div style='margin-top:10px;background:{dif_color}1a;border-left:5px solid {dif_color};"
-                f"border-radius:6px;padding:8px 12px;display:flex;align-items:center;gap:10px;'>"
+                f"<div style='margin-top:10px;border:1px solid {dif_color}44;border-left:5px solid {dif_color};"
+                f"border-radius:8px;overflow:hidden;'>",
+                unsafe_allow_html=True
+            )
+
+            # CAPÇALERA DE COLOR
+            st.markdown(
+                f"<div style='background:{dif_color}1a;padding:10px 12px;display:flex;align-items:center;gap:10px;'>"
                 f"<div style='width:26px;height:26px;border-radius:50%;background:{dif_color};color:white;"
                 f"font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;'>{ruta_id}</div>"
                 f"<div style='flex:1;font-size:14px;font-weight:700;color:#111;'>{nom_ruta}</div>"
@@ -619,7 +641,7 @@ try:
 
             # MÈTRIQUES — sempre visibles
             st.markdown(
-                f"<div style='display:flex;gap:20px;margin:6px 0 4px;flex-wrap:wrap;'>"
+                f"<div style='display:flex;gap:20px;padding:8px 12px 4px;flex-wrap:wrap;'>"
                 f"<div><div style='font-size:10px;color:#999;text-transform:uppercase;letter-spacing:0.4px;'>Distància</div>"
                 f"<div style='font-size:20px;font-weight:700;color:#111;'>{row[cols['km']]} km</div></div>"
                 f"<div><div style='font-size:10px;color:#999;text-transform:uppercase;letter-spacing:0.4px;'>Desnivell</div>"
@@ -632,10 +654,27 @@ try:
 
             # ETIQUETES — sempre visibles
             if etiquetes:
-                st.markdown(f'<div style="margin:2px 0 6px;">{etiquetes}</div>', unsafe_allow_html=True)
+                st.markdown(f'<div style="padding:2px 12px 8px;">{etiquetes}</div>', unsafe_allow_html=True)
 
-            # DESPLEGABLE amb detalls
-            with st.expander("＋ Detalls"):
+            # TANCAMENT CONTENIDOR (el desplegable queda fora però adjacent)
+            st.markdown("</div>", unsafe_allow_html=True)
+
+            # DESPLEGABLE "Veure detalls" — estilitzat per semblar part de la targeta
+            st.markdown(f"""
+<style>
+div[data-ruta="{ruta_id}"] + div div[data-testid="stExpander"] > details > summary {{
+    color: {dif_color} !important;
+    font-weight: 600 !important;
+    border-top: 1px solid {dif_color}33 !important;
+    background: {dif_color}08 !important;
+    border-radius: 0 0 8px 8px !important;
+    margin-top: -2px !important;
+}}
+</style>
+<div data-ruta="{ruta_id}" style="display:none;"></div>
+""", unsafe_allow_html=True)
+
+            with st.expander("∨  Veure detalls"):
                 circular_label = ' <span style="font-size:12px;font-weight:400;color:#777;">(circular)</span>' if s_est.lower() == a_est.lower() else ""
                 if s_est.lower() == a_est.lower():
                     st.markdown(
