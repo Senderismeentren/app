@@ -515,7 +515,7 @@ try:
                     f"</div>",
                     unsafe_allow_html=True
                 )
-                with st.expander("∨  Veure detalls", key=f"cim_det_{rid_c}_{nom_cim}"):
+                with st.expander("∨  Veure detalls", key=f"cim_det_{rid_c}_{st.session_state.filtre_cim}"):
                     st.markdown(
                         f"<div style='display:flex;gap:20px;padding:4px 0 8px;flex-wrap:wrap;'>"
                         f"<div><div style='font-size:10px;color:#999;text-transform:uppercase;'>Distància</div>"
