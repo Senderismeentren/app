@@ -493,9 +493,9 @@ try:
         temps_fmt = "—"
         if cols.get("temps") and pd.notna(row[cols["temps"]]):
             try:
-                mins_total = int(float(str(row[cols["temps"]]).replace(",", ".")))
-                hores = mins_total // 60
-                mins  = mins_total % 60
+                hores_dec = float(str(row[cols["temps"]]).replace(",", "."))
+                hores = int(hores_dec)
+                mins  = round((hores_dec - hores) * 60)
                 if hores > 0 and mins > 0:
                     temps_fmt = f"{hores}h{mins:02d}min"
                 elif hores > 0:
@@ -534,43 +534,30 @@ try:
         )
 
         # MÈTRIQUES EN GRAELLA 2x2
+        def cel(label, valor):
+            return (f"<div style='background:#f7f9fc;border:1px solid #e4e8f0;border-radius:8px;padding:8px 12px;'>"
+                    f"<div style='font-size:10px;color:#999;text-transform:uppercase;letter-spacing:0.4px;'>{label}</div>"
+                    f"<div style='font-size:16px;font-weight:700;color:#111;'>{valor}</div></div>")
+
         if "circular" in tipus:
-            cel_desn = (
-                f"<div style='background:#f7f9fc;border:1px solid #e4e8f0;border-radius:8px;padding:8px 12px;'>"
-                f"<div style='font-size:10px;color:#999;text-transform:uppercase;letter-spacing:0.4px;'>Desnivell</div>"
-                f"<div style='font-size:16px;font-weight:700;color:#111;'>+/- {int(desn_pujada)} m</div></div>"
-            )
-            grid_desn = cel_desn + cel_desn.replace(f"+/- {int(desn_pujada)} m", "")  # ocupa 2 cel·les
-            # Versió simplificada per circular: 1 fila
-            st.markdown(
-                f"<div style='display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:8px 0;'>"
-                f"<div style='background:#f7f9fc;border:1px solid #e4e8f0;border-radius:8px;padding:8px 12px;'>"
-                f"<div style='font-size:10px;color:#999;text-transform:uppercase;letter-spacing:0.4px;'>Distància</div>"
-                f"<div style='font-size:16px;font-weight:700;color:#111;'>{row[cols['km']]} km</div></div>"
-                f"<div style='background:#f7f9fc;border:1px solid #e4e8f0;border-radius:8px;padding:8px 12px;'>"
-                f"<div style='font-size:10px;color:#999;text-transform:uppercase;letter-spacing:0.4px;'>Desnivell</div>"
-                f"<div style='font-size:16px;font-weight:700;color:#111;'>+/- {int(desn_pujada)} m</div></div>"
-                f"</div>",
-                unsafe_allow_html=True
+            grid_html = (
+                cel("Distància", f"{row[cols['km']]} km") +
+                cel("Temps", temps_fmt) +
+                cel("Desnivell pujada", f"+{int(desn_pujada)} m") +
+                cel("Desnivell baixada", f"-{int(desn_pujada)} m")
             )
         else:
-            st.markdown(
-                f"<div style='display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:8px 0;'>"
-                f"<div style='background:#f7f9fc;border:1px solid #e4e8f0;border-radius:8px;padding:8px 12px;'>"
-                f"<div style='font-size:10px;color:#999;text-transform:uppercase;letter-spacing:0.4px;'>Distància</div>"
-                f"<div style='font-size:16px;font-weight:700;color:#111;'>{row[cols['km']]} km</div></div>"
-                f"<div style='background:#f7f9fc;border:1px solid #e4e8f0;border-radius:8px;padding:8px 12px;'>"
-                f"<div style='font-size:10px;color:#999;text-transform:uppercase;letter-spacing:0.4px;'>Desnivell pujada</div>"
-                f"<div style='font-size:16px;font-weight:700;color:#111;'>+{int(desn_pujada)} m</div></div>"
-                f"<div style='background:#f7f9fc;border:1px solid #e4e8f0;border-radius:8px;padding:8px 12px;'>"
-                f"<div style='font-size:10px;color:#999;text-transform:uppercase;letter-spacing:0.4px;'>Temps</div>"
-                f"<div style='font-size:16px;font-weight:700;color:#111;'>{temps_fmt}</div></div>"
-                f"<div style='background:#f7f9fc;border:1px solid #e4e8f0;border-radius:8px;padding:8px 12px;'>"
-                f"<div style='font-size:10px;color:#999;text-transform:uppercase;letter-spacing:0.4px;'>Desnivell baixada</div>"
-                f"<div style='font-size:16px;font-weight:700;color:#111;'>-{int(desn_baixada)} m</div></div>"
-                f"</div>",
-                unsafe_allow_html=True
+            grid_html = (
+                cel("Distància", f"{row[cols['km']]} km") +
+                cel("Desnivell pujada", f"+{int(desn_pujada)} m") +
+                cel("Temps", temps_fmt) +
+                cel("Desnivell baixada", f"-{int(desn_baixada)} m")
             )
+
+        st.markdown(
+            f"<div style='display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:8px 0;'>{grid_html}</div>",
+            unsafe_allow_html=True
+        )
 
         # ESTACIONS
         circular_label = ' <span style="font-size:12px;font-weight:400;color:#777;">(circular)</span>' if s_est.lower() == a_est.lower() else ""
