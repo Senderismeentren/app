@@ -699,18 +699,16 @@ try:
                     f"</div>"
                 )
 
-            c1 = cel_detall("📍", "Inici", s_est, f"({comarca_val})" if comarca_val and comarca_val != "nan" else None)
-            c2 = cel_detall("⛰️", "Punt més alt", punt_alt_val, f"{alt_max_val} m" if alt_max_val else None)
-            c3 = cel_detall("📅", "Època recomanada", epoca_val)
-            c4 = cel_detall("🏁", "Final", a_est if not is_circular else None, f"({comarca_val})" if comarca_val and comarca_val != "nan" else None)
-            c5 = cel_detall("🔄", "Tipus de ruta", tipus_val)
-            c6 = cel_detall("👟", "Terreny", terreny_val)
+            c1 = cel_detall("⛰️", "Punt més alt", punt_alt_val, f"{alt_max_val} m" if alt_max_val else None)
+            c2 = cel_detall("📅", "Època recomanada", epoca_val)
+            c3 = cel_detall("🔄", "Tipus de ruta", tipus_val)
+            c4 = cel_detall("👟", "Terreny", terreny_val)
             graella = ""
-            if any([c1,c2,c3,c4,c5,c6]):
+            if any([c1,c2,c3,c4]):
                 graella = (
-                    f"<div style='display:grid;grid-template-columns:1fr 1fr 1fr;gap:0 16px;"
+                    f"<div style='display:grid;grid-template-columns:1fr 1fr;gap:0 16px;"
                     f"border-top:1px solid #eee;margin-top:2px;padding:0 12px;'>"
-                    f"{c1}{c2}{c3}{c4}{c5}{c6}</div>"
+                    f"{c1}{c2}{c3}{c4}</div>"
                 )
 
             etiquetes_html = f"<div style='padding:2px 12px 8px;'>{etiquetes}</div>" if etiquetes else ""
@@ -760,6 +758,37 @@ try:
                 f"</div>"
             )
             st.markdown(card_html, unsafe_allow_html=True)
+
+            # CSS per integrar els sub-expanders visiblement dins la targeta
+            st.markdown(f"""<style>
+div[data-key="mapa_{ruta_id}"],
+div[data-key="terreny_{ruta_id}"],
+div[data-key="punts_{ruta_id}"] {{
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+}}
+div[data-key="mapa_{ruta_id}"] > div[data-testid="stExpander"],
+div[data-key="terreny_{ruta_id}"] > div[data-testid="stExpander"],
+div[data-key="punts_{ruta_id}"] > div[data-testid="stExpander"] {{
+    border: none !important;
+    border-top: 1px solid #eee !important;
+    border-left: 5px solid {dif_color} !important;
+    border-radius: 0 !important;
+    margin: 0 !important;
+}}
+div[data-key="punts_{ruta_id}"] > div[data-testid="stExpander"] {{
+    border-bottom: 1px solid {dif_color}44 !important;
+    border-radius: 0 0 8px 8px !important;
+    border-right: 1px solid {dif_color}44 !important;
+}}
+div[data-key="mapa_{ruta_id}"] > div[data-testid="stExpander"] > details > summary,
+div[data-key="terreny_{ruta_id}"] > div[data-testid="stExpander"] > details > summary,
+div[data-key="punts_{ruta_id}"] > div[data-testid="stExpander"] > details > summary {{
+    background: white !important;
+    padding: 7px 12px !important;
+    font-size: 13px !important;
+}}
+</style>""", unsafe_allow_html=True)
 
             with st.expander("🗺️ Mapa del recorregut", key=f"mapa_{ruta_id}"):
                 if ruta_id:
