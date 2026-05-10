@@ -759,16 +759,14 @@ try:
             )
             st.markdown(card_html, unsafe_allow_html=True)
 
-            # Contenidor indentat per als sub-expanders
-            st.markdown("<div style='margin-left:20px;margin-top:2px;border:1px solid #e0e0e0;border-radius:8px;overflow:hidden;'>", unsafe_allow_html=True)
-
-            # CSS per compactar i neutralitzar els sub-expanders
+            # CSS per als sub-expanders: a la dreta, sense fons, sense marges
             st.markdown(f"""<style>
 div[data-key="mapa_{ruta_id}"],
 div[data-key="terreny_{ruta_id}"],
 div[data-key="punts_{ruta_id}"] {{
     margin: 0 !important;
     padding: 0 !important;
+    padding-left: 20px !important;
 }}
 div[data-key="mapa_{ruta_id}"] > div[data-testid="stExpander"],
 div[data-key="terreny_{ruta_id}"] > div[data-testid="stExpander"],
@@ -777,17 +775,15 @@ div[data-key="punts_{ruta_id}"] > div[data-testid="stExpander"] {{
     border-top: 1px solid #e8e8e8 !important;
     border-radius: 0 !important;
     margin: 0 !important;
-    padding: 0 !important;
 }}
 div[data-key="mapa_{ruta_id}"] > div[data-testid="stExpander"] > details > summary,
 div[data-key="terreny_{ruta_id}"] > div[data-testid="stExpander"] > details > summary,
 div[data-key="punts_{ruta_id}"] > div[data-testid="stExpander"] > details > summary {{
-    background: #f9f9f9 !important;
-    padding: 7px 12px !important;
+    background: transparent !important;
+    padding: 6px 8px !important;
     font-size: 13px !important;
     color: #555 !important;
     font-weight: 500 !important;
-    border-left: none !important;
 }}
 </style>""", unsafe_allow_html=True)
 
@@ -828,8 +824,6 @@ div[data-key="punts_{ruta_id}"] > div[data-testid="stExpander"] > details > summ
                     st.markdown(punts_interes_html(elements_str, cats_str), unsafe_allow_html=True)
                 else:
                     st.info("No hi ha punts d'interès registrats.")
-
-            st.markdown("</div>", unsafe_allow_html=True)
 
     # --- FILTRE PER ESTACIÓ DES DEL MAPA ---
     if st.session_state.filtre_estacio:
@@ -1039,4 +1033,3 @@ div[data-key="punts_{ruta_id}"] > div[data-testid="stExpander"] > details > summ
 
 except Exception as e:
     st.error(f"S'ha produït un error: {e}")
-    
