@@ -712,14 +712,87 @@ try:
                     f"{c1}{c2}{c3}{c4}</div>"
                 )
 
+            # Generar perfil SVG per a la pestanya
+            svg_perfil_html = ""
+            alt_info_html = ""
+            if ruta_id:
+                svg_p, alt_min_p, alt_max_p = perfil_elevacio_svg(ruta_id, dif_color)
+                if svg_p:
+                    svg_perfil_html = svg_p
+                    alt_info_html = f"<div style='font-size:10px;color:#888;text-align:center;margin-top:4px;'>Altitud mín: <b>{int(alt_min_p)} m</b> · Altitud màx: <b>{int(alt_max_p)} m</b></div>"
+
+            # Barra de dificultat HTML
+            nivells_dif = [("Molt fàcil","#2196A6"),("Fàcil","#1D9E75"),("Moderada","#EF9F27"),("Difícil","#E24B4A"),("Molt difícil","#9B1B1B")]
+            claus_norm_dif = ["molt facil","facil","moderada","dificil","molt dificil"]
+            def normalitza_d(s):
+                return s.lower().replace("í","i").replace("à","a").replace("è","e").replace("ó","o").replace("ú","u").strip()
+            pos_dif = next((i for i,c in enumerate(claus_norm_dif) if c==normalitza_d(dif_raw)),-1)
+            segs_dif = ""
+            for i,(nom_niv,color_niv) in enumerate(nivells_dif):
+                actiu=(i==pos_dif); opacity="1" if actiu else "0.22"
+                radius="6px 0 0 6px" if i==0 else ("0 6px 6px 0" if i==4 else "0")
+                dot=f'<div style="width:11px;height:11px;border-radius:50%;background:{color_niv};border:2px solid #111;position:absolute;top:-6px;left:50%;transform:translateX(-50%);box-shadow:0 1px 3px rgba(0,0,0,0.3);"></div>' if actiu else ""
+                segs_dif+=f'<div style="flex:1;position:relative;">{dot}<div style="height:8px;background:{color_niv};opacity:{opacity};border-radius:{radius};"></div><div style="font-size:8px;color:#555;text-align:center;margin-top:3px;font-weight:{"700" if actiu else "400"};">{nom_niv}</div></div>'
+            barra_dif = f'<div style="margin:10px 0 4px;"><div style="font-size:10px;color:#aaa;margin-bottom:10px;text-transform:uppercase;letter-spacing:0.4px;">Dificultat</div><div style="display:flex;gap:2px;">{segs_dif}</div></div>'
+
+            # Punts d'interès HTML
+            elements_str = row[cols["elements"]] if cols["elements"] and pd.notna(row[cols["elements"]]) else ""
+            cats_str     = row[cols["cats"]]     if cols["cats"]     and pd.notna(row[cols["cats"]])     else ""
+            punts_html_content = punts_interes_html(elements_str, cats_str) if elements_str else "<div style='color:#888;font-size:13px;padding:8px 0;'>No hi ha punts d'interès registrats.</div>"
+
+            # ID únic per a les pestanyes d'aquesta ruta
+            tab_id = f"tabs_{ruta_id}"
+
+            tabs_html = f"""
+<style>
+.{tab_id} input[type="radio"] {{ display:none; }}
+.{tab_id} .tab-labels {{ display:flex; border-bottom:1px solid #e0e0e0; margin-bottom:0; }}
+.{tab_id} .tab-label {{
+    padding:7px 14px; font-size:12px; font-weight:600; color:#888;
+    cursor:pointer; border-bottom:2px solid transparent; margin-bottom:-1px;
+    user-select:none;
+}}
+.{tab_id} #t1_{ruta_id}:checked ~ .tab-labels label[for="t1_{ruta_id}"],
+.{tab_id} #t2_{ruta_id}:checked ~ .tab-labels label[for="t2_{ruta_id}"],
+.{tab_id} #t3_{ruta_id}:checked ~ .tab-labels label[for="t3_{ruta_id}"] {{
+    color:{dif_color}; border-bottom:2px solid {dif_color};
+}}
+.{tab_id} .tab-content {{ display:none; padding:10px 0 4px; }}
+.{tab_id} #t1_{ruta_id}:checked ~ .tab-contents .tc1_{ruta_id},
+.{tab_id} #t2_{ruta_id}:checked ~ .tab-contents .tc2_{ruta_id},
+.{tab_id} #t3_{ruta_id}:checked ~ .tab-contents .tc3_{ruta_id} {{ display:block; }}
+</style>
+<div class="{tab_id}">
+  <input type="radio" id="t1_{ruta_id}" name="{tab_id}" checked>
+  <input type="radio" id="t2_{ruta_id}" name="{tab_id}">
+  <input type="radio" id="t3_{ruta_id}" name="{tab_id}">
+  <div class="tab-labels">
+    <label class="tab-label" for="t1_{ruta_id}">Detalls</label>
+    <label class="tab-label" for="t2_{ruta_id}">⛰️ Perfil</label>
+    <label class="tab-label" for="t3_{ruta_id}">📌 Punts</label>
+  </div>
+  <div class="tab-contents">
+    <div class="tab-content tc1_{ruta_id}">
+      {estacions_html}
+      {graella}
+    </div>
+    <div class="tab-content tc2_{ruta_id}">
+      {svg_perfil_html if svg_perfil_html else "<div style='color:#888;font-size:13px;padding:8px 0;'>Perfil no disponible.</div>"}
+      {alt_info_html}
+      {barra_dif}
+    </div>
+    <div class="tab-content tc3_{ruta_id}">
+      {punts_html_content}
+    </div>
+  </div>
+</div>"""
+
             etiquetes_html = f"<div style='padding:2px 12px 8px;'>{etiquetes}</div>" if etiquetes else ""
 
-            # TARGETA UNIFICADA amb <details> natiu integrat
+            # TARGETA UNIFICADA amb <details> natiu + pestanyes HTML
             card_html = (
                 f"<div style='margin-top:12px;border:1px solid {dif_color}44;border-left:5px solid {dif_color};"
                 f"border-radius:8px;overflow:visible;background:white;'>"
-
-                # Capçalera de color
                 f"<div style='background:{dif_color}18;padding:10px 12px;display:flex;align-items:center;gap:10px;'>"
                 f"<div style='width:26px;height:26px;border-radius:50%;background:{dif_color};color:white;"
                 f"font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;'>{ruta_id}</div>"
@@ -727,8 +800,6 @@ try:
                 f"<span style='font-size:10px;font-weight:700;background:{dif_color};color:white;"
                 f"padding:2px 9px;border-radius:20px;flex-shrink:0;text-transform:uppercase;letter-spacing:0.5px;'>{dif_raw}</span>"
                 f"</div>"
-
-                # Mètriques
                 f"<div style='padding:6px 12px 4px;display:flex;gap:20px;flex-wrap:wrap;'>"
                 f"<div><div style='font-size:9px;color:#999;text-transform:uppercase;letter-spacing:0.4px;'>Distància</div>"
                 f"<div style='font-size:14px;font-weight:700;color:#111;'>{row[cols['km']]} km</div></div>"
@@ -737,69 +808,26 @@ try:
                 f"<div><div style='font-size:9px;color:#999;text-transform:uppercase;letter-spacing:0.4px;'>Temps</div>"
                 f"<div style='font-size:14px;font-weight:700;color:#111;'>{temps_fmt}</div></div>"
                 f"</div>"
-
-                # Etiquetes
                 + etiquetes_html +
-
-                # Separador + details/summary natiu
                 f"<details style='border-top:1px solid #eee;'>"
                 f"<summary style='list-style:none;padding:8px 12px;cursor:pointer;font-size:13px;"
                 f"font-weight:600;color:#555;display:flex;align-items:center;gap:6px;'>"
-                f"<svg width='12' height='12' viewBox='0 0 12 12' style='transition:transform 0.2s;'>"
+                f"<svg width='12' height='12' viewBox='0 0 12 12'>"
                 f"<path d='M2 4l4 4 4-4' stroke='#888' stroke-width='1.5' fill='none' stroke-linecap='round'/>"
-                f"</svg>"
-                f"Veure detalls</summary>"
-
-                # Contingut del detall
+                f"</svg>Veure detalls</summary>"
                 f"<div style='padding:0 12px 12px;'>"
-                + estacions_html
-                + graella +
-                f"</div>"
-                f"</details>"
-                f"</div>"
+                + tabs_html +
+                f"</div></details></div>"
             )
             st.markdown(card_html, unsafe_allow_html=True)
 
-            # Indentació real amb st.columns + CSS global compacte
-            _, col_sub = st.columns([0.05, 0.95])
-            with col_sub:
+            # Mapa — únic element que necessita Streamlit fora de la caixa
+            _, col_map = st.columns([0.05, 0.95])
+            with col_map:
                 with st.expander("🗺️ Mapa del recorregut", key=f"mapa_{ruta_id}"):
                     if ruta_id:
                         if not mostrar_mapa_gpx(ruta_id, lat_s, lng_s, lat_a, lng_a):
                             st.info("Mapa no disponible per aquesta ruta.")
-
-                with st.expander("⛰️ Terreny i dificultat", key=f"terreny_{ruta_id}"):
-                    if ruta_id:
-                        svg_perfil, alt_min, alt_max = perfil_elevacio_svg(ruta_id, dif_color)
-                        if svg_perfil:
-                            st.markdown(svg_perfil, unsafe_allow_html=True)
-                            st.markdown(
-                                f"<div style='font-size:10px;color:#888;text-align:center;margin-bottom:10px;'>"
-                                f"Altitud mín: <b>{int(alt_min)} m</b> · Altitud màx: <b>{int(alt_max)} m</b></div>",
-                                unsafe_allow_html=True
-                            )
-                        else:
-                            st.info("Perfil d'elevació no disponible per aquesta ruta.")
-                    nivells = [("Molt fàcil","#2196A6"),("Fàcil","#1D9E75"),("Moderada","#EF9F27"),("Difícil","#E24B4A"),("Molt difícil","#9B1B1B")]
-                    claus_norm = ["molt facil","facil","moderada","dificil","molt dificil"]
-                    def normalitza(s):
-                        return s.lower().replace("í","i").replace("à","a").replace("è","e").replace("ó","o").replace("ú","u").strip()
-                    pos_actual = next((i for i,c in enumerate(claus_norm) if c==normalitza(dif_raw)),-1)
-                    segments = ""
-                    for i,(nom_niv,color_niv) in enumerate(nivells):
-                        actiu=(i==pos_actual); opacity="1" if actiu else "0.22"
-                        radius="6px 0 0 6px" if i==0 else ("0 6px 6px 0" if i==4 else "0")
-                        dot=f'<div style="width:13px;height:13px;border-radius:50%;background:{color_niv};border:2.5px solid #111;position:absolute;top:-8px;left:50%;transform:translateX(-50%);box-shadow:0 1px 4px rgba(0,0,0,0.35);z-index:2;"></div>' if actiu else ""
-                        segments+=f'<div style="flex:1;position:relative;">{dot}<div style="height:10px;background:{color_niv};opacity:{opacity};border-radius:{radius};"></div><div style="font-size:9px;color:#555;text-align:center;margin-top:4px;font-weight:{"700" if actiu else "400"};">{nom_niv}</div></div>'
-                    st.markdown(f'<div style="margin-top:6px;"><div style="font-size:11px;color:#888;margin-bottom:12px;">Dificultat</div><div style="display:flex;gap:2px;">{segments}</div></div>', unsafe_allow_html=True)
-
-                with st.expander("📌 Punts d'interès", key=f"punts_{ruta_id}"):
-                    elements_str = row[cols["elements"]] if cols["elements"] and pd.notna(row[cols["elements"]]) else ""
-                    cats_str     = row[cols["cats"]]     if cols["cats"]     and pd.notna(row[cols["cats"]])     else ""
-                    if elements_str:
-                        st.markdown(punts_interes_html(elements_str, cats_str), unsafe_allow_html=True)
-                    else:
-                        st.info("No hi ha punts d'interès registrats.")
 
     # --- FILTRE PER ESTACIÓ DES DEL MAPA ---
     if st.session_state.filtre_estacio:
