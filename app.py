@@ -207,6 +207,10 @@ def mostrar_mapa_gpx(ruta_id, lat_s, lng_s, lat_a, lng_a):
         if lat_a and lng_a and (lat_s != lat_a or lng_s != lng_a):
             folium.Marker([lat_a, lng_a], tooltip="Arribada",
                           icon=folium.Icon(color="red", icon="flag", prefix="fa")).add_to(m)
+        # Ajustar zoom per mostrar tota la ruta
+        lats_r = [p[0] for p in punts]
+        lngs_r = [p[1] for p in punts]
+        m.fit_bounds([[min(lats_r), min(lngs_r)], [max(lats_r), max(lngs_r)]])
         st_folium(m, width=None, height=300, returned_objects=[], key=f"mapa_ruta_{ruta_id}")
         return True
     except:
@@ -328,8 +332,9 @@ def mostrar_mapa_general(df_filtrat, cols):
 
     lats   = [k[0] for k in punts_mapa]
     lngs   = [k[1] for k in punts_mapa]
-    centre = (sum(lats) / len(lats), sum(lngs) / len(lngs))
-    m = folium.Map(location=centre, zoom_start=9, tiles="OpenStreetMap")
+    # Centre i zoom per mostrar tota Catalunya
+    m = folium.Map(location=[41.7, 1.8], zoom_start=8, tiles="OpenStreetMap")
+    m.fit_bounds([[min(lats), min(lngs)], [max(lats), max(lngs)]])
 
     for (lat, lng, estacio), info in punts_mapa.items():
         tipus = info["tipus"]
@@ -398,9 +403,15 @@ try:
         "elements": buscar_col(["elements_interès", "elements_interes"]),
         "cats":     buscar_col(["categories_elements_interès", "categories_elements_interes"]),
         "coord_s":  buscar_col(["coordenades_sortida"]),
-        "coord_a":    buscar_col(["coordenades_arribada"]),
-        "temps":      df_raw.columns[20] if len(df_raw.columns) > 20 else None,
-        "cims_noms":  df_raw.columns[22] if len(df_raw.columns) > 22 else None,
+        "coord_a":       buscar_col(["coordenades_arribada"]),
+        "temps":         df_raw.columns[20] if len(df_raw.columns) > 20 else None,
+        "cims_noms":     df_raw.columns[22] if len(df_raw.columns) > 22 else None,
+        "inici":         buscar_col(["inici", "punt_inici", "punt inici"]),
+        "final":         buscar_col(["final", "punt_final", "punt final"]),
+        "punt_alt":      buscar_col(["punt_mes_alt", "punt més alt", "cim", "altitud_max"]),
+        "altitud_max":   buscar_col(["altitud", "cota", "metres"]),
+        "terreny":       buscar_col(["terreny"]),
+        "epoca":         buscar_col(["època", "epoca", "millor_epoca", "recomanada"]),
     }
 
     df = df_raw.dropna(subset=[cols["ruta"]]).copy()
@@ -644,29 +655,81 @@ try:
             )
             st.markdown(card_html, unsafe_allow_html=True)
 
-            # ÚNIC EXPANDER — conté estacions + mapa + terreny + punts
+            # CSS per estilitzar el "Veure detalls" d'aquesta ruta
+            st.markdown(f"""<style>
+div[data-testid="stExpander"]:has(details summary p:contains("Veure detalls")) > details > summary {{
+    background: #f8f9fa !important;
+    border-left: 4px solid {dif_color} !important;
+    color: {dif_color} !important;
+    font-weight: 600 !important;
+}}
+</style>""", unsafe_allow_html=True)
+
+            # ÚNIC EXPANDER — conté detalls de la ruta
             with st.expander("Veure detalls", key=f"det_{ruta_id}"):
-                # Estacions
+
+                # GRAELLA DE DETALLS (com la imatge)
+                def get_val(key):
+                    return str(row[cols[key]]).strip() if cols.get(key) and pd.notna(row[cols[key]]) and str(row[cols[key]]).strip() not in ("nan","") else None
+
+                inici_val    = get_val("inici")    or s_est
+                final_val    = get_val("final")    or (None if s_est.lower() == a_est.lower() else a_est)
+                punt_alt_val = get_val("punt_alt")
+                alt_max_val  = get_val("altitud_max")
+                terreny_val  = get_val("terreny")
+                epoca_val    = get_val("epoca")
+                tipus_val    = tipus.capitalize() if tipus else None
+
+                def cel_detall(icon, label, val1, val2=None):
+                    if not val1:
+                        return ""
+                    v2 = f"<div style='font-size:13px;color:#555;'>{val2}</div>" if val2 else ""
+                    return (
+                        f"<div style='display:flex;gap:10px;align-items:flex-start;padding:8px 0;'>"
+                        f"<span style='font-size:18px;color:#888;flex-shrink:0;width:24px;'>{icon}</span>"
+                        f"<div><div style='font-size:9px;text-transform:uppercase;letter-spacing:0.5px;color:#aaa;font-weight:600;'>{label}</div>"
+                        f"<div style='font-size:14px;font-weight:600;color:#222;'>{val1}</div>{v2}</div>"
+                        f"</div>"
+                    )
+
+                # Estacions amb línies (fila superior)
                 circular_label = ' <span style="font-size:12px;font-weight:400;color:#777;">(circular)</span>' if s_est.lower() == a_est.lower() else ""
                 if s_est.lower() == a_est.lower():
                     st.markdown(
-                        f"<div style=\"font-size:15px;font-weight:700;margin:4px 0 8px;display:flex;align-items:center;gap:8px;\">"
-                        f"<span style=\"width:10px;height:10px;border-radius:50%;background:#1D9E75;display:inline-block;flex-shrink:0;\"></span>"
-                        f"<a href=\"https://www.google.com/maps/search/{s_est}+estacio\" target=\"_blank\" style=\"text-decoration:none;color:#111;\">{s_est}</a>"
+                        f"<div style='font-size:15px;font-weight:700;margin:4px 0 8px;display:flex;align-items:center;gap:8px;'>"
+                        f"<span style='width:10px;height:10px;border-radius:50%;background:#1D9E75;display:inline-block;flex-shrink:0;'></span>"
+                        f"<a href='https://www.google.com/maps/search/{s_est}+estacio' target='_blank' style='text-decoration:none;color:#111;'>{s_est}</a>"
                         f"{circular_label}"
-                        f"<span style=\"margin-left:auto;font-size:12px;font-weight:400;\">{bloc_s}</span></div>",
+                        f"<span style='margin-left:auto;font-size:12px;font-weight:400;'>{bloc_s}</span></div>",
                         unsafe_allow_html=True
                     )
                 else:
                     st.markdown(
-                        f"<div style=\"font-size:15px;font-weight:700;margin:4px 0 2px;display:flex;align-items:center;gap:8px;\">"
-                        f"<span style=\"width:10px;height:10px;border-radius:50%;background:#1D9E75;display:inline-block;flex-shrink:0;\"></span>"
-                        f"<a href=\"https://www.google.com/maps/search/{s_est}+estacio\" target=\"_blank\" style=\"text-decoration:none;color:#111;\">{s_est}</a>"
-                        f"<span style=\"margin-left:auto;font-size:12px;font-weight:400;\">{bloc_s}</span></div>"
-                        f"<div style=\"font-size:15px;font-weight:700;margin:2px 0 8px;display:flex;align-items:center;gap:8px;\">"
-                        f"<span style=\"width:10px;height:10px;border-radius:50%;background:#E24B4A;display:inline-block;flex-shrink:0;\"></span>"
-                        f"<a href=\"https://www.google.com/maps/search/{a_est}+estacio\" target=\"_blank\" style=\"text-decoration:none;color:#111;\">{a_est}</a>"
-                        f"<span style=\"margin-left:auto;font-size:12px;font-weight:400;\">{bloc_a}</span></div>",
+                        f"<div style='font-size:15px;font-weight:700;margin:4px 0 2px;display:flex;align-items:center;gap:8px;'>"
+                        f"<span style='width:10px;height:10px;border-radius:50%;background:#1D9E75;display:inline-block;flex-shrink:0;'></span>"
+                        f"<a href='https://www.google.com/maps/search/{s_est}+estacio' target='_blank' style='text-decoration:none;color:#111;'>{s_est}</a>"
+                        f"<span style='margin-left:auto;font-size:12px;font-weight:400;'>{bloc_s}</span></div>"
+                        f"<div style='font-size:15px;font-weight:700;margin:2px 0 10px;display:flex;align-items:center;gap:8px;'>"
+                        f"<span style='width:10px;height:10px;border-radius:50%;background:#E24B4A;display:inline-block;flex-shrink:0;'></span>"
+                        f"<a href='https://www.google.com/maps/search/{a_est}+estacio' target='_blank' style='text-decoration:none;color:#111;'>{a_est}</a>"
+                        f"<span style='margin-left:auto;font-size:12px;font-weight:400;'>{bloc_a}</span></div>",
+                        unsafe_allow_html=True
+                    )
+
+                # GRAELLA 3 columnes
+                c1 = cel_detall("📍", "Inici", inici_val, f"({comarca_val})" if comarca_val and comarca_val != "nan" else None)
+                c2 = cel_detall("⛰️", "Punt més alt", punt_alt_val, f"{alt_max_val} m" if alt_max_val else None)
+                c3 = cel_detall("📅", "Època recomanada", epoca_val)
+                c4 = cel_detall("🏁", "Final", final_val, f"({comarca_val})" if comarca_val and comarca_val != "nan" and final_val and final_val != inici_val else None)
+                c5 = cel_detall("🔄", "Tipus de ruta", tipus_val)
+                c6 = cel_detall("👟", "Terreny", terreny_val)
+
+                if any([c1, c2, c3, c4, c5, c6]):
+                    st.markdown(
+                        f"<div style='display:grid;grid-template-columns:1fr 1fr 1fr;gap:0 16px;"
+                        f"border-top:1px solid #eee;margin-top:4px;'>"
+                        f"{c1}{c2}{c3}{c4}{c5}{c6}"
+                        f"</div>",
                         unsafe_allow_html=True
                     )
 
