@@ -759,34 +759,35 @@ try:
             )
             st.markdown(card_html, unsafe_allow_html=True)
 
-            # CSS per integrar els sub-expanders visiblement dins la targeta
+            # Contenidor indentat per als sub-expanders
+            st.markdown("<div style='margin-left:20px;margin-top:2px;border:1px solid #e0e0e0;border-radius:8px;overflow:hidden;'>", unsafe_allow_html=True)
+
+            # CSS per compactar i neutralitzar els sub-expanders
             st.markdown(f"""<style>
 div[data-key="mapa_{ruta_id}"],
 div[data-key="terreny_{ruta_id}"],
 div[data-key="punts_{ruta_id}"] {{
-    margin-top: 0 !important;
-    margin-bottom: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
 }}
 div[data-key="mapa_{ruta_id}"] > div[data-testid="stExpander"],
 div[data-key="terreny_{ruta_id}"] > div[data-testid="stExpander"],
 div[data-key="punts_{ruta_id}"] > div[data-testid="stExpander"] {{
     border: none !important;
-    border-top: 1px solid #eee !important;
-    border-left: 5px solid {dif_color} !important;
+    border-top: 1px solid #e8e8e8 !important;
     border-radius: 0 !important;
     margin: 0 !important;
-}}
-div[data-key="punts_{ruta_id}"] > div[data-testid="stExpander"] {{
-    border-bottom: 1px solid {dif_color}44 !important;
-    border-radius: 0 0 8px 8px !important;
-    border-right: 1px solid {dif_color}44 !important;
+    padding: 0 !important;
 }}
 div[data-key="mapa_{ruta_id}"] > div[data-testid="stExpander"] > details > summary,
 div[data-key="terreny_{ruta_id}"] > div[data-testid="stExpander"] > details > summary,
 div[data-key="punts_{ruta_id}"] > div[data-testid="stExpander"] > details > summary {{
-    background: white !important;
+    background: #f9f9f9 !important;
     padding: 7px 12px !important;
     font-size: 13px !important;
+    color: #555 !important;
+    font-weight: 500 !important;
+    border-left: none !important;
 }}
 </style>""", unsafe_allow_html=True)
 
@@ -827,6 +828,8 @@ div[data-key="punts_{ruta_id}"] > div[data-testid="stExpander"] > details > summ
                     st.markdown(punts_interes_html(elements_str, cats_str), unsafe_allow_html=True)
                 else:
                     st.info("No hi ha punts d'interès registrats.")
+
+            st.markdown("</div>", unsafe_allow_html=True)
 
     # --- FILTRE PER ESTACIÓ DES DEL MAPA ---
     if st.session_state.filtre_estacio:
@@ -1036,3 +1039,4 @@ div[data-key="punts_{ruta_id}"] > div[data-testid="stExpander"] > details > summ
 
 except Exception as e:
     st.error(f"S'ha produït un error: {e}")
+    
