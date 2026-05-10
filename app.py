@@ -27,19 +27,20 @@ div[data-testid="stTabs"] button[data-baseweb="tab"] {
     font-weight: 600 !important;
     padding: 10px 20px !important;
 }
-/* Compactar espai entre expanders */
+/* Compactar expanders globals */
 div[data-testid="stExpander"] {
-    margin-bottom: 2px !important;
+    margin-bottom: 0 !important;
+    margin-top: 0 !important;
 }
 div[data-testid="stExpander"] > details {
-    border: none !important;
-    border-top: 1px solid #ebebeb !important;
     border-radius: 0 !important;
-    padding: 0 !important;
+    border: none !important;
+    border-top: 1px solid #e8e8e8 !important;
 }
 div[data-testid="stExpander"] > details > summary {
-    padding: 5px 8px !important;
+    padding: 6px 10px !important;
     font-size: 13px !important;
+    background: transparent !important;
 }
 div[data-testid="stExpander"] > details[open] > summary {
     border-bottom: 1px solid #ebebeb;
@@ -759,71 +760,46 @@ try:
             )
             st.markdown(card_html, unsafe_allow_html=True)
 
-            # CSS per als sub-expanders: a la dreta, sense fons, sense marges
-            st.markdown(f"""<style>
-div[data-key="mapa_{ruta_id}"],
-div[data-key="terreny_{ruta_id}"],
-div[data-key="punts_{ruta_id}"] {{
-    margin: 0 !important;
-    padding: 0 !important;
-    padding-left: 20px !important;
-}}
-div[data-key="mapa_{ruta_id}"] > div[data-testid="stExpander"],
-div[data-key="terreny_{ruta_id}"] > div[data-testid="stExpander"],
-div[data-key="punts_{ruta_id}"] > div[data-testid="stExpander"] {{
-    border: none !important;
-    border-top: 1px solid #e8e8e8 !important;
-    border-radius: 0 !important;
-    margin: 0 !important;
-}}
-div[data-key="mapa_{ruta_id}"] > div[data-testid="stExpander"] > details > summary,
-div[data-key="terreny_{ruta_id}"] > div[data-testid="stExpander"] > details > summary,
-div[data-key="punts_{ruta_id}"] > div[data-testid="stExpander"] > details > summary {{
-    background: transparent !important;
-    padding: 6px 8px !important;
-    font-size: 13px !important;
-    color: #555 !important;
-    font-weight: 500 !important;
-}}
-</style>""", unsafe_allow_html=True)
+            # Indentació real amb st.columns + CSS global compacte
+            _, col_sub = st.columns([0.05, 0.95])
+            with col_sub:
+                with st.expander("🗺️ Mapa del recorregut", key=f"mapa_{ruta_id}"):
+                    if ruta_id:
+                        if not mostrar_mapa_gpx(ruta_id, lat_s, lng_s, lat_a, lng_a):
+                            st.info("Mapa no disponible per aquesta ruta.")
 
-            with st.expander("🗺️ Mapa del recorregut", key=f"mapa_{ruta_id}"):
-                if ruta_id:
-                    if not mostrar_mapa_gpx(ruta_id, lat_s, lng_s, lat_a, lng_a):
-                        st.info("Mapa no disponible per aquesta ruta.")
+                with st.expander("⛰️ Terreny i dificultat", key=f"terreny_{ruta_id}"):
+                    if ruta_id:
+                        svg_perfil, alt_min, alt_max = perfil_elevacio_svg(ruta_id, dif_color)
+                        if svg_perfil:
+                            st.markdown(svg_perfil, unsafe_allow_html=True)
+                            st.markdown(
+                                f"<div style='font-size:10px;color:#888;text-align:center;margin-bottom:10px;'>"
+                                f"Altitud mín: <b>{int(alt_min)} m</b> · Altitud màx: <b>{int(alt_max)} m</b></div>",
+                                unsafe_allow_html=True
+                            )
+                        else:
+                            st.info("Perfil d'elevació no disponible per aquesta ruta.")
+                    nivells = [("Molt fàcil","#2196A6"),("Fàcil","#1D9E75"),("Moderada","#EF9F27"),("Difícil","#E24B4A"),("Molt difícil","#9B1B1B")]
+                    claus_norm = ["molt facil","facil","moderada","dificil","molt dificil"]
+                    def normalitza(s):
+                        return s.lower().replace("í","i").replace("à","a").replace("è","e").replace("ó","o").replace("ú","u").strip()
+                    pos_actual = next((i for i,c in enumerate(claus_norm) if c==normalitza(dif_raw)),-1)
+                    segments = ""
+                    for i,(nom_niv,color_niv) in enumerate(nivells):
+                        actiu=(i==pos_actual); opacity="1" if actiu else "0.22"
+                        radius="6px 0 0 6px" if i==0 else ("0 6px 6px 0" if i==4 else "0")
+                        dot=f'<div style="width:13px;height:13px;border-radius:50%;background:{color_niv};border:2.5px solid #111;position:absolute;top:-8px;left:50%;transform:translateX(-50%);box-shadow:0 1px 4px rgba(0,0,0,0.35);z-index:2;"></div>' if actiu else ""
+                        segments+=f'<div style="flex:1;position:relative;">{dot}<div style="height:10px;background:{color_niv};opacity:{opacity};border-radius:{radius};"></div><div style="font-size:9px;color:#555;text-align:center;margin-top:4px;font-weight:{"700" if actiu else "400"};">{nom_niv}</div></div>'
+                    st.markdown(f'<div style="margin-top:6px;"><div style="font-size:11px;color:#888;margin-bottom:12px;">Dificultat</div><div style="display:flex;gap:2px;">{segments}</div></div>', unsafe_allow_html=True)
 
-            with st.expander("⛰️ Terreny i dificultat", key=f"terreny_{ruta_id}"):
-                if ruta_id:
-                    svg_perfil, alt_min, alt_max = perfil_elevacio_svg(ruta_id, dif_color)
-                    if svg_perfil:
-                        st.markdown(svg_perfil, unsafe_allow_html=True)
-                        st.markdown(
-                            f"<div style='font-size:10px;color:#888;text-align:center;margin-bottom:10px;'>"
-                            f"Altitud mín: <b>{int(alt_min)} m</b> · Altitud màx: <b>{int(alt_max)} m</b></div>",
-                            unsafe_allow_html=True
-                        )
+                with st.expander("📌 Punts d'interès", key=f"punts_{ruta_id}"):
+                    elements_str = row[cols["elements"]] if cols["elements"] and pd.notna(row[cols["elements"]]) else ""
+                    cats_str     = row[cols["cats"]]     if cols["cats"]     and pd.notna(row[cols["cats"]])     else ""
+                    if elements_str:
+                        st.markdown(punts_interes_html(elements_str, cats_str), unsafe_allow_html=True)
                     else:
-                        st.info("Perfil d'elevació no disponible per aquesta ruta.")
-                nivells = [("Molt fàcil","#2196A6"),("Fàcil","#1D9E75"),("Moderada","#EF9F27"),("Difícil","#E24B4A"),("Molt difícil","#9B1B1B")]
-                claus_norm = ["molt facil","facil","moderada","dificil","molt dificil"]
-                def normalitza(s):
-                    return s.lower().replace("í","i").replace("à","a").replace("è","e").replace("ó","o").replace("ú","u").strip()
-                pos_actual = next((i for i,c in enumerate(claus_norm) if c==normalitza(dif_raw)),-1)
-                segments = ""
-                for i,(nom_niv,color_niv) in enumerate(nivells):
-                    actiu=(i==pos_actual); opacity="1" if actiu else "0.22"
-                    radius="6px 0 0 6px" if i==0 else ("0 6px 6px 0" if i==4 else "0")
-                    dot=f'<div style="width:13px;height:13px;border-radius:50%;background:{color_niv};border:2.5px solid #111;position:absolute;top:-8px;left:50%;transform:translateX(-50%);box-shadow:0 1px 4px rgba(0,0,0,0.35);z-index:2;"></div>' if actiu else ""
-                    segments+=f'<div style="flex:1;position:relative;">{dot}<div style="height:10px;background:{color_niv};opacity:{opacity};border-radius:{radius};"></div><div style="font-size:9px;color:#555;text-align:center;margin-top:4px;font-weight:{"700" if actiu else "400"};">{nom_niv}</div></div>'
-                st.markdown(f'<div style="margin-top:6px;"><div style="font-size:11px;color:#888;margin-bottom:12px;">Dificultat</div><div style="display:flex;gap:2px;">{segments}</div></div>', unsafe_allow_html=True)
-
-            with st.expander("📌 Punts d'interès", key=f"punts_{ruta_id}"):
-                elements_str = row[cols["elements"]] if cols["elements"] and pd.notna(row[cols["elements"]]) else ""
-                cats_str     = row[cols["cats"]]     if cols["cats"]     and pd.notna(row[cols["cats"]])     else ""
-                if elements_str:
-                    st.markdown(punts_interes_html(elements_str, cats_str), unsafe_allow_html=True)
-                else:
-                    st.info("No hi ha punts d'interès registrats.")
+                        st.info("No hi ha punts d'interès registrats.")
 
     # --- FILTRE PER ESTACIÓ DES DEL MAPA ---
     if st.session_state.filtre_estacio:
