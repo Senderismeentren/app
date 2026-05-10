@@ -642,8 +642,9 @@ try:
             # TARGETA: capçalera + mètriques + etiquetes (sempre visibles)
             etiquetes_html = f"<div style='padding:2px 12px 8px;'>{etiquetes}</div>" if etiquetes else ""
             card_html = (
-                f"<div style='margin-top:10px;border:1px solid {dif_color}44;border-left:5px solid {dif_color};"
-                f"border-bottom:none;border-radius:8px 8px 0 0;overflow:hidden;'>"
+                f"<div style='margin-top:10px;background:{dif_color}1a;"
+                f"border:1px solid {dif_color}44;border-left:5px solid {dif_color};"
+                f"border-radius:8px;overflow:hidden;'>"
                 f"<div style='background:{dif_color}1a;padding:10px 12px;display:flex;align-items:center;gap:10px;'>"
                 f"<div style='width:26px;height:26px;border-radius:50%;background:{dif_color};color:white;"
                 f"font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;'>{ruta_id}</div>"
@@ -651,7 +652,7 @@ try:
                 f"<span style='font-size:10px;font-weight:700;background:{dif_color};color:white;"
                 f"padding:2px 9px;border-radius:20px;flex-shrink:0;text-transform:uppercase;letter-spacing:0.5px;'>{dif_raw}</span>"
                 f"</div>"
-                f"<div style='display:flex;gap:20px;padding:6px 12px 4px;flex-wrap:wrap;'>"
+                f"<div style='background:white;padding:6px 12px 4px;display:flex;gap:20px;flex-wrap:wrap;'>"
                 f"<div><div style='font-size:9px;color:#999;text-transform:uppercase;letter-spacing:0.4px;'>Distància</div>"
                 f"<div style='font-size:14px;font-weight:700;color:#111;'>{row[cols['km']]} km</div></div>"
                 f"<div><div style='font-size:9px;color:#999;text-transform:uppercase;letter-spacing:0.4px;'>Desnivell</div>"
@@ -659,21 +660,29 @@ try:
                 f"<div><div style='font-size:9px;color:#999;text-transform:uppercase;letter-spacing:0.4px;'>Temps</div>"
                 f"<div style='font-size:14px;font-weight:700;color:#111;'>{temps_fmt}</div></div>"
                 f"</div>"
-                + etiquetes_html +
+                + (f"<div style='background:white;padding:2px 12px 8px;'>{etiquetes}</div>" if etiquetes else "<div style='background:white;padding:4px 0;'></div>") +
                 f"</div>"
             )
             st.markdown(card_html, unsafe_allow_html=True)
 
-            # CSS per a l'expander "Veure detalls" d'aquesta ruta — enganxat, blanc, ratlla esquerra de color
+            # CSS per enganxar l'expander a la targeta i posar la línia de color correcta
             st.markdown(f"""<style>
-div[data-testid="stVerticalBlock"] div[data-testid="stExpander"][id="det_{ruta_id}"] > details > summary,
-div[data-testid="stExpander"]:has(details[open] summary) > details > summary {{
+div[data-key="det_{ruta_id}"] > div[data-testid="stExpander"] > details > summary {{
+    margin-top: -10px !important;
     background: white !important;
+    border-left: 5px solid {dif_color} !important;
+    border-top: 1px solid {dif_color}44 !important;
+    border-radius: 0 0 8px 8px !important;
+    padding: 8px 12px !important;
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    color: #333 !important;
 }}
-</style>
-<div style='border-left:5px solid {dif_color};border:1px solid {dif_color}44;border-top:none;
-border-radius:0 0 8px 8px;margin-bottom:14px;overflow:hidden;'>
-""", unsafe_allow_html=True)
+div[data-key="det_{ruta_id}"] > div[data-testid="stExpander"] {{
+    margin-top: -10px !important;
+    border: none !important;
+}}
+</style>""", unsafe_allow_html=True)
 
             with st.expander("Veure detalls", key=f"det_{ruta_id}"):
 
@@ -779,9 +788,6 @@ border-radius:0 0 8px 8px;margin-bottom:14px;overflow:hidden;'>
                         st.markdown(punts_interes_html(elements_str, cats_str), unsafe_allow_html=True)
                     else:
                         st.info("No hi ha punts d'interès registrats.")
-
-            # Tancament del div contenidor de la targeta+expander
-            st.markdown("</div>", unsafe_allow_html=True)
 
     # --- FILTRE PER ESTACIÓ DES DEL MAPA ---
     if st.session_state.filtre_estacio:
