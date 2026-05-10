@@ -748,7 +748,7 @@ try:
 .{tab_id} input[type="radio"] {{ display:none; }}
 .{tab_id} .tab-labels {{ display:flex; border-bottom:1px solid #e0e0e0; margin-bottom:0; }}
 .{tab_id} .tab-label {{
-    padding:7px 14px; font-size:12px; font-weight:600; color:#888;
+    padding:7px 14px; font-size:14px; font-weight:700; color:#888;
     cursor:pointer; border-bottom:2px solid transparent; margin-bottom:-1px;
     user-select:none;
 }}
@@ -767,9 +767,9 @@ try:
   <input type="radio" id="t2_{ruta_id}" name="{tab_id}">
   <input type="radio" id="t3_{ruta_id}" name="{tab_id}">
   <div class="tab-labels">
-    <label class="tab-label" for="t1_{ruta_id}">Detalls</label>
-    <label class="tab-label" for="t2_{ruta_id}">⛰️ Perfil</label>
-    <label class="tab-label" for="t3_{ruta_id}">📌 Punts</label>
+    <label class="tab-label" for="t1_{ruta_id}">Ruta</label>
+    <label class="tab-label" for="t2_{ruta_id}">Perfil</label>
+    <label class="tab-label" for="t3_{ruta_id}">Punts d'interès</label>
   </div>
   <div class="tab-contents">
     <div class="tab-content tc1_{ruta_id}">
@@ -823,6 +823,7 @@ try:
 
             # Mapa — únic element que necessita Streamlit fora de la caixa
             _, col_map = st.columns([0.05, 0.95])
+            st.markdown("<style>div[data-testid='stVerticalBlock']:has(div[data-key='mapa_" + str(ruta_id) + "']) { margin-top: -12px !important; }</style>", unsafe_allow_html=True)
             with col_map:
                 with st.expander("🗺️ Mapa del recorregut", key=f"mapa_{ruta_id}"):
                     if ruta_id:
