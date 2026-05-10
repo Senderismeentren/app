@@ -1,5 +1,5 @@
 # ============================================================
-# SENDERISME EN TREN — v16
+# SENDERISME EN TREN — v16.1
 # ============================================================
 
 import streamlit as st
@@ -178,15 +178,6 @@ def punts_interes_html(elements_str, categories_str):
         "<div style=\"margin-top:4px;\">"
         "<div style=\"display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:6px;\">"
         f"{grid}</div></div>"
-    )
-
-def metric_box(label, value):
-    return (
-        "<div style=\"flex:1;background:white;border:0.5px solid #e0e0e0;border-radius:8px;"
-        "padding:5px 8px;display:flex;align-items:center;gap:8px;\">"
-        f"<div style=\"font-size:11px;color:#888;white-space:nowrap;\">{label}</div>"
-        f"<div style=\"font-size:14px;font-weight:bold;color:#333;white-space:nowrap;\">{value}</div>"
-        "</div>"
     )
 
 def mostrar_mapa_gpx(ruta_id, lat_s, lng_s, lat_a, lng_a):
@@ -509,6 +500,11 @@ with tab_llista:
         lat_a, lng_a = parse_coord(row[cols["coord_a"]]) if cols.get("coord_a") and pd.notna(row[cols["coord_a"]]) else (None, None)
         bloc_s = bloc_estacio_html(row[cols["op_s"]], row[cols["linia_s"]])
         bloc_a = bloc_estacio_html(row[cols["op_a"]], row[cols["linia_a"]])
+        
+        # Camps addicionals
+        val_tipus = "Circular" if "circular" in tipus else "Lineal"
+        val_epoca = str(row[cols["epoca"]]) if cols["epoca"] and pd.notna(row[cols["epoca"]]) and str(row[cols["epoca"]]).strip() != "" else "—"
+        val_cim_alt = str(row[cols["punt_alt"]]) if cols["punt_alt"] and pd.notna(row[cols["punt_alt"]]) and str(row[cols["punt_alt"]]).strip() != "" else "—"
 
         temps_fmt = "—"
         if cols.get("temps") and pd.notna(row[cols["temps"]]):
@@ -522,13 +518,50 @@ with tab_llista:
         expander_label = f"**{ruta_id}** · {nom_ruta}  —  {dif_raw.upper()}"
 
         with st.expander(expander_label):
+            # MÈTRIQUES (mida reduïda a 18px per a dades)
             desn_txt = f"+/- {int(desn_pujada)} m" if "circular" in tipus else f"+{int(desn_pujada)} m / -{int(desn_baixada)} m"
-            st.markdown(f"<div style='display:flex;gap:32px;margin:8px 0 14px;flex-wrap:wrap;'><div><div style='font-size:10px;color:#999;text-transform:uppercase;letter-spacing:0.4px;'>Distància</div><div style='font-size:22px;font-weight:700;color:#111;'>{row[cols['km']]} km</div></div><div><div style='font-size:10px;color:#999;text-transform:uppercase;letter-spacing:0.4px;'>Desnivell</div><div style='font-size:22px;font-weight:700;color:#111;'>{desn_txt}</div></div><div><div style='font-size:10px;color:#999;text-transform:uppercase;letter-spacing:0.4px;'>Temps</div><div style='font-size:22px;font-weight:700;color:#111;'>{temps_fmt}</div></div></div>", unsafe_allow_html=True)
+            st.markdown(f"<div style='display:flex;gap:32px;margin:8px 0 14px;flex-wrap:wrap;'><div><div style='font-size:10px;color:#999;text-transform:uppercase;letter-spacing:0.4px;'>Distància</div><div style='font-size:18px;font-weight:700;color:#111;'>{row[cols['km']]} km</div></div><div><div style='font-size:10px;color:#999;text-transform:uppercase;letter-spacing:0.4px;'>Desnivell</div><div style='font-size:18px;font-weight:700;color:#111;'>{desn_txt}</div></div><div><div style='font-size:10px;color:#999;text-transform:uppercase;letter-spacing:0.4px;'>Temps</div><div style='font-size:18px;font-weight:700;color:#111;'>{temps_fmt}</div></div></div>", unsafe_allow_html=True)
 
+            # ESTACIONS AMB ETIQUETA SUPERIOR
             if s_est.lower() == a_est.lower():
-                st.markdown(f"<div style=\"font-size:16px;font-weight:700;margin:4px 0 8px;display:flex;align-items:center;gap:8px;\"><span style=\"width:10px;height:10px;border-radius:50%;background:#1D9E75;display:inline-block;flex-shrink:0;\"></span><a href=\"https://www.google.com/maps/search/{s_est}+estacio\" target=\"_blank\" style=\"text-decoration:none;color:#111;\">{s_est}</a> <span style=\"font-size:12px;font-weight:400;color:#777;\">(circular)</span><span style=\"margin-left:auto;font-size:12px;font-weight:400;\">{bloc_s}</span></div>", unsafe_allow_html=True)
+                st.markdown(f"""
+                    <div style="margin-bottom:12px;">
+                        <div style="font-size:10px;color:#999;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:2px;">Estació de sortida/arribada</div>
+                        <div style="font-size:16px;font-weight:700;display:flex;align-items:center;gap:8px;">
+                            <span style="width:10px;height:10px;border-radius:50%;background:#1D9E75;display:inline-block;flex-shrink:0;"></span>
+                            <a href="https://www.google.com/maps/search/{s_est}+estacio" target="_blank" style="text-decoration:none;color:#111;">{s_est}</a> 
+                            <span style="margin-left:auto;font-size:12px;font-weight:400;">{bloc_s}</span>
+                        </div>
+                    </div>
+                """, unsafe_allow_html=True)
             else:
-                st.markdown(f"<div style=\"font-size:16px;font-weight:700;margin:4px 0 2px;display:flex;align-items:center;gap:8px;\"><span style=\"width:10px;height:10px;border-radius:50%;background:#1D9E75;display:inline-block;flex-shrink:0;\"></span><a href=\"https://www.google.com/maps/search/{s_est}+estacio\" target=\"_blank\" style=\"text-decoration:none;color:#111;\">{s_est}</a><span style=\"margin-left:auto;font-size:12px;font-weight:400;\">{bloc_s}</span></div><div style=\"font-size:16px;font-weight:700;margin:2px 0 8px;display:flex;align-items:center;gap:8px;\"><span style=\"width:10px;height:10px;border-radius:50%;background:#E24B4A;display:inline-block;flex-shrink:0;\"></span><a href=\"https://www.google.com/maps/search/{a_est}+estacio\" target=\"_blank\" style=\"text-decoration:none;color:#111;\">{a_est}</a><span style=\"margin-left:auto;font-size:12px;font-weight:400;\">{bloc_a}</span></div>", unsafe_allow_html=True)
+                st.markdown(f"""
+                    <div style="margin-bottom:10px;">
+                        <div style="font-size:10px;color:#999;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:2px;">Estació de sortida</div>
+                        <div style="font-size:16px;font-weight:700;display:flex;align-items:center;gap:8px;">
+                            <span style="width:10px;height:10px;border-radius:50%;background:#1D9E75;display:inline-block;flex-shrink:0;"></span>
+                            <a href="https://www.google.com/maps/search/{s_est}+estacio" target="_blank" style="text-decoration:none;color:#111;">{s_est}</a>
+                            <span style="margin-left:auto;font-size:12px;font-weight:400;">{bloc_s}</span>
+                        </div>
+                    </div>
+                    <div style="margin-bottom:12px;">
+                        <div style="font-size:10px;color:#999;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:2px;">Estació d'arribada</div>
+                        <div style="font-size:16px;font-weight:700;display:flex;align-items:center;gap:8px;">
+                            <span style="width:10px;height:10px;border-radius:50%;background:#E24B4A;display:inline-block;flex-shrink:0;"></span>
+                            <a href="https://www.google.com/maps/search/{a_est}+estacio" target="_blank" style="text-decoration:none;color:#111;">{a_est}</a>
+                            <span style="margin-left:auto;font-size:12px;font-weight:400;">{bloc_a}</span>
+                        </div>
+                    </div>
+                """, unsafe_allow_html=True)
+
+            # NOVA FILA: Tipus, Època, Cim més alt
+            st.markdown(f"""
+                <div style='display:flex;gap:32px;margin:12px 0 16px;flex-wrap:wrap;'>
+                    <div><div style='font-size:10px;color:#999;text-transform:uppercase;letter-spacing:0.4px;'>Tipus de ruta</div><div style='font-size:14px;font-weight:600;color:#333;'>{val_tipus}</div></div>
+                    <div><div style='font-size:10px;color:#999;text-transform:uppercase;letter-spacing:0.4px;'>Època</div><div style='font-size:14px;font-weight:600;color:#333;'>{val_epoca}</div></div>
+                    <div><div style='font-size:10px;color:#999;text-transform:uppercase;letter-spacing:0.4px;'>Cim més alt</div><div style='font-size:14px;font-weight:600;color:#333;'>{val_cim_alt}</div></div>
+                </div>
+            """, unsafe_allow_html=True)
 
             comarca_val = str(row[cols["comarca"]]) if pd.notna(row[cols["comarca"]]) else ""
             espai_val   = str(row[cols["espai"]])   if pd.notna(row[cols["espai"]])   else ""
@@ -541,7 +574,7 @@ with tab_llista:
             if wiki_url and wiki_url != "nan": etiquetes += f'<a href="{wiki_url}" target="_blank" style="font-size:11px;padding:2px 7px;border-radius:20px;background:#EAF3DE;color:#3B6D11;border:0.5px solid #C0DD97;text-decoration:none;margin-right:4px;">Wikiloc</a>'
             if etiquetes: st.markdown(f'<div style="margin:4px 0 8px;">{etiquetes}</div>', unsafe_allow_html=True)
 
-            # SUB-EXPANDERS (ARA DINS L'EXPANDER PRINCIPAL)
+            # SUB-EXPANDERS (DINS LA CAIXA)
             with st.expander("🗺️ Mapa del recorregut"):
                 if ruta_id:
                     if not mostrar_mapa_gpx(ruta_id, lat_s, lng_s, lat_a, lng_a):
