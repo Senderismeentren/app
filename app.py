@@ -210,7 +210,16 @@ def mostrar_mapa_gpx(ruta_id, lat_s, lng_s, lat_a, lng_a):
         # Ajustar zoom per mostrar tota la ruta
         lats_r = [p[0] for p in punts]
         lngs_r = [p[1] for p in punts]
-        m.fit_bounds([[min(lats_r), min(lngs_r)], [max(lats_r), max(lngs_r)]])
+        centre = (sum(lats_r) / len(lats_r), sum(lngs_r) / len(lngs_r))
+        m = folium.Map(location=centre, zoom_start=13, tiles="OpenStreetMap")
+        folium.PolyLine(punts, color=COLOR_BLAU, weight=4, opacity=0.9).add_to(m)
+        if lat_s and lng_s:
+            folium.Marker([lat_s, lng_s], tooltip="Sortida",
+                          icon=folium.Icon(color="blue", icon="train", prefix="fa")).add_to(m)
+        if lat_a and lng_a and (lat_s != lat_a or lng_s != lng_a):
+            folium.Marker([lat_a, lng_a], tooltip="Arribada",
+                          icon=folium.Icon(color="red", icon="flag", prefix="fa")).add_to(m)
+        m.fit_bounds([[min(lats_r), min(lngs_r)], [max(lats_r), max(lngs_r)]], padding=[20, 20])
         st_folium(m, width=None, height=300, returned_objects=[], key=f"mapa_ruta_{ruta_id}")
         return True
     except:
@@ -334,7 +343,6 @@ def mostrar_mapa_general(df_filtrat, cols):
     lngs   = [k[1] for k in punts_mapa]
     # Centre i zoom per mostrar tota Catalunya
     m = folium.Map(location=[41.7, 1.8], zoom_start=8, tiles="OpenStreetMap")
-    m.fit_bounds([[min(lats), min(lngs)], [max(lats), max(lngs)]])
 
     for (lat, lng, estacio), info in punts_mapa.items():
         tipus = info["tipus"]
@@ -634,7 +642,8 @@ try:
             # TARGETA: capçalera + mètriques + etiquetes (sempre visibles)
             etiquetes_html = f"<div style='padding:2px 12px 8px;'>{etiquetes}</div>" if etiquetes else ""
             card_html = (
-                f"<div style='margin-top:10px;border:1px solid {dif_color}44;border-left:5px solid {dif_color};border-radius:8px 8px 0 0;overflow:hidden;'>"
+                f"<div style='margin-top:10px;border:1px solid {dif_color}44;border-left:5px solid {dif_color};"
+                f"border-bottom:none;border-radius:8px 8px 0 0;overflow:hidden;'>"
                 f"<div style='background:{dif_color}1a;padding:10px 12px;display:flex;align-items:center;gap:10px;'>"
                 f"<div style='width:26px;height:26px;border-radius:50%;background:{dif_color};color:white;"
                 f"font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;'>{ruta_id}</div>"
@@ -655,17 +664,17 @@ try:
             )
             st.markdown(card_html, unsafe_allow_html=True)
 
-            # CSS per estilitzar el "Veure detalls" d'aquesta ruta
+            # CSS per a l'expander "Veure detalls" d'aquesta ruta — enganxat, blanc, ratlla esquerra de color
             st.markdown(f"""<style>
-div[data-testid="stExpander"]:has(details summary p:contains("Veure detalls")) > details > summary {{
-    background: #f8f9fa !important;
-    border-left: 4px solid {dif_color} !important;
-    color: {dif_color} !important;
-    font-weight: 600 !important;
+div[data-testid="stVerticalBlock"] div[data-testid="stExpander"][id="det_{ruta_id}"] > details > summary,
+div[data-testid="stExpander"]:has(details[open] summary) > details > summary {{
+    background: white !important;
 }}
-</style>""", unsafe_allow_html=True)
+</style>
+<div style='border-left:5px solid {dif_color};border:1px solid {dif_color}44;border-top:none;
+border-radius:0 0 8px 8px;margin-bottom:14px;overflow:hidden;'>
+""", unsafe_allow_html=True)
 
-            # ÚNIC EXPANDER — conté detalls de la ruta
             with st.expander("Veure detalls", key=f"det_{ruta_id}"):
 
                 # GRAELLA DE DETALLS (com la imatge)
@@ -770,6 +779,9 @@ div[data-testid="stExpander"]:has(details summary p:contains("Veure detalls")) >
                         st.markdown(punts_interes_html(elements_str, cats_str), unsafe_allow_html=True)
                     else:
                         st.info("No hi ha punts d'interès registrats.")
+
+            # Tancament del div contenidor de la targeta+expander
+            st.markdown("</div>", unsafe_allow_html=True)
 
     # --- FILTRE PER ESTACIÓ DES DEL MAPA ---
     if st.session_state.filtre_estacio:
