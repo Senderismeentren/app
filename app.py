@@ -450,7 +450,8 @@ try:
     cerca       = st.sidebar.text_input("📝 Paraula clau")
     sel_sortida = st.sidebar.multiselect("🚉 Estació de sortida", get_unique(cols["sortida"]))
     sel_linia   = st.sidebar.multiselect("🚆 Línia de tren", get_unique(cols["linia_s"]))
-    sel_dif     = st.sidebar.multiselect("🧗 Dificultat", get_unique(cols["dif"]))
+    sel_op      = st.sidebar.multiselect("🏢 Operador", get_unique(cols["op_s"]))
+    sel_dif     = st.sidebar.multiselect("🧗 Dificultat", ["Molt fàcil","Fàcil","Moderada","Difícil","Molt difícil"])
     min_desn    = float(df[cols["desn"]].min()) if cols["desn"] else 0.0
     max_desn    = float(df[cols["desn"]].max()) if cols["desn"] else 9999.0
     sel_desn    = st.sidebar.slider("📈 Desnivell (m)", min_desn, max_desn, (min_desn, max_desn))
@@ -469,6 +470,8 @@ try:
         f = f[f[cols["sortida"]].astype(str).apply(lambda x: any(s in x for s in sel_sortida))]
     if sel_linia:
         f = f[f[cols["linia_s"]].astype(str).apply(lambda x: any(l in x for l in sel_linia))]
+    if sel_op and cols.get("op_s"):
+        f = f[f[cols["op_s"]].astype(str).apply(lambda x: any(o in x for o in sel_op))]
     if sel_dif:
         f = f[f[cols["dif"]].astype(str).apply(lambda x: any(d in x for d in sel_dif))]
     if sel_comarca:
@@ -787,12 +790,43 @@ try:
   </div>
 </div>"""
 
+            # Sidebar: filtre d'operador
+            ops_disponibles = get_unique(cols["op_s"]) if cols.get("op_s") else []
+
+            # Generar contingut per al desplegable: 2 columnes + perfil
+            # Columna dreta: estacions + graella + punts
+            col_dreta = (
+                estacions_html +
+                graella +
+                (f"<div style='margin-top:10px;border-top:1px solid #eee;padding-top:8px;'>{punts_html_content}</div>" if punts_html_content else "")
+            )
+
+            # Columna esquerra: mapa placeholder (st_folium no va dins HTML)
+            # Perfil sota les dues columnes
+            perfil_bloc = ""
+            if svg_perfil_html:
+                perfil_bloc = (
+                    f"<div style='margin-top:10px;border-top:1px solid #eee;padding-top:8px;'>"
+                    + svg_perfil_html + alt_info_html + barra_dif +
+                    f"</div>"
+                )
+
+            detalls_html = (
+                f"<div style='display:grid;grid-template-columns:3fr 2fr;gap:16px;'>"
+                f"<div id='map_placeholder_{ruta_id}' style='background:#f5f5f5;border-radius:6px;"
+                f"min-height:200px;display:flex;align-items:center;justify-content:center;"
+                f"color:#aaa;font-size:13px;'>🗺️ Obre el mapa per veure'l</div>"
+                f"<div>{col_dreta}</div>"
+                f"</div>"
+                + perfil_bloc
+            )
+
             etiquetes_html = f"<div style='padding:2px 12px 8px;'>{etiquetes}</div>" if etiquetes else ""
 
-            # TARGETA UNIFICADA amb <details> natiu + pestanyes HTML
+            # TARGETA UNIFICADA
             card_html = (
                 f"<div style='margin-top:12px;border:1px solid {dif_color}44;border-left:5px solid {dif_color};"
-                f"border-bottom:none;border-radius:8px 8px 0 0;overflow:visible;background:white;'>"
+                f"border-radius:8px;overflow:visible;background:white;'>"
                 f"<div style='background:{dif_color}18;padding:10px 12px;display:flex;align-items:center;gap:10px;'>"
                 f"<div style='width:26px;height:26px;border-radius:50%;background:{dif_color};color:white;"
                 f"font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;'>{ruta_id}</div>"
@@ -815,34 +849,18 @@ try:
                 f"<svg width='12' height='12' viewBox='0 0 12 12'>"
                 f"<path d='M2 4l4 4 4-4' stroke='#888' stroke-width='1.5' fill='none' stroke-linecap='round'/>"
                 f"</svg>Veure detalls</summary>"
-                f"<div style='padding:0 12px 12px;'>"
-                + tabs_html +
+                f"<div style='padding:8px 12px 12px;'>"
+                + detalls_html +
                 f"</div></details></div>"
             )
             st.markdown(card_html, unsafe_allow_html=True)
 
-            # Marcador de color per al mapa — el CSS adjacent sí funciona amb ::before
-            st.markdown(
-                f"<div id='map_marker_{ruta_id}' style='height:0;overflow:hidden;'></div>"
-                f"<style>"
-                f"#map_marker_{ruta_id} + div div[data-testid='stExpander'] > details > summary {{"
-                f"  background: {dif_color}10 !important;"
-                f"  border-left: 5px solid {dif_color} !important;"
-                f"  font-weight: 600 !important; font-size:13px !important; color:#444 !important;"
-                f"}}"
-                f"#map_marker_{ruta_id} + div div[data-testid='stExpander'] {{"
-                f"  border: 1px solid {dif_color}44 !important;"
-                f"  border-top: none !important;"
-                f"  border-radius: 0 0 8px 8px !important;"
-                f"  margin-top: 0 !important;"
-                f"}}"
-                f"</style>",
-                unsafe_allow_html=True
-            )
+            # Mapa interactiu dins st.expander, col·locat visualment dins la targeta
             with st.expander("🗺️ Mapa del recorregut", key=f"mapa_{ruta_id}"):
-                if ruta_id:
-                    if not mostrar_mapa_gpx(ruta_id, lat_s, lng_s, lat_a, lng_a):
-                        st.info("Mapa no disponible per aquesta ruta.")
+                with st.spinner("Carregant mapa..."):
+                    if ruta_id:
+                        if not mostrar_mapa_gpx(ruta_id, lat_s, lng_s, lat_a, lng_a):
+                            st.info("Mapa no disponible per aquesta ruta.")
 
     # --- FILTRE PER ESTACIÓ DES DEL MAPA ---
     if st.session_state.filtre_estacio:
