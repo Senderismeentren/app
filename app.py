@@ -194,7 +194,7 @@ def mostrar_mapa_gpx(ruta_id, lat_s, lng_s, lat_a, lng_a):
         lats_r = [p[0] for p in punts]
         lngs_r = [p[1] for p in punts]
         centre = (sum(lats_r) / len(lats_r), sum(lngs_r) / len(lngs_r))
-        m = folium.Map(location=centre, zoom_start=13, tiles="OpenStreetMap")
+        m = folium.Map(location=centre, zoom_start=10, tiles="OpenStreetMap")
         folium.PolyLine(punts, color=COLOR_BLAU, weight=4, opacity=0.9).add_to(m)
         if lat_s and lng_s:
             folium.Marker([lat_s, lng_s], tooltip="Sortida",
@@ -202,8 +202,10 @@ def mostrar_mapa_gpx(ruta_id, lat_s, lng_s, lat_a, lng_a):
         if lat_a and lng_a and (lat_s != lat_a or lng_s != lng_a):
             folium.Marker([lat_a, lng_a], tooltip="Arribada",
                           icon=folium.Icon(color="red", icon="flag", prefix="fa")).add_to(m)
-        m.fit_bounds([[min(lats_r), min(lngs_r)], [max(lats_r), max(lngs_r)]], padding=[20, 20])
-        st_folium(m, width=None, height=300, returned_objects=[], key=f"mapa_ruta_{ruta_id}")
+        sw = [min(lats_r), min(lngs_r)]
+        ne = [max(lats_r), max(lngs_r)]
+        m.fit_bounds([sw, ne])
+        st_folium(m, use_container_width=True, height=300, returned_objects=[], key=f"mapa_ruta_{ruta_id}")
         return True
     except:
         return False
@@ -855,26 +857,6 @@ try:
         ]
 
     st.write(f"**Resultats: {len(f)} rutes**")
-
-    # CSS de colors per expander principal de cada ruta (nth-child dins el contenidor)
-    # Streamlit renderitza cada expander com un div[data-testid="stExpander"] en ordre
-    # Saltem el primer expander (mapa general) amb offset +2 (mapa + possible filtre)
-    css_rules = ""
-    for idx_r, (_, row_c) in enumerate(f.iterrows()):
-        dif_c = str(row_c[cols["dif"]]).strip().lower() if cols.get("dif") and pd.notna(row_c[cols["dif"]]) else ""
-        color_c = DIFICULTAT_COLOR.get(dif_c, "#888888")
-        # nth-child comença en 1; el primer expander és el mapa general
-        n = idx_r + 2
-        css_rules += (
-            f"div[data-testid='stVerticalBlock'] > div:nth-child({n}) "
-            f"div[data-testid='stExpander'] > details > summary {{"
-            f"background:{color_c}1a !important;"
-            f"border-left:5px solid {color_c} !important;"
-            f"border-radius:4px !important;"
-            f"}}\n"
-        )
-    if css_rules:
-        st.markdown(f"<style>{css_rules}</style>", unsafe_allow_html=True)
 
     # --- BUCLE DE RUTES ---
     for _, row in f.iterrows():
