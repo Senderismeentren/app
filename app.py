@@ -792,7 +792,7 @@ try:
             # TARGETA UNIFICADA amb <details> natiu + pestanyes HTML
             card_html = (
                 f"<div style='margin-top:12px;border:1px solid {dif_color}44;border-left:5px solid {dif_color};"
-                f"border-radius:8px;overflow:visible;background:white;'>"
+                f"border-bottom:none;border-radius:8px 8px 0 0;overflow:visible;background:white;'>"
                 f"<div style='background:{dif_color}18;padding:10px 12px;display:flex;align-items:center;gap:10px;'>"
                 f"<div style='width:26px;height:26px;border-radius:50%;background:{dif_color};color:white;"
                 f"font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;'>{ruta_id}</div>"
@@ -821,11 +821,31 @@ try:
             )
             st.markdown(card_html, unsafe_allow_html=True)
 
-            # Mapa — únic element que necessita Streamlit fora de la caixa
-            _, col_map = st.columns([0.05, 0.95])
-            st.markdown("<style>div[data-testid='stVerticalBlock']:has(div[data-key='mapa_" + str(ruta_id) + "']) { margin-top: -12px !important; }</style>", unsafe_allow_html=True)
-            with col_map:
-                with st.expander("🗺️ Mapa del recorregut", key=f"mapa_{ruta_id}"):
+            # Mapa — st.expander enganxat a la caixa amb color de dificultat
+            st.markdown(f"""<style>
+div[data-key="mapa_{ruta_id}"] {{
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+    padding: 0 !important;
+}}
+div[data-key="mapa_{ruta_id}"] > div[data-testid="stExpander"] {{
+    margin: 0 !important;
+    border: 1px solid {dif_color}44 !important;
+    border-top: none !important;
+    border-left: 5px solid {dif_color} !important;
+    border-radius: 0 0 8px 8px !important;
+    background: {dif_color}04 !important;
+}}
+div[data-key="mapa_{ruta_id}"] > div[data-testid="stExpander"] > details > summary {{
+    background: {dif_color}10 !important;
+    padding: 7px 12px !important;
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    color: #444 !important;
+}}
+</style>""", unsafe_allow_html=True)
+            with st.container(key=f"mapa_{ruta_id}"):
+                with st.expander("🗺️ Mapa del recorregut"):
                     if ruta_id:
                         if not mostrar_mapa_gpx(ruta_id, lat_s, lng_s, lat_a, lng_a):
                             st.info("Mapa no disponible per aquesta ruta.")
