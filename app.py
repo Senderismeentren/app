@@ -27,24 +27,6 @@ div[data-testid="stTabs"] button[data-baseweb="tab"] {
     font-weight: 600 !important;
     padding: 10px 20px !important;
 }
-/* Compactar expanders globals */
-div[data-testid="stExpander"] {
-    margin-bottom: 0 !important;
-    margin-top: 0 !important;
-}
-div[data-testid="stExpander"] > details {
-    border-radius: 0 !important;
-    border: none !important;
-    border-top: 1px solid #e8e8e8 !important;
-}
-div[data-testid="stExpander"] > details > summary {
-    padding: 6px 10px !important;
-    font-size: 13px !important;
-    background: transparent !important;
-}
-div[data-testid="stExpander"] > details[open] > summary {
-    border-bottom: 1px solid #ebebeb;
-}
 </style>
 """, unsafe_allow_html=True)
 
