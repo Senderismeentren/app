@@ -812,11 +812,8 @@ try:
                 )
 
             detalls_html = (
-                f"<div style='display:grid;grid-template-columns:3fr 2fr;gap:16px;'>"
-                f"<div id='map_placeholder_{ruta_id}' style='background:#f5f5f5;border-radius:6px;"
-                f"min-height:200px;display:flex;align-items:center;justify-content:center;"
-                f"color:#aaa;font-size:13px;'>🗺️ Obre el mapa per veure'l</div>"
-                f"<div>{col_dreta}</div>"
+                f"<div>"
+                + col_dreta +
                 f"</div>"
                 + perfil_bloc
             )
