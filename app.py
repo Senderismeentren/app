@@ -798,15 +798,16 @@ try:
             col_dreta = (
                 estacions_html +
                 graella +
-                (f"<div style='margin-top:10px;border-top:1px solid #eee;padding-top:8px;'>{punts_html_content}</div>" if punts_html_content else "")
+                (f"<div style='margin-top:12px;border-top:1px solid #eee;padding-top:10px;'>"
+                 f"<div style='font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#aaa;margin-bottom:8px;'>Punts d'interès</div>"
+                 f"{punts_html_content}</div>" if punts_html_content else "")
             )
 
-            # Columna esquerra: mapa placeholder (st_folium no va dins HTML)
-            # Perfil sota les dues columnes
             perfil_bloc = ""
             if svg_perfil_html:
                 perfil_bloc = (
-                    f"<div style='margin-top:10px;border-top:1px solid #eee;padding-top:8px;'>"
+                    f"<div style='margin-top:12px;border-top:1px solid #eee;padding-top:10px;'>"
+                    f"<div style='font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#aaa;margin-bottom:8px;'>Perfil de la ruta</div>"
                     + svg_perfil_html + alt_info_html + barra_dif +
                     f"</div>"
                 )
@@ -852,7 +853,33 @@ try:
             )
             st.markdown(card_html, unsafe_allow_html=True)
 
-            # Mapa interactiu dins st.expander, col·locat visualment dins la targeta
+            # JS per aplicar el color de la ruta al contenidor del mapa just a sota
+            st.markdown(f"""<script>
+(function() {{
+  const scripts = document.querySelectorAll('script');
+  const last = scripts[scripts.length - 1];
+  const parent = last.closest('[data-testid="stVerticalBlock"]');
+  if (!parent) return;
+  const expanders = parent.querySelectorAll('[data-testid="stExpander"]');
+  expanders.forEach(function(exp) {{
+    const label = exp.querySelector('summary p, summary span');
+    if (label && label.textContent.includes('Mapa del recorregut')) {{
+      exp.style.border = '1px solid {dif_color}44';
+      exp.style.borderLeft = '5px solid {dif_color}';
+      exp.style.borderTop = 'none';
+      exp.style.borderRadius = '0 0 8px 8px';
+      exp.style.marginTop = '0';
+      const summary = exp.querySelector('summary');
+      if (summary) {{
+        summary.style.background = '{dif_color}10';
+        summary.style.fontWeight = '600';
+      }}
+    }}
+  }});
+}})();
+</script>""", unsafe_allow_html=True)
+
+            # Mapa interactiu
             with st.expander("🗺️ Mapa del recorregut", key=f"mapa_{ruta_id}"):
                 with st.spinner("Carregant mapa..."):
                     if ruta_id:
