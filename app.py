@@ -27,6 +27,12 @@ div[data-testid="stTabs"] button[data-baseweb="tab"] {
     font-weight: 600 !important;
     padding: 10px 20px !important;
 }
+/* Mapa expander text més gran */
+div[data-testid="stExpander"] > details > summary {
+    font-size: 16px !important;
+    font-weight: 600 !important;
+    padding: 10px 12px !important;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -194,7 +200,7 @@ def mostrar_mapa_gpx(ruta_id, lat_s, lng_s, lat_a, lng_a):
         lats_r = [p[0] for p in punts]
         lngs_r = [p[1] for p in punts]
         centre = (sum(lats_r) / len(lats_r), sum(lngs_r) / len(lngs_r))
-        m = folium.Map(location=centre, zoom_start=10, tiles="OpenStreetMap")
+        m = folium.Map(location=centre, zoom_start=12, tiles="OpenStreetMap")
         folium.PolyLine(punts, color=COLOR_BLAU, weight=4, opacity=0.9).add_to(m)
         if lat_s and lng_s:
             folium.Marker([lat_s, lng_s], tooltip="Sortida",
@@ -202,9 +208,16 @@ def mostrar_mapa_gpx(ruta_id, lat_s, lng_s, lat_a, lng_a):
         if lat_a and lng_a and (lat_s != lat_a or lng_s != lng_a):
             folium.Marker([lat_a, lng_a], tooltip="Arribada",
                           icon=folium.Icon(color="red", icon="flag", prefix="fa")).add_to(m)
-        sw = [min(lats_r), min(lngs_r)]
-        ne = [max(lats_r), max(lngs_r)]
-        m.fit_bounds([sw, ne])
+        # Zoom per mostrar exactament des de sortida fins a arribada
+        if lat_s and lng_s and lat_a and lng_a:
+            min_lat = min(lat_s, lat_a, min(lats_r))
+            max_lat = max(lat_s, lat_a, max(lats_r))
+            min_lng = min(lng_s, lng_a, min(lngs_r))
+            max_lng = max(lng_s, lng_a, max(lngs_r))
+            m.fit_bounds([[min_lat - 0.01, min_lng - 0.01], [max_lat + 0.01, max_lng + 0.01]])
+        else:
+            m.fit_bounds([[min(lats_r) - 0.01, min(lngs_r) - 0.01],
+                          [max(lats_r) + 0.01, max(lngs_r) + 0.01]])
         st_folium(m, use_container_width=True, height=300, returned_objects=[], key=f"mapa_ruta_{ruta_id}")
         return True
     except:
@@ -826,9 +839,9 @@ try:
                 f"</div>"
                 + etiquetes_html +
                 f"<details style='border-top:1px solid #eee;'>"
-                f"<summary style='list-style:none;padding:8px 12px;cursor:pointer;font-size:13px;"
-                f"font-weight:600;color:#555;display:flex;align-items:center;gap:6px;'>"
-                f"<svg width='12' height='12' viewBox='0 0 12 12'>"
+                f"<summary style='list-style:none;padding:10px 12px;cursor:pointer;font-size:16px;"
+                f"font-weight:600;color:#555;display:flex;align-items:center;gap:8px;'>"
+                f"<svg width='14' height='14' viewBox='0 0 12 12'>"
                 f"<path d='M2 4l4 4 4-4' stroke='#888' stroke-width='1.5' fill='none' stroke-linecap='round'/>"
                 f"</svg>Veure detalls</summary>"
                 f"<div style='padding:8px 12px 12px;'>"
