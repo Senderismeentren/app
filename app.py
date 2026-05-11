@@ -862,7 +862,7 @@ try:
             st.markdown(card_html, unsafe_allow_html=True)
 
             # Mapa interactiu
-            with st.expander("🗺️ Mapa del recorregut", key=f"mapa_{ruta_id}"):
+            with st.expander("Mapa del recorregut", key=f"mapa_{ruta_id}"):
                 with st.spinner("Carregant mapa..."):
                     if ruta_id:
                         if not mostrar_mapa_gpx(ruta_id, lat_s, lng_s, lat_a, lng_a):
