@@ -853,32 +853,6 @@ try:
             )
             st.markdown(card_html, unsafe_allow_html=True)
 
-            # JS per aplicar el color de la ruta al contenidor del mapa just a sota
-            st.markdown(f"""<script>
-(function() {{
-  const scripts = document.querySelectorAll('script');
-  const last = scripts[scripts.length - 1];
-  const parent = last.closest('[data-testid="stVerticalBlock"]');
-  if (!parent) return;
-  const expanders = parent.querySelectorAll('[data-testid="stExpander"]');
-  expanders.forEach(function(exp) {{
-    const label = exp.querySelector('summary p, summary span');
-    if (label && label.textContent.includes('Mapa del recorregut')) {{
-      exp.style.border = '1px solid {dif_color}44';
-      exp.style.borderLeft = '5px solid {dif_color}';
-      exp.style.borderTop = 'none';
-      exp.style.borderRadius = '0 0 8px 8px';
-      exp.style.marginTop = '0';
-      const summary = exp.querySelector('summary');
-      if (summary) {{
-        summary.style.background = '{dif_color}10';
-        summary.style.fontWeight = '600';
-      }}
-    }}
-  }});
-}})();
-</script>""", unsafe_allow_html=True)
-
             # Mapa interactiu
             with st.expander("🗺️ Mapa del recorregut", key=f"mapa_{ruta_id}"):
                 with st.spinner("Carregant mapa..."):
