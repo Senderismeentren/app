@@ -821,34 +821,28 @@ try:
             )
             st.markdown(card_html, unsafe_allow_html=True)
 
-            # Mapa — st.expander enganxat a la caixa amb color de dificultat
-            st.markdown(f"""<style>
-div[data-key="mapa_{ruta_id}"] {{
-    margin-top: 0 !important;
-    margin-bottom: 0 !important;
-    padding: 0 !important;
-}}
-div[data-key="mapa_{ruta_id}"] > div[data-testid="stExpander"] {{
-    margin: 0 !important;
-    border: 1px solid {dif_color}44 !important;
-    border-top: none !important;
-    border-left: 5px solid {dif_color} !important;
-    border-radius: 0 0 8px 8px !important;
-    background: {dif_color}04 !important;
-}}
-div[data-key="mapa_{ruta_id}"] > div[data-testid="stExpander"] > details > summary {{
-    background: {dif_color}10 !important;
-    padding: 7px 12px !important;
-    font-size: 13px !important;
-    font-weight: 600 !important;
-    color: #444 !important;
-}}
-</style>""", unsafe_allow_html=True)
-            with st.container(key=f"mapa_{ruta_id}"):
-                with st.expander("🗺️ Mapa del recorregut"):
-                    if ruta_id:
-                        if not mostrar_mapa_gpx(ruta_id, lat_s, lng_s, lat_a, lng_a):
-                            st.info("Mapa no disponible per aquesta ruta.")
+            # Marcador de color per al mapa — el CSS adjacent sí funciona amb ::before
+            st.markdown(
+                f"<div id='map_marker_{ruta_id}' style='height:0;overflow:hidden;'></div>"
+                f"<style>"
+                f"#map_marker_{ruta_id} + div div[data-testid='stExpander'] > details > summary {{"
+                f"  background: {dif_color}10 !important;"
+                f"  border-left: 5px solid {dif_color} !important;"
+                f"  font-weight: 600 !important; font-size:13px !important; color:#444 !important;"
+                f"}}"
+                f"#map_marker_{ruta_id} + div div[data-testid='stExpander'] {{"
+                f"  border: 1px solid {dif_color}44 !important;"
+                f"  border-top: none !important;"
+                f"  border-radius: 0 0 8px 8px !important;"
+                f"  margin-top: 0 !important;"
+                f"}}"
+                f"</style>",
+                unsafe_allow_html=True
+            )
+            with st.expander("🗺️ Mapa del recorregut", key=f"mapa_{ruta_id}"):
+                if ruta_id:
+                    if not mostrar_mapa_gpx(ruta_id, lat_s, lng_s, lat_a, lng_a):
+                        st.info("Mapa no disponible per aquesta ruta.")
 
     # --- FILTRE PER ESTACIÓ DES DEL MAPA ---
     if st.session_state.filtre_estacio:
