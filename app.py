@@ -753,17 +753,13 @@ try:
 
             c1 = cel_detall("⛰️", "Punt més alt", punt_alt_val, f"{alt_max_val} m" if alt_max_val else None)
             c2 = cel_detall("📅", "Època recomanada", epoca_val)
-            # Tipus i Dificultat en la mateixa cel·la
-            tipus_dif_val = f"{tipus_val}  ·  {dif_raw}" if tipus_val and dif_raw else (tipus_val or dif_raw or None)
-            c3 = cel_detall("🔄", "Tipus · Dificultat", tipus_dif_val)
-            c4 = cel_detall("👟", "Terreny", terreny_val)
-            graella = ""
-            if any([c1,c2,c3,c4]):
-                graella = (
-                    f"<div style='display:grid;grid-template-columns:1fr 1fr;gap:0 16px;"
-                    f"border-top:1px solid #eee;margin-top:8px;'>"
-                    f"{c1}{c2}{c3}{c4}</div>"
-                )
+            c3 = cel_detall("🔄", "Tipus de ruta", tipus_val)
+            c4 = cel_detall("🧗", "Dificultat", dif_raw)
+            graella = (
+                f"<div style='display:grid;grid-template-columns:1fr 1fr;gap:0 16px;"
+                f"border-top:1px solid #eee;margin-top:8px;'>"
+                f"{c1}{c2}{c3}{c4}</div>"
+            )
 
             # Generar perfil SVG per a la pestanya
             svg_perfil_html = ""
