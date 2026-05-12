@@ -23,9 +23,14 @@ st.markdown("""
 <style>
 /* Pestanyes principals més grans */
 div[data-testid="stTabs"] button[data-baseweb="tab"] {
-    font-size: 16px !important;
-    font-weight: 600 !important;
-    padding: 10px 20px !important;
+    font-size: 18px !important;
+    font-weight: 700 !important;
+    padding: 14px 28px !important;
+    letter-spacing: 0.3px !important;
+}
+div[data-testid="stTabs"] button[data-baseweb="tab"] p {
+    font-size: 18px !important;
+    font-weight: 700 !important;
 }
 /* Mapa expander text més gran */
 div[data-testid="stExpander"] > details > summary {
@@ -557,32 +562,49 @@ try:
                         unsafe_allow_html=True
                     )
         else:
-            # MODE LLISTA: tots els cims únics de la columna W
-            if cols.get("cims_noms"):
-                # Extreure tots els cims únics (poden ser llistes separades per comes)
-                tots_cims = set()
-                for val in df[cols["cims_noms"]].dropna():
-                    for c in str(val).split(","):
+            # MODE LLISTA: cims agrupats per comarca de l'estació de sortida
+            if cols.get("cims_noms") and cols.get("comarca"):
+                # Construir dict: cim -> set de comarques
+                cim_comarques = {}
+                for _, row_ci in df.iterrows():
+                    val_cims = str(row_ci[cols["cims_noms"]]) if pd.notna(row_ci[cols["cims_noms"]]) else ""
+                    comarca_ci = str(row_ci[cols["comarca"]]).strip() if pd.notna(row_ci[cols["comarca"]]) else ""
+                    for c in val_cims.split(","):
                         c = c.strip()
                         if c and c.lower() not in ("nan", "no", ""):
-                            tots_cims.add(c)
-                cims_ordenats = sorted(tots_cims)
-            else:
-                cims_ordenats = []
+                            if c not in cim_comarques:
+                                cim_comarques[c] = set()
+                            if comarca_ci and comarca_ci.lower() not in ("nan", ""):
+                                cim_comarques[c].add(comarca_ci)
 
-            st.write(f"**{len(cims_ordenats)} cims**")
-            for nom_cim in cims_ordenats:
-                # Comptar quantes rutes el visiten
-                if cols.get("cims_noms"):
-                    n_rutes_cim = df[cols["cims_noms"]].astype(str).str.contains(
-                        nom_cim, case=False, na=False, regex=False
-                    ).sum()
-                else:
-                    n_rutes_cim = 0
-                paraula = "ruta" if n_rutes_cim == 1 else "rutes"
-                if st.button(f"🏔️ {nom_cim}  ·  {n_rutes_cim} {paraula}", key=f"cim_{nom_cim}"):
-                    st.session_state.filtre_cim = nom_cim
-                    st.rerun()
+                # Agrupar cims per comarca
+                comarca_cims = {}
+                for cim, comarques in cim_comarques.items():
+                    comarca_key = ", ".join(sorted(comarques)) if comarques else "Sense comarca"
+                    if comarca_key not in comarca_cims:
+                        comarca_cims[comarca_key] = []
+                    comarca_cims[comarca_key].append(cim)
+
+                total_cims = len(cim_comarques)
+                st.write(f"**{total_cims} cims**")
+
+                for comarca_key in sorted(comarca_cims.keys()):
+                    cims_llista = sorted(comarca_cims[comarca_key])
+                    st.markdown(
+                        f"<div style='font-size:12px;font-weight:700;text-transform:uppercase;"
+                        f"letter-spacing:0.5px;color:#aaa;margin:16px 0 6px;'>{comarca_key}</div>",
+                        unsafe_allow_html=True
+                    )
+                    for nom_cim in cims_llista:
+                        n_rutes_cim = df[cols["cims_noms"]].astype(str).str.contains(
+                            nom_cim, case=False, na=False, regex=False
+                        ).sum()
+                        paraula = "ruta" if n_rutes_cim == 1 else "rutes"
+                        if st.button(f"🏔️ {nom_cim}  ·  {n_rutes_cim} {paraula}", key=f"cim_{nom_cim}"):
+                            st.session_state.filtre_cim = nom_cim
+                            st.rerun()
+            else:
+                st.info("No hi ha dades de cims disponibles.")
 
     with tab_llista:
         # --- FILTRE PER ESTACIÓ DES DEL MAPA ---
@@ -862,7 +884,7 @@ try:
             st.markdown(card_html, unsafe_allow_html=True)
 
             # Mapa interactiu
-            with st.expander("Mapa del recorregut", key=f"mapa_{ruta_id}"):
+            with st.expander("🗺️ Mapa del recorregut", key=f"mapa_{ruta_id}"):
                 with st.spinner("Carregant mapa..."):
                     if ruta_id:
                         if not mostrar_mapa_gpx(ruta_id, lat_s, lng_s, lat_a, lng_a):
