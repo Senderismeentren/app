@@ -71,7 +71,7 @@ portada_url = "https://raw.githubusercontent.com/Senderismeentren/senderisme-rec
 logo_url    = "https://avatars.githubusercontent.com/u/279401247?v=4"
 st.markdown(f'''
     <div style="position:relative;width:100%;height:280px;border-radius:12px;overflow:hidden;margin-bottom:0;">
-        <img src="{portada_url}" style="width:100%;height:100%;object-fit:cover;object-position:center;">
+        <img src="{portada_url}" style="width:100%;height:100%;object-fit:cover;object-position:right center;">
         <div style="position:absolute;inset:0;background:linear-gradient(to right,rgba(0,0,0,0.55) 0%,rgba(0,0,0,0.1) 60%,transparent 100%);"></div>
         <div style="position:absolute;top:18px;left:50%;transform:translateX(-50%);">
             <img src="{logo_url}" style="width:48px;height:48px;border-radius:50%;box-shadow:0 2px 8px rgba(0,0,0,0.4);">
@@ -83,56 +83,13 @@ st.markdown(f'''
     </div>
 ''', unsafe_allow_html=True)
 
-# --- SELECTOR DE COLOR DE FONS (punts de colors) ---
-COLORS_FONS = {
-    "Blanc":          "#ffffff",
-    "Gris molt suau": "#f5f5f5",
-    "Blau suau":      "#f0f4f8",
-    "Verd suau":      "#f0f5f0",
-    "Beix":           "#faf8f3",
-    "Lavanda":        "#f4f0f8",
-}
-if "color_fons" not in st.session_state:
-    st.session_state.color_fons = "#f5f5f5"
-
-# Renderitzar punts de colors com a botons HTML compactes
-dots_html = "<div style='display:flex;align-items:center;gap:10px;padding:8px 0 4px;'><span style='font-size:12px;color:#888;margin-right:4px;'>Fons:</span>"
-for nom_c, hex_c in COLORS_FONS.items():
-    selected = st.session_state.color_fons == hex_c
-    ring = f"box-shadow:0 0 0 2px #333;" if selected else f"box-shadow:0 0 0 1px #ccc;"
-    dots_html += (
-        f"<div title='{nom_c}' "
-        f"style='width:20px;height:20px;border-radius:50%;background:{hex_c};"
-        f"{ring}cursor:pointer;flex-shrink:0;'>"
-        f"</div>"
-    )
-dots_html += "</div>"
-
-# Usar botons Streamlit invisibles amb color real via CSS
-st.markdown("<div style='display:flex;align-items:center;gap:6px;padding:6px 0 2px;'><span style='font-size:12px;color:#888;'>Fons:</span>", unsafe_allow_html=True)
-dot_cols = st.columns([0.3] + [0.1] * len(COLORS_FONS) + [1.0])
-for i, (nom_c, hex_c) in enumerate(COLORS_FONS.items()):
-    with dot_cols[i + 1]:
-        selected = st.session_state.color_fons == hex_c
-        ring_css = "outline:2px solid #333;outline-offset:2px;" if selected else "outline:1px solid #ccc;outline-offset:1px;"
-        st.markdown(
-            f"<div title='{nom_c}' style='width:20px;height:20px;border-radius:50%;"
-            f"background:{hex_c};{ring_css}cursor:pointer;'></div>",
-            unsafe_allow_html=True
-        )
-        if st.button("", key=f"dot_{nom_c}", help=nom_c):
-            st.session_state.color_fons = hex_c
-            st.rerun()
-st.markdown("</div>", unsafe_allow_html=True)
-
-# Aplicar color de fons + mapa expander blanc
+# --- COLOR DE FONS FIX ---
 st.markdown(
-    f"<style>"
-    f"section[data-testid='stMain'] > div, .main .block-container {{ background-color: {st.session_state.color_fons} !important; }}"
-    f"div[data-testid='stExpander'] {{ background: white !important; }}"
-    f"div[data-testid='stExpander'] > details {{ background: white !important; }}"
-    f"div[data-testid='stExpander'] > details > summary {{ background: white !important; }}"
-    f"</style>",
+    "<style>section[data-testid='stMain'] > div, .main .block-container { background-color: #f5f5f5 !important; }"
+    "div[data-testid='stExpander'] { background: white !important; }"
+    "div[data-testid='stExpander'] > details { background: white !important; }"
+    "div[data-testid='stExpander'] > details > summary { background: white !important; }"
+    "</style>",
     unsafe_allow_html=True
 )
 
@@ -710,7 +667,7 @@ try:
         with col_f2:
             linies_list = sorted(set(
                 l.strip() for val in f[cols["linia_s"]].dropna().astype(str)
-                for l in val.split(",") if l.strip() and l.strip().lower() != "nan"
+                for l in val.split(";") if l.strip() and l.strip().lower() != "nan"
             )) if cols.get("linia_s") else []
             sel_lin_btn = st.selectbox("🚆 Línia", ["Totes"] + linies_list,
                 index=0 if not st.session_state.filtre_btn_linia else
@@ -726,8 +683,8 @@ try:
                 (f[cols["arribada"]].astype(str).str.strip() == st.session_state.filtre_btn_estacio)
             ]
         if st.session_state.filtre_btn_linia:
-            f = f[f[cols["linia_s"]].astype(str).str.contains(
-                st.session_state.filtre_btn_linia, case=False, na=False, regex=False
+            f = f[f[cols["linia_s"]].astype(str).apply(
+                lambda x: st.session_state.filtre_btn_linia in [l.strip() for l in x.split(";")]
             )]
 
         # --- FILTRE PER ESTACIÓ DES DEL MAPA ---
