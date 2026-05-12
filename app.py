@@ -67,17 +67,54 @@ div[data-testid="stExpander"] > details[open] > summary::before {
 """, unsafe_allow_html=True)
 
 # --- CAPÇALERA AMB IMATGE DE PORTADA ---
-portada_url = "https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/portada.png"
+portada_url = "https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/imatges/portada.png"
+logo_url    = "https://avatars.githubusercontent.com/u/279401247?v=4"
 st.markdown(f'''
     <div style="position:relative;width:100%;height:280px;border-radius:12px;overflow:hidden;margin-bottom:0;">
         <img src="{portada_url}" style="width:100%;height:100%;object-fit:cover;object-position:center;">
         <div style="position:absolute;inset:0;background:linear-gradient(to right,rgba(0,0,0,0.55) 0%,rgba(0,0,0,0.1) 60%,transparent 100%);"></div>
+        <div style="position:absolute;top:18px;left:50%;transform:translateX(-50%);">
+            <img src="{logo_url}" style="width:48px;height:48px;border-radius:50%;box-shadow:0 2px 8px rgba(0,0,0,0.4);">
+        </div>
         <div style="position:absolute;bottom:28px;left:28px;">
             <h1 style="margin:0;font-size:32px;font-weight:800;color:white;text-shadow:0 2px 6px rgba(0,0,0,0.5);">Senderisme en tren</h1>
             <p style="margin:6px 0 0 0;font-size:15px;color:rgba(255,255,255,0.9);text-shadow:0 1px 4px rgba(0,0,0,0.4);">Rutes i excursions a peu amb accés en tren, metro, cremallera o funicular.</p>
         </div>
     </div>
 ''', unsafe_allow_html=True)
+
+# --- SELECTOR DE COLOR DE FONS ---
+COLORS_FONS = {
+    "Blanc":        "#ffffff",
+    "Gris molt suau": "#f5f5f5",
+    "Blau suau":    "#f0f4f8",
+    "Verd suau":    "#f0f5f0",
+    "Beix":         "#faf8f3",
+    "Lavanda":      "#f4f0f8",
+}
+if "color_fons" not in st.session_state:
+    st.session_state.color_fons = "#f5f5f5"
+
+cols_color = st.columns(len(COLORS_FONS))
+for i, (nom_c, hex_c) in enumerate(COLORS_FONS.items()):
+    with cols_color[i]:
+        selected = st.session_state.color_fons == hex_c
+        border = "2px solid #333" if selected else "2px solid #ddd"
+        if st.button(
+            nom_c,
+            key=f"color_{nom_c}",
+            help=nom_c,
+            use_container_width=True
+        ):
+            st.session_state.color_fons = hex_c
+            st.rerun()
+
+# Aplicar color de fons
+st.markdown(
+    f"<style>section[data-testid='stMain'] > div, "
+    f".main .block-container {{ background-color: {st.session_state.color_fons} !important; }}</style>",
+    unsafe_allow_html=True
+)
 
 # --- DICCIONARI D'OPERADORS ---
 OPERADORS_INFO = {
@@ -634,6 +671,57 @@ try:
                 st.info("No hi ha dades de cims disponibles.")
 
     with tab_llista:
+        # --- FILTRES EN FORMAT BOTÓ ---
+        if "filtre_btn_estacio" not in st.session_state:
+            st.session_state.filtre_btn_estacio = None
+        if "filtre_btn_linia" not in st.session_state:
+            st.session_state.filtre_btn_linia = None
+
+        col_f1, col_f2 = st.columns(2)
+        with col_f1:
+            estacions_list = sorted(f[cols["sortida"]].dropna().astype(str).unique().tolist()) if cols.get("sortida") else []
+            sel_est_btn = st.selectbox(
+                "🚉 Estació",
+                ["Totes"] + estacions_list,
+                index=0 if not st.session_state.filtre_btn_estacio else
+                      (["Totes"] + estacions_list).index(st.session_state.filtre_btn_estacio)
+                      if st.session_state.filtre_btn_estacio in estacions_list else 0,
+                key="sel_est_btn"
+            )
+            if sel_est_btn != "Totes":
+                st.session_state.filtre_btn_estacio = sel_est_btn
+            else:
+                st.session_state.filtre_btn_estacio = None
+
+        with col_f2:
+            linies_list = sorted(set(
+                l.strip() for val in f[cols["linia_s"]].dropna().astype(str)
+                for l in val.split(",") if l.strip() and l.strip().lower() != "nan"
+            )) if cols.get("linia_s") else []
+            sel_lin_btn = st.selectbox(
+                "🚆 Línia",
+                ["Totes"] + linies_list,
+                index=0 if not st.session_state.filtre_btn_linia else
+                      (["Totes"] + linies_list).index(st.session_state.filtre_btn_linia)
+                      if st.session_state.filtre_btn_linia in linies_list else 0,
+                key="sel_lin_btn"
+            )
+            if sel_lin_btn != "Totes":
+                st.session_state.filtre_btn_linia = sel_lin_btn
+            else:
+                st.session_state.filtre_btn_linia = None
+
+        # Aplicar filtres de botó
+        if st.session_state.filtre_btn_estacio:
+            f = f[
+                (f[cols["sortida"]].astype(str).str.strip() == st.session_state.filtre_btn_estacio) |
+                (f[cols["arribada"]].astype(str).str.strip() == st.session_state.filtre_btn_estacio)
+            ]
+        if st.session_state.filtre_btn_linia:
+            f = f[f[cols["linia_s"]].astype(str).str.contains(
+                st.session_state.filtre_btn_linia, case=False, na=False, regex=False
+            )]
+
         # --- FILTRE PER ESTACIÓ DES DEL MAPA ---
         if st.session_state.filtre_estacio:
             st.info(f"🚉 Filtrant per estació: **{st.session_state.filtre_estacio}**")
