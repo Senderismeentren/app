@@ -648,33 +648,53 @@ try:
                 st.info("No hi ha dades de cims disponibles.")
 
     with tab_llista:
-        # --- FILTRES EN FORMAT BOTÓ ---
+        # --- FILTRES EN FORMAT BOTÓ PILL ---
         if "filtre_btn_estacio" not in st.session_state:
             st.session_state.filtre_btn_estacio = None
         if "filtre_btn_linia" not in st.session_state:
             st.session_state.filtre_btn_linia = None
 
-        col_f1, col_f2 = st.columns(2)
+        estacions_list = sorted(f[cols["sortida"]].dropna().astype(str).unique().tolist()) if cols.get("sortida") else []
+        linies_list = sorted(set(
+            l.strip() for val in f[cols["linia_s"]].dropna().astype(str)
+            for l in val.split(";") if l.strip() and l.strip().lower() != "nan"
+        )) if cols.get("linia_s") else []
+
+        # CSS per als selects amb aparença de botó pill
+        st.markdown("""<style>
+div[data-testid="stSelectbox"] > div > div {
+    background: #f0f0f0 !important;
+    border: 1px solid #ddd !important;
+    border-radius: 20px !important;
+    padding: 2px 12px !important;
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    color: #333 !important;
+    cursor: pointer !important;
+}
+div[data-testid="stSelectbox"] label {
+    display: none !important;
+}
+</style>""", unsafe_allow_html=True)
+
+        col_f1, col_f2, col_rest = st.columns([1, 1, 2])
         with col_f1:
-            estacions_list = sorted(f[cols["sortida"]].dropna().astype(str).unique().tolist()) if cols.get("sortida") else []
-            sel_est_btn = st.selectbox("🚉 Estació", ["Totes"] + estacions_list,
+            est_options = ["🚉 Estació"] + estacions_list
+            sel_est_btn = st.selectbox("Estació", est_options,
                 index=0 if not st.session_state.filtre_btn_estacio else
-                      (["Totes"] + estacions_list).index(st.session_state.filtre_btn_estacio)
-                      if st.session_state.filtre_btn_estacio in estacions_list else 0,
-                key="sel_est_btn")
-            st.session_state.filtre_btn_estacio = sel_est_btn if sel_est_btn != "Totes" else None
+                      est_options.index(st.session_state.filtre_btn_estacio)
+                      if st.session_state.filtre_btn_estacio in est_options else 0,
+                key="sel_est_btn", label_visibility="collapsed")
+            st.session_state.filtre_btn_estacio = sel_est_btn if sel_est_btn != "🚉 Estació" else None
 
         with col_f2:
-            linies_list = sorted(set(
-                l.strip() for val in f[cols["linia_s"]].dropna().astype(str)
-                for l in val.split(";") if l.strip() and l.strip().lower() != "nan"
-            )) if cols.get("linia_s") else []
-            sel_lin_btn = st.selectbox("🚆 Línia", ["Totes"] + linies_list,
+            lin_options = ["🚆 Línia"] + linies_list
+            sel_lin_btn = st.selectbox("Línia", lin_options,
                 index=0 if not st.session_state.filtre_btn_linia else
-                      (["Totes"] + linies_list).index(st.session_state.filtre_btn_linia)
-                      if st.session_state.filtre_btn_linia in linies_list else 0,
-                key="sel_lin_btn")
-            st.session_state.filtre_btn_linia = sel_lin_btn if sel_lin_btn != "Totes" else None
+                      lin_options.index(st.session_state.filtre_btn_linia)
+                      if st.session_state.filtre_btn_linia in lin_options else 0,
+                key="sel_lin_btn", label_visibility="collapsed")
+            st.session_state.filtre_btn_linia = sel_lin_btn if sel_lin_btn != "🚆 Línia" else None
 
         # Aplicar filtres de botó
         if st.session_state.filtre_btn_estacio:
@@ -951,11 +971,11 @@ try:
                 f"</div>"
                 + etiquetes_html +
                 f"<details style='border-top:1px solid #eee;'>"
-                f"<summary style='list-style:none;padding:10px 12px;cursor:pointer;font-size:16px;"
-                f"font-weight:600;color:#555;display:flex;align-items:center;gap:8px;'>"
-                f"<svg width='14' height='14' viewBox='0 0 12 12'>"
-                f"<path d='M2 4l4 4 4-4' stroke='#888' stroke-width='1.5' fill='none' stroke-linecap='round'/>"
-                f"</svg>Veure detalls</summary>"
+                f"<summary style='list-style:none;padding:0;cursor:pointer;display:block;'>"
+                f"<div style='margin:10px 12px 12px;background:{dif_color};color:white;border-radius:8px;"
+                f"padding:12px;text-align:center;font-size:15px;font-weight:700;letter-spacing:0.3px;"
+                f"box-shadow:0 2px 6px {dif_color}66;'>"
+                f"Veure detalls</div></summary>"
                 f"<div style='padding:8px 12px 12px;'>"
                 + detalls_html +
                 f"</div></details></div>"
