@@ -23,13 +23,13 @@ st.markdown("""
 <style>
 /* Pestanyes principals més grans */
 div[data-testid="stTabs"] button[data-baseweb="tab"] {
-    font-size: 18px !important;
+    font-size: 15px !important;
     font-weight: 700 !important;
-    padding: 14px 28px !important;
-    letter-spacing: 0.3px !important;
+    padding: 10px 18px !important;
+    letter-spacing: 0.2px !important;
 }
 div[data-testid="stTabs"] button[data-baseweb="tab"] p {
-    font-size: 18px !important;
+    font-size: 15px !important;
     font-weight: 700 !important;
 }
 /* Mapa expander text més gran */
@@ -430,8 +430,8 @@ try:
         "cims_noms":     df_raw.columns[22] if len(df_raw.columns) > 22 else None,
         "inici":         buscar_col(["inici", "punt_inici", "punt inici"]),
         "final":         buscar_col(["final", "punt_final", "punt final"]),
-        "punt_alt":      buscar_col(["punt_mes_alt", "punt més alt", "cim", "altitud_max"]),
-        "altitud_max":   buscar_col(["altitud", "cota", "metres"]),
+        "punt_alt":      df_raw.columns[27] if len(df_raw.columns) > 27 else buscar_col(["punt_mes_alt", "punt més alt"]),
+        "altitud_max":   df_raw.columns[28] if len(df_raw.columns) > 28 else buscar_col(["altitud", "cota"]),
         "terreny":       buscar_col(["terreny"]),
         "epoca":         buscar_col(["època", "epoca", "millor_epoca", "recomanada"]),
     }
@@ -827,9 +827,12 @@ try:
             # Columna dreta: estacions + graella + punts
             col_dreta = (
                 estacions_html +
+                f"<div style='margin-top:6px;font-size:12px;color:#666;'>"
+                f"<span style='font-size:9px;text-transform:uppercase;letter-spacing:0.4px;color:#aaa;'>Dificultat</span><br>"
+                f"<span style='font-weight:700;color:{dif_color};'>{dif_raw}</span></div>" +
                 graella +
                 (f"<div style='margin-top:12px;border-top:1px solid #eee;padding-top:10px;'>"
-                 f"<div style='font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#aaa;margin-bottom:8px;'>Punts d'interès</div>"
+                 f"<div style='font-size:14px;font-weight:700;color:#222;margin-bottom:8px;'>Punts d'interès</div>"
                  f"{punts_html_content}</div>" if punts_html_content else "")
             )
 
@@ -837,12 +840,13 @@ try:
             if svg_perfil_html:
                 perfil_bloc = (
                     f"<div style='margin-top:12px;border-top:1px solid #eee;padding-top:10px;'>"
-                    f"<div style='font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#aaa;margin-bottom:8px;'>Perfil de la ruta</div>"
+                    f"<div style='font-size:14px;font-weight:700;color:#222;margin-bottom:8px;'>Perfil de la ruta</div>"
                     + svg_perfil_html + alt_info_html + barra_dif +
                     f"</div>"
                 )
 
             detalls_html = (
+                f"<div style='font-size:14px;font-weight:700;color:#222;margin-bottom:8px;'>Dades</div>"
                 f"<div>"
                 + col_dreta +
                 f"</div>"
@@ -889,192 +893,6 @@ try:
                     if ruta_id:
                         if not mostrar_mapa_gpx(ruta_id, lat_s, lng_s, lat_a, lng_a):
                             st.info("Mapa no disponible per aquesta ruta.")
-
-    # --- FILTRE PER ESTACIÓ DES DEL MAPA ---
-    if st.session_state.filtre_estacio:
-        st.info(f"🚉 Filtrant per estació: **{st.session_state.filtre_estacio}**")
-        if st.button("✖ Treure filtre d'estació"):
-            st.session_state.filtre_estacio = None
-            st.session_state.map_reset_counter += 1 # Reset del mapa
-            st.rerun()
-        f = f[
-            (f[cols["sortida"]].astype(str).str.strip() == st.session_state.filtre_estacio) |
-            (f[cols["arribada"]].astype(str).str.strip() == st.session_state.filtre_estacio)
-        ]
-
-    st.write(f"**Resultats: {len(f)} rutes**")
-
-    # --- BUCLE DE RUTES ---
-    for _, row in f.iterrows():
-        ruta_id      = int(row[cols["id"]]) if pd.notna(row[cols["id"]]) else None
-        nom_ruta     = row[cols["ruta"]]
-        desc         = str(row[cols["desc"]]).strip() if cols["desc"] and pd.notna(row[cols["desc"]]) else ""
-        s_est        = str(row[cols["sortida"]]).strip()
-        a_est        = str(row[cols["arribada"]]).strip()
-        dif_raw      = str(row[cols["dif"]]).strip() if pd.notna(row[cols["dif"]]) else ""
-        dif_color    = DIFICULTAT_COLOR.get(dif_raw.lower(), "#888888")
-        tipus        = str(row[cols["tipus"]]).strip().lower() if cols["tipus"] and pd.notna(row[cols["tipus"]]) else ""
-        desn_pujada  = row[cols["desn"]]    if cols["desn"]    and pd.notna(row[cols["desn"]])    else 0
-        desn_baixada = row[cols["baixada"]] if cols["baixada"] and pd.notna(row[cols["baixada"]]) else 0
-
-        # Format temps columna U → XXhXXmin
-        temps_fmt = "—"
-        if cols.get("temps") and pd.notna(row[cols["temps"]]):
-            try:
-                hores_dec = float(str(row[cols["temps"]]).replace(",", "."))
-                hores = int(hores_dec)
-                mins  = round((hores_dec - hores) * 60)
-                if hores > 0 and mins > 0:
-                    temps_fmt = f"{hores}h{mins:02d}min"
-                elif hores > 0:
-                    temps_fmt = f"{hores}h"
-                else:
-                    temps_fmt = f"{mins}min"
-            except:
-                temps_fmt = str(row[cols["temps"]])
-
-        lat_s, lng_s = parse_coord(row[cols["coord_s"]]) if cols.get("coord_s") and pd.notna(row[cols["coord_s"]]) else (None, None)
-        lat_a, lng_a = parse_coord(row[cols["coord_a"]]) if cols.get("coord_a") and pd.notna(row[cols["coord_a"]]) else (None, None)
-
-        bloc_s = bloc_estacio_html(row[cols["op_s"]], row[cols["linia_s"]])
-        bloc_a = bloc_estacio_html(row[cols["op_a"]], row[cols["linia_a"]])
-
-        # SEPARADOR LLEUGER
-        st.markdown("<div style='border-top:1px solid #e0e0e0;margin:6px 0 2px 0;'></div>", unsafe_allow_html=True)
-
-        expander_label = f"**{ruta_id}** · {nom_ruta}  —  {dif_raw.upper()}"
-
-        with st.expander(expander_label):
-            # MÈTRIQUES COMPACTES
-            if "circular" in tipus:
-                desn_txt = f"+/- {int(desn_pujada)} m"
-            else:
-                desn_txt = f"+{int(desn_pujada)} m / -{int(desn_baixada)} m"
-
-            st.markdown(
-                f"<div style='display:flex;gap:32px;margin:8px 0 14px;flex-wrap:wrap;'>"
-                f"<div><div style='font-size:10px;color:#999;text-transform:uppercase;letter-spacing:0.4px;'>Distància</div>"
-                f"<div style='font-size:22px;font-weight:700;color:#111;'>{row[cols['km']]} km</div></div>"
-                f"<div><div style='font-size:10px;color:#999;text-transform:uppercase;letter-spacing:0.4px;'>Desnivell</div>"
-                f"<div style='font-size:22px;font-weight:700;color:#111;'>{desn_txt}</div></div>"
-                f"<div><div style='font-size:10px;color:#999;text-transform:uppercase;letter-spacing:0.4px;'>Temps</div>"
-                f"<div style='font-size:22px;font-weight:700;color:#111;'>{temps_fmt}</div></div>"
-                f"</div>",
-                unsafe_allow_html=True
-            )
-
-            # ESTACIONS
-            circular_label = ' <span style="font-size:12px;font-weight:400;color:#777;">(circular)</span>' if s_est.lower() == a_est.lower() else ""
-            if s_est.lower() == a_est.lower():
-                st.markdown(
-                    f"<div style=\"font-size:16px;font-weight:700;margin:4px 0 8px;display:flex;align-items:center;gap:8px;\">"
-                    f"<span style=\"width:10px;height:10px;border-radius:50%;background:#1D9E75;display:inline-block;flex-shrink:0;\"></span>"
-                    f"<a href=\"https://www.google.com/maps/search/{s_est}+estacio\" target=\"_blank\" style=\"text-decoration:none;color:#111;\">{s_est}</a>"
-                    f"{circular_label}"
-                    f"<span style=\"margin-left:auto;font-size:12px;font-weight:400;\">{bloc_s}</span></div>",
-                    unsafe_allow_html=True
-                )
-            else:
-                st.markdown(
-                    f"<div style=\"font-size:16px;font-weight:700;margin:4px 0 2px;display:flex;align-items:center;gap:8px;\">"
-                    f"<span style=\"width:10px;height:10px;border-radius:50%;background:#1D9E75;display:inline-block;flex-shrink:0;\"></span>"
-                    f"<a href=\"https://www.google.com/maps/search/{s_est}+estacio\" target=\"_blank\" style=\"text-decoration:none;color:#111;\">{s_est}</a>"
-                    f"<span style=\"margin-left:auto;font-size:12px;font-weight:400;\">{bloc_s}</span></div>"
-                    f"<div style=\"font-size:16px;font-weight:700;margin:2px 0 8px;display:flex;align-items:center;gap:8px;\">"
-                    f"<span style=\"width:10px;height:10px;border-radius:50%;background:#E24B4A;display:inline-block;flex-shrink:0;\"></span>"
-                    f"<a href=\"https://www.google.com/maps/search/{a_est}+estacio\" target=\"_blank\" style=\"text-decoration:none;color:#111;\">{a_est}</a>"
-                    f"<span style=\"margin-left:auto;font-size:12px;font-weight:400;\">{bloc_a}</span></div>",
-                    unsafe_allow_html=True
-                )
-
-            # ETIQUETES
-            comarca_val = str(row[cols["comarca"]]) if pd.notna(row[cols["comarca"]]) else ""
-            espai_val   = str(row[cols["espai"]])   if pd.notna(row[cols["espai"]])   else ""
-            cims_val    = str(row[cols["cims"]]).strip().lower() if cols["cims"] and pd.notna(row[cols["cims"]]) else ""
-            wiki_url    = str(row[cols["wiki"]])    if pd.notna(row[cols["wiki"]])    else ""
-
-            etiquetes = ""
-            if comarca_val and comarca_val != "nan":
-                etiquetes += f'<span style="font-size:11px;padding:2px 7px;border-radius:20px;background:#f0f2f6;color:#555;border:0.5px solid #ddd;margin-right:4px;">{comarca_val}</span>'
-            if espai_val and espai_val != "nan":
-                etiquetes += f'<span style="font-size:11px;padding:2px 7px;border-radius:20px;background:#f0f2f6;color:#555;border:0.5px solid #ddd;margin-right:4px;">{espai_val}</span>'
-            if cims_val == "si":
-                etiquetes += '<span style="font-size:11px;padding:2px 7px;border-radius:20px;background:#E1F5EE;color:#0F6E56;border:0.5px solid #9FE1CB;margin-right:4px;">100 Cims</span>'
-            if wiki_url and wiki_url != "nan":
-                etiquetes += f'<a href="{wiki_url}" target="_blank" style="font-size:11px;padding:2px 7px;border-radius:20px;background:#EAF3DE;color:#3B6D11;border:0.5px solid #C0DD97;text-decoration:none;margin-right:4px;">Wikiloc</a>'
-
-            if etiquetes:
-                st.markdown(f'<div style="margin:4px 0 8px;">{etiquetes}</div>', unsafe_allow_html=True)
-
-            # SUB-DESPLEGABLES
-            with st.expander("🗺️ Mapa del recorregut"):
-                if ruta_id:
-                    if not mostrar_mapa_gpx(ruta_id, lat_s, lng_s, lat_a, lng_a):
-                        st.info("Mapa no disponible per aquesta ruta.")
-
-            with st.expander("⛰️ Terreny i dificultat"):
-                if ruta_id:
-                    svg_perfil, alt_min, alt_max = perfil_elevacio_svg(ruta_id, dif_color)
-                    if svg_perfil:
-                        st.markdown(svg_perfil, unsafe_allow_html=True)
-                        st.markdown(
-                            f"<div style='font-size:10px;color:#888;text-align:center;margin-bottom:10px;'>"
-                            f"Altitud mín: <b>{int(alt_min)} m</b> · Altitud màx: <b>{int(alt_max)} m</b></div>",
-                            unsafe_allow_html=True
-                        )
-                    else:
-                        st.info("Perfil d'elevació no disponible per aquesta ruta.")
-
-                # Barra de dificultat — 5 nivells
-                nivells = [
-                    ("Molt fàcil",   "#2196A6"),
-                    ("Fàcil",        "#1D9E75"),
-                    ("Moderada",     "#EF9F27"),
-                    ("Difícil",      "#E24B4A"),
-                    ("Molt difícil", "#9B1B1B"),
-                ]
-                claus_norm = ["molt facil", "facil", "moderada", "dificil", "molt dificil"]
-
-                def normalitza(s):
-                    return s.lower().replace("í","i").replace("à","a").replace("è","e").replace("ó","o").replace("ú","u").strip()
-
-                pos_actual = next((i for i, c in enumerate(claus_norm) if c == normalitza(dif_raw)), -1)
-
-                segments = ""
-                for i, (nom_niv, color_niv) in enumerate(nivells):
-                    actiu   = (i == pos_actual)
-                    opacity = "1" if actiu else "0.22"
-                    radius  = ("6px 0 0 6px" if i == 0 else ("0 6px 6px 0" if i == 4 else "0"))
-                    dot     = (
-                        f'<div style="width:13px;height:13px;border-radius:50%;'
-                        f'background:{color_niv};border:2.5px solid #111;'
-                        f'position:absolute;top:-8px;left:50%;transform:translateX(-50%);'
-                        f'box-shadow:0 1px 4px rgba(0,0,0,0.35);z-index:2;"></div>'
-                    ) if actiu else ""
-                    segments += (
-                        f'<div style="flex:1;position:relative;">'
-                        f'{dot}'
-                        f'<div style="height:10px;background:{color_niv};opacity:{opacity};border-radius:{radius};"></div>'
-                        f'<div style="font-size:9px;color:#555;text-align:center;margin-top:4px;'
-                        f'font-weight:{"700" if actiu else "400"};">{nom_niv}</div>'
-                        f'</div>'
-                    )
-
-                st.markdown(
-                    f'<div style="margin-top:6px;">'
-                    f'<div style="font-size:11px;color:#888;margin-bottom:12px;">Dificultat</div>'
-                    f'<div style="display:flex;gap:2px;">{segments}</div>'
-                    f'</div>',
-                    unsafe_allow_html=True
-                )
-
-            with st.expander("📌 Punts d'interès"):
-                elements_str = row[cols["elements"]] if cols["elements"] and pd.notna(row[cols["elements"]]) else ""
-                cats_str     = row[cols["cats"]]     if cols["cats"]     and pd.notna(row[cols["cats"]])     else ""
-                if elements_str:
-                    st.markdown(punts_interes_html(elements_str, cats_str), unsafe_allow_html=True)
-                else:
-                    st.info("No hi ha punts d'interès registrats.")
 
 except Exception as e:
     st.error(f"S'ha produït un error: {e}")
