@@ -38,8 +38,14 @@ div[data-testid="stExpander"] > details > summary {
     font-weight: 600 !important;
     padding: 10px 12px !important;
 }
-/* Ocultar arrow per defecte i posar-ne un de coherent */
+/* Ocultar arrow per defecte de Streamlit */
 div[data-testid="stExpander"] > details > summary svg {
+    display: none !important;
+}
+div[data-testid="stExpander"] > details > summary > div > svg {
+    display: none !important;
+}
+div[data-testid="stExpander"] details summary [data-testid="stExpanderToggleIcon"] {
     display: none !important;
 }
 div[data-testid="stExpander"] > details > summary::before {
@@ -48,6 +54,7 @@ div[data-testid="stExpander"] > details > summary::before {
     width: 12px;
     height: 12px;
     margin-right: 8px;
+    flex-shrink: 0;
     background-image: url("data:image/svg+xml,%3Csvg width='12' height='12' viewBox='0 0 12 12' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M2 4l4 4 4-4' stroke='%23888' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-position: center;
@@ -59,13 +66,15 @@ div[data-testid="stExpander"] > details[open] > summary::before {
 </style>
 """, unsafe_allow_html=True)
 
-# --- CAPÇALERA ---
-st.markdown('''
-    <div style="display:flex;align-items:center;gap:15px;margin-bottom:20px;background-color:#f0f2f6;padding:15px 20px;border-radius:10px;">
-        <img src="https://avatars.githubusercontent.com/u/279401247?v=4" style="width:50px;height:50px;border-radius:50%;">
-        <div>
-            <h1 style="margin:0;font-size:28px;color:#000000;">Senderisme en tren</h1>
-            <p style="margin:4px 0 0 0;font-size:15px;color:#555;">Rutes i excursions a peu amb accés en tren, metro, cremallera o funicular.</p>
+# --- CAPÇALERA AMB IMATGE DE PORTADA ---
+portada_url = "https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/portada.png"
+st.markdown(f'''
+    <div style="position:relative;width:100%;height:280px;border-radius:12px;overflow:hidden;margin-bottom:0;">
+        <img src="{portada_url}" style="width:100%;height:100%;object-fit:cover;object-position:center;">
+        <div style="position:absolute;inset:0;background:linear-gradient(to right,rgba(0,0,0,0.55) 0%,rgba(0,0,0,0.1) 60%,transparent 100%);"></div>
+        <div style="position:absolute;bottom:28px;left:28px;">
+            <h1 style="margin:0;font-size:32px;font-weight:800;color:white;text-shadow:0 2px 6px rgba(0,0,0,0.5);">Senderisme en tren</h1>
+            <p style="margin:6px 0 0 0;font-size:15px;color:rgba(255,255,255,0.9);text-shadow:0 1px 4px rgba(0,0,0,0.4);">Rutes i excursions a peu amb accés en tren, metro, cremallera o funicular.</p>
         </div>
     </div>
 ''', unsafe_allow_html=True)
