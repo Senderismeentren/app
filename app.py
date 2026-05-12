@@ -38,6 +38,24 @@ div[data-testid="stExpander"] > details > summary {
     font-weight: 600 !important;
     padding: 10px 12px !important;
 }
+/* Ocultar arrow per defecte i posar-ne un de coherent */
+div[data-testid="stExpander"] > details > summary svg {
+    display: none !important;
+}
+div[data-testid="stExpander"] > details > summary::before {
+    content: '';
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    margin-right: 8px;
+    background-image: url("data:image/svg+xml,%3Csvg width='12' height='12' viewBox='0 0 12 12' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M2 4l4 4 4-4' stroke='%23888' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: center;
+    transition: transform 0.2s;
+}
+div[data-testid="stExpander"] > details[open] > summary::before {
+    transform: rotate(180deg);
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -735,13 +753,15 @@ try:
 
             c1 = cel_detall("⛰️", "Punt més alt", punt_alt_val, f"{alt_max_val} m" if alt_max_val else None)
             c2 = cel_detall("📅", "Època recomanada", epoca_val)
-            c3 = cel_detall("🔄", "Tipus de ruta", tipus_val)
+            # Tipus i Dificultat en la mateixa cel·la
+            tipus_dif_val = f"{tipus_val}  ·  {dif_raw}" if tipus_val and dif_raw else (tipus_val or dif_raw or None)
+            c3 = cel_detall("🔄", "Tipus · Dificultat", tipus_dif_val)
             c4 = cel_detall("👟", "Terreny", terreny_val)
             graella = ""
             if any([c1,c2,c3,c4]):
                 graella = (
                     f"<div style='display:grid;grid-template-columns:1fr 1fr;gap:0 16px;"
-                    f"border-top:1px solid #eee;margin-top:2px;padding:0 12px;'>"
+                    f"border-top:1px solid #eee;margin-top:8px;'>"
                     f"{c1}{c2}{c3}{c4}</div>"
                 )
 
@@ -827,12 +847,9 @@ try:
             # Columna dreta: estacions + graella + punts
             col_dreta = (
                 estacions_html +
-                f"<div style='margin-top:6px;font-size:12px;color:#666;'>"
-                f"<span style='font-size:9px;text-transform:uppercase;letter-spacing:0.4px;color:#aaa;'>Dificultat</span><br>"
-                f"<span style='font-weight:700;color:{dif_color};'>{dif_raw}</span></div>" +
                 graella +
                 (f"<div style='margin-top:12px;border-top:1px solid #eee;padding-top:10px;'>"
-                 f"<div style='font-size:14px;font-weight:700;color:#222;margin-bottom:8px;'>Punts d'interès</div>"
+                 f"<div style='font-size:16px;font-weight:700;color:#222;margin-bottom:8px;'>Punts d'interès</div>"
                  f"{punts_html_content}</div>" if punts_html_content else "")
             )
 
@@ -840,13 +857,13 @@ try:
             if svg_perfil_html:
                 perfil_bloc = (
                     f"<div style='margin-top:12px;border-top:1px solid #eee;padding-top:10px;'>"
-                    f"<div style='font-size:14px;font-weight:700;color:#222;margin-bottom:8px;'>Perfil de la ruta</div>"
+                    f"<div style='font-size:16px;font-weight:700;color:#222;margin-bottom:8px;'>Perfil de la ruta</div>"
                     + svg_perfil_html + alt_info_html + barra_dif +
                     f"</div>"
                 )
 
             detalls_html = (
-                f"<div style='font-size:14px;font-weight:700;color:#222;margin-bottom:8px;'>Dades</div>"
+                f"<div style='font-size:16px;font-weight:700;color:#222;margin-bottom:8px;'>Dades</div>"
                 f"<div>"
                 + col_dreta +
                 f"</div>"
@@ -887,7 +904,7 @@ try:
             )
             st.markdown(card_html, unsafe_allow_html=True)
 
-            # Mapa interactiu
+            # Mapa interactiu — arrow coherent amb Veure detalls via CSS global
             with st.expander("🗺️ Mapa del recorregut", key=f"mapa_{ruta_id}"):
                 with st.spinner("Carregant mapa..."):
                     if ruta_id:
