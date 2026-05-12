@@ -83,36 +83,56 @@ st.markdown(f'''
     </div>
 ''', unsafe_allow_html=True)
 
-# --- SELECTOR DE COLOR DE FONS ---
+# --- SELECTOR DE COLOR DE FONS (punts de colors) ---
 COLORS_FONS = {
-    "Blanc":        "#ffffff",
+    "Blanc":          "#ffffff",
     "Gris molt suau": "#f5f5f5",
-    "Blau suau":    "#f0f4f8",
-    "Verd suau":    "#f0f5f0",
-    "Beix":         "#faf8f3",
-    "Lavanda":      "#f4f0f8",
+    "Blau suau":      "#f0f4f8",
+    "Verd suau":      "#f0f5f0",
+    "Beix":           "#faf8f3",
+    "Lavanda":        "#f4f0f8",
 }
 if "color_fons" not in st.session_state:
     st.session_state.color_fons = "#f5f5f5"
 
-cols_color = st.columns(len(COLORS_FONS))
+# Renderitzar punts de colors com a botons HTML compactes
+dots_html = "<div style='display:flex;align-items:center;gap:10px;padding:8px 0 4px;'><span style='font-size:12px;color:#888;margin-right:4px;'>Fons:</span>"
+for nom_c, hex_c in COLORS_FONS.items():
+    selected = st.session_state.color_fons == hex_c
+    ring = f"box-shadow:0 0 0 2px #333;" if selected else f"box-shadow:0 0 0 1px #ccc;"
+    dots_html += (
+        f"<div title='{nom_c}' "
+        f"style='width:20px;height:20px;border-radius:50%;background:{hex_c};"
+        f"{ring}cursor:pointer;flex-shrink:0;'>"
+        f"</div>"
+    )
+dots_html += "</div>"
+
+# Usar botons Streamlit invisibles amb color real via CSS
+st.markdown("<div style='display:flex;align-items:center;gap:6px;padding:6px 0 2px;'><span style='font-size:12px;color:#888;'>Fons:</span>", unsafe_allow_html=True)
+dot_cols = st.columns([0.3] + [0.1] * len(COLORS_FONS) + [1.0])
 for i, (nom_c, hex_c) in enumerate(COLORS_FONS.items()):
-    with cols_color[i]:
+    with dot_cols[i + 1]:
         selected = st.session_state.color_fons == hex_c
-        border = "2px solid #333" if selected else "2px solid #ddd"
-        if st.button(
-            nom_c,
-            key=f"color_{nom_c}",
-            help=nom_c,
-            use_container_width=True
-        ):
+        ring_css = "outline:2px solid #333;outline-offset:2px;" if selected else "outline:1px solid #ccc;outline-offset:1px;"
+        st.markdown(
+            f"<div title='{nom_c}' style='width:20px;height:20px;border-radius:50%;"
+            f"background:{hex_c};{ring_css}cursor:pointer;'></div>",
+            unsafe_allow_html=True
+        )
+        if st.button("", key=f"dot_{nom_c}", help=nom_c):
             st.session_state.color_fons = hex_c
             st.rerun()
+st.markdown("</div>", unsafe_allow_html=True)
 
-# Aplicar color de fons
+# Aplicar color de fons + mapa expander blanc
 st.markdown(
-    f"<style>section[data-testid='stMain'] > div, "
-    f".main .block-container {{ background-color: {st.session_state.color_fons} !important; }}</style>",
+    f"<style>"
+    f"section[data-testid='stMain'] > div, .main .block-container {{ background-color: {st.session_state.color_fons} !important; }}"
+    f"div[data-testid='stExpander'] {{ background: white !important; }}"
+    f"div[data-testid='stExpander'] > details {{ background: white !important; }}"
+    f"div[data-testid='stExpander'] > details > summary {{ background: white !important; }}"
+    f"</style>",
     unsafe_allow_html=True
 )
 
@@ -680,36 +700,24 @@ try:
         col_f1, col_f2 = st.columns(2)
         with col_f1:
             estacions_list = sorted(f[cols["sortida"]].dropna().astype(str).unique().tolist()) if cols.get("sortida") else []
-            sel_est_btn = st.selectbox(
-                "🚉 Estació",
-                ["Totes"] + estacions_list,
+            sel_est_btn = st.selectbox("🚉 Estació", ["Totes"] + estacions_list,
                 index=0 if not st.session_state.filtre_btn_estacio else
                       (["Totes"] + estacions_list).index(st.session_state.filtre_btn_estacio)
                       if st.session_state.filtre_btn_estacio in estacions_list else 0,
-                key="sel_est_btn"
-            )
-            if sel_est_btn != "Totes":
-                st.session_state.filtre_btn_estacio = sel_est_btn
-            else:
-                st.session_state.filtre_btn_estacio = None
+                key="sel_est_btn")
+            st.session_state.filtre_btn_estacio = sel_est_btn if sel_est_btn != "Totes" else None
 
         with col_f2:
             linies_list = sorted(set(
                 l.strip() for val in f[cols["linia_s"]].dropna().astype(str)
                 for l in val.split(",") if l.strip() and l.strip().lower() != "nan"
             )) if cols.get("linia_s") else []
-            sel_lin_btn = st.selectbox(
-                "🚆 Línia",
-                ["Totes"] + linies_list,
+            sel_lin_btn = st.selectbox("🚆 Línia", ["Totes"] + linies_list,
                 index=0 if not st.session_state.filtre_btn_linia else
                       (["Totes"] + linies_list).index(st.session_state.filtre_btn_linia)
                       if st.session_state.filtre_btn_linia in linies_list else 0,
-                key="sel_lin_btn"
-            )
-            if sel_lin_btn != "Totes":
-                st.session_state.filtre_btn_linia = sel_lin_btn
-            else:
-                st.session_state.filtre_btn_linia = None
+                key="sel_lin_btn")
+            st.session_state.filtre_btn_linia = sel_lin_btn if sel_lin_btn != "Totes" else None
 
         # Aplicar filtres de botó
         if st.session_state.filtre_btn_estacio:
