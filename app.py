@@ -604,7 +604,7 @@ try:
         st.session_state.map_reset_counter = 0
 
     # --- PESTANYES ---
-    tab_llista, tab_mapa, tab_cims, tab_horaris = st.tabs(["🥾 Rutes", "🗺️ Mapa", "🏔️ 100 Cims", "🕐 Horaris"])
+    tab_llista, tab_mapa, tab_cims = st.tabs(["🥾 Rutes", "🗺️ Mapa", "🏔️ 100 Cims"])
 
     with tab_mapa:
         mostrar_mapa_general(f, cols)
@@ -617,9 +617,9 @@ try:
                     st.session_state.filtre_estacio = None
                     st.session_state.map_reset_counter += 1
                     st.rerun()
-            f_mapa = f[
-                (f[cols["sortida"]].astype(str).str.strip() == st.session_state.filtre_estacio) |
-                (f[cols["arribada"]].astype(str).str.strip() == st.session_state.filtre_estacio)
+            f_mapa = df[
+                (df[cols["sortida"]].astype(str).str.strip() == st.session_state.filtre_estacio) |
+                (df[cols["arribada"]].astype(str).str.strip() == st.session_state.filtre_estacio)
             ]
             st.write(f"**{len(f_mapa)} rutes amb {st.session_state.filtre_estacio}**")
             for _, row_m in f_mapa.iterrows():
@@ -731,9 +731,10 @@ try:
                     comarca_cims[comarca_key].append(cim)
 
                 total_cims = len(cim_comarques)
+                n_rutes_cims = len(df[df[cols["cims"]].astype(str).str.strip().str.lower() == "si"]) if cols.get("cims") else 0
                 st.markdown(
                     f"<div style='font-size:22px;font-weight:700;color:#111;margin-bottom:16px;'>"
-                    f"{total_cims} 100 Cims</div>",
+                    f"{n_rutes_cims} rutes a 100 Cims</div>",
                     unsafe_allow_html=True
                 )
 
@@ -754,84 +755,6 @@ try:
                             st.rerun()
             else:
                 st.info("No hi ha dades de cims disponibles.")
-
-    with tab_horaris:
-        st.markdown("### 🕐 Horaris de tren")
-        st.markdown("Consulta els horaris de l'estació de sortida de cada ruta.")
-
-        # Selector d'estació
-        estacions_h = sorted(set(
-            list(df[cols["sortida"]].dropna().astype(str).unique()) +
-            list(df[cols["arribada"]].dropna().astype(str).unique())
-        )) if cols.get("sortida") and cols.get("arribada") else []
-
-        est_sel = st.selectbox("Selecciona una estació", ["— Tria una estació —"] + estacions_h, key="horaris_estacio")
-
-        if est_sel and est_sel != "— Tria una estació —":
-            # Trobar operador i línies de l'estació seleccionada
-            rows_sortida = df[df[cols["sortida"]].astype(str).str.strip() == est_sel]
-            rows_arribada = df[df[cols["arribada"]].astype(str).str.strip() == est_sel]
-
-            op_val = ""
-            linia_val = ""
-            id_est_val = ""
-            if len(rows_sortida) > 0:
-                op_val    = str(rows_sortida.iloc[0][cols["op_s"]]) if cols.get("op_s") else ""
-                linia_val = str(rows_sortida.iloc[0][cols["linia_s"]]) if cols.get("linia_s") else ""
-                id_est_val = str(rows_sortida.iloc[0][cols["id_est_s"]]) if cols.get("id_est_s") else ""
-            elif len(rows_arribada) > 0:
-                op_val    = str(rows_arribada.iloc[0][cols["op_a"]]) if cols.get("op_a") else ""
-                linia_val = str(rows_arribada.iloc[0][cols["linia_a"]]) if cols.get("linia_a") else ""
-                id_est_val = str(rows_arribada.iloc[0][cols["id_est_a"]]) if cols.get("id_est_a") else ""
-
-            op_lower = op_val.strip().lower()
-            linies = [l.strip() for l in linia_val.split(";") if l.strip() and l.strip().lower() != "nan"]
-
-            # Logos de línies
-            linies_html = "".join(
-                f"<img src='https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/Logo-{l}.svg' "
-                f"style='height:20px;margin-right:4px;vertical-align:middle;' onerror=\"this.style.display='none'\">"
-                for l in linies
-            )
-            if linies_html:
-                st.markdown(f"<div style='margin:8px 0;'>{linies_html}</div>", unsafe_allow_html=True)
-
-            # URLs d'horaris per operador
-            if "fgc" in op_lower:
-                url_h = f"https://www.fgc.cat/viatjar/horaris/?origen={est_sel.replace(' ', '+')}"
-                nom_op = "FGC"
-            elif "metro" in op_lower or "tmb" in op_lower:
-                url_h = "https://www.tmb.cat/ca/barcelona/horaris-metro"
-                nom_op = "Metro TMB"
-            else:
-                url_h = f"https://rodalies.gencat.cat/ca/inici/horaris/?origen={est_sel.replace(' ', '+')}"
-                nom_op = "Rodalies"
-
-            st.markdown(
-                f"<a href='{url_h}' target='_blank' "
-                f"style='display:inline-block;background:#E24B4A;color:white;border-radius:8px;"
-                f"padding:10px 20px;font-size:14px;font-weight:700;text-decoration:none;margin:8px 0;'>"
-                f"Veure horaris {nom_op} →</a>",
-                unsafe_allow_html=True
-            )
-
-            # Rutes que passen per aquesta estació
-            rutes_est = df[
-                (df[cols["sortida"]].astype(str).str.strip() == est_sel) |
-                (df[cols["arribada"]].astype(str).str.strip() == est_sel)
-            ]
-            if len(rutes_est) > 0:
-                st.markdown(f"**{len(rutes_est)} rutes amb {est_sel}:**")
-                for _, row_h in rutes_est.iterrows():
-                    dif_h   = str(row_h[cols["dif"]]).strip() if pd.notna(row_h[cols["dif"]]) else ""
-                    color_h = DIFICULTAT_COLOR.get(dif_h.lower(), "#888888")
-                    st.markdown(
-                        f"<div style='margin-top:6px;background:{color_h}18;border-left:4px solid {color_h};"
-                        f"border-radius:6px;padding:6px 12px;font-size:13px;font-weight:600;color:#111;'>"
-                        f"{int(row_h[cols['id']])} · {row_h[cols['ruta']]}"
-                        f"<span style='float:right;font-size:11px;color:{color_h};font-weight:700;'>{dif_h}</span></div>",
-                        unsafe_allow_html=True
-                    )
 
     with tab_llista:
         # --- FILTRES EN FORMAT BOTÓ PILL ---
