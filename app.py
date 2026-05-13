@@ -470,7 +470,7 @@ def mostrar_mapa_general(df_filtrat, cols):
             color_marker = "blue"
         n_rutes = len(info["rutes"])
         paraula = "ruta" if n_rutes == 1 else "rutes"
-        tooltip_text = f"Estació de {estacio} ({n_rutes} {paraula})"
+        tooltip_text = f"{estacio} | {n_rutes} {paraula}"
         folium.Marker(
             location=[lat, lng],
             tooltip=tooltip_text,
@@ -483,8 +483,9 @@ def mostrar_mapa_general(df_filtrat, cols):
 
     if resultat and resultat.get("last_object_clicked_tooltip"):
         tooltip = resultat["last_object_clicked_tooltip"]
-        estacio_clicada = re.sub(r"\s*\(\d+ rutes?\)$", "", tooltip.replace("Estació de ", "")).strip()
-        if estacio_clicada != st.session_state.filtre_estacio:
+        # El format és "NomEstació | N ruta/rutes"
+        estacio_clicada = tooltip.split("|")[0].strip() if "|" in tooltip else tooltip.strip()
+        if estacio_clicada and estacio_clicada != st.session_state.filtre_estacio:
             st.session_state.filtre_estacio = estacio_clicada
             st.rerun()
 
@@ -603,7 +604,7 @@ try:
         st.session_state.map_reset_counter = 0
 
     # --- PESTANYES ---
-    tab_llista, tab_mapa, tab_cims = st.tabs(["🥾 Rutes", "🗺️ Mapa", "🏔️ 100 Cims"])
+    tab_llista, tab_mapa, tab_cims, tab_horaris = st.tabs(["🥾 Rutes", "🗺️ Mapa", "🏔️ 100 Cims", "🕐 Horaris"])
 
     with tab_mapa:
         mostrar_mapa_general(f, cols)
@@ -730,7 +731,11 @@ try:
                     comarca_cims[comarca_key].append(cim)
 
                 total_cims = len(cim_comarques)
-                st.write(f"**{total_cims} cims**")
+                st.markdown(
+                    f"<div style='font-size:22px;font-weight:800;color:#333;margin:12px 0 16px;'>"
+                    f"{total_cims} 100 Cims</div>",
+                    unsafe_allow_html=True
+                )
 
                 for comarca_key in sorted(comarca_cims.keys()):
                     cims_llista = sorted(comarca_cims[comarca_key])
@@ -749,6 +754,32 @@ try:
                             st.rerun()
             else:
                 st.info("No hi ha dades de cims disponibles.")
+
+    with tab_horaris:
+        st.markdown("### 🕐 Horaris de tren")
+        st.markdown(
+            "Consulta els horaris dels operadors de transport disponibles per a les rutes. "
+            "Selecciona un operador per accedir directament als seus horaris en temps real."
+        )
+        st.markdown("---")
+        for op_key, op_info in OPERADORS_INFO.items():
+            logo_html = (
+                f'<img src="{op_info["logo"]}" style="height:32px;vertical-align:middle;margin-right:10px;" '
+                f'onerror="this.style.display=\'none\'">'
+                if op_info.get("logo") else ""
+            )
+            nom_op = op_key.title()
+            st.markdown(
+                f'<div style="display:flex;align-items:center;background:white;border:1px solid #e0e0e0;'
+                f'border-radius:8px;padding:12px 16px;margin-bottom:8px;gap:12px;">'
+                f'{logo_html}'
+                f'<div style="flex:1;font-size:14px;font-weight:600;color:#333;">{nom_op}</div>'
+                f'<a href="{op_info["url"]}" target="_blank" '
+                f'style="font-size:13px;font-weight:700;color:#007bff;text-decoration:none;'
+                f'padding:6px 14px;border:1px solid #007bff;border-radius:20px;">Veure horaris →</a>'
+                f'</div>',
+                unsafe_allow_html=True
+            )
 
     with tab_llista:
         # --- FILTRES EN FORMAT BOTÓ PILL ---
