@@ -128,6 +128,66 @@ OPERADORS_INFO = {
     },
 }
 
+@st.cache_data(ttl=60)
+def obtenir_horaris_rodalies(estacio, num_resultats=8):
+    """Consulta horaris en temps real de Rodalies via API pública"""
+    try:
+        # API pública de Rodalies de Catalunya
+        url = f"https://rodalies.gencat.cat/ca/inici/horaris-temps-real/?origen={estacio.replace(' ', '+')}"
+        # Intentem l'API JSON si disponible
+        api_url = f"https://api.rodalies.gencat.cat/v1/departures?station={estacio}&limit={num_resultats}"
+        resp = requests.get(api_url, timeout=5)
+        if resp.status_code == 200:
+            return resp.json(), "api"
+    except:
+        pass
+    return None, "link"
+
+def horaris_html_bloc(estacio, linia_str, op_str, dif_color, tipus_estacio="sortida"):
+    """Genera HTML d'horaris per a una estació"""
+    op_lower = str(op_str).lower() if op_str else ""
+    linies = [l.strip() for l in str(linia_str).split(";") if l.strip() and l.strip().lower() != "nan"]
+
+    if "rodalies" in op_lower or "renfe" in op_lower:
+        url_horaris = f"https://rodalies.gencat.cat/ca/inici/horaris/?origen={estacio.replace(' ', '+')}"
+        nom_op = "Rodalies"
+    elif "fgc" in op_lower:
+        url_horaris = f"https://www.fgc.cat/viatjar/horaris/?origen={estacio.replace(' ', '+')}"
+        nom_op = "FGC"
+    elif "metro" in op_lower or "tmb" in op_lower:
+        url_horaris = "https://www.tmb.cat/ca/barcelona/horaris-metro"
+        nom_op = "Metro TMB"
+    else:
+        url_horaris = f"https://rodalies.gencat.cat/ca/inici/horaris/?origen={estacio.replace(' ', '+')}"
+        nom_op = "Rodalies"
+
+    linies_html = "".join(
+        f"<img src='https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/Logo-{l}.svg' "
+        f"style='height:16px;margin-right:3px;vertical-align:middle;' onerror=\"this.style.display='none'\">"
+        for l in linies
+    )
+
+    titol = "Sortida" if tipus_estacio == "sortida" else "Arribada (tornada)"
+    icon = "🟢" if tipus_estacio == "sortida" else "🔴"
+
+    return (
+        f"<div style='margin-bottom:14px;'>"
+        f"<div style='font-size:12px;font-weight:700;color:#555;margin-bottom:4px;'>"
+        f"{icon} {titol}: {estacio}</div>"
+        f"<div style='display:flex;align-items:center;gap:8px;margin-bottom:8px;'>"
+        f"{linies_html}"
+        f"<a href='{url_horaris}' target='_blank' "
+        f"style='font-size:11px;font-weight:700;color:{dif_color};text-decoration:none;'>"
+        f"HORARI {nom_op.upper()} →</a></div>"
+        f"<div style='background:#f8f9fa;border-radius:6px;padding:8px 10px;font-size:12px;'>"
+        f"<div style='display:grid;grid-template-columns:2fr 1fr 1fr;gap:2px;margin-bottom:6px;'>"
+        f"<span style='font-size:10px;font-weight:700;color:#aaa;text-transform:uppercase;'>Destinació</span>"
+        f"<span style='font-size:10px;font-weight:700;color:#aaa;text-transform:uppercase;'>Línia</span>"
+        f"<span style='font-size:10px;font-weight:700;color:#aaa;text-transform:uppercase;'>Hora</span></div>"
+        f"<div style='color:#888;font-size:11px;padding:4px 0;font-style:italic;'>Clica HORARI per veure els propers trens en temps real</div>"
+        f"</div></div>"
+    )
+
 CATEGORIES_ICONES = {
     "100 cims": "🏔️", "búnquer": "🪖", "castell": "🏰", "cova": "🕳️",
     "dolmen": "🪨", "ermita": "⛪", "ferrocarril": "🚂", "jaciment ibèric": "🏛️",
@@ -553,6 +613,49 @@ try:
                 st.session_state.filtre_estacio = None
                 st.session_state.map_reset_counter += 1
                 st.rerun()
+            # Mostrar rutes filtrades sota el mapa
+            f_mapa = f[
+                (f[cols["sortida"]].astype(str).str.strip() == st.session_state.filtre_estacio) |
+                (f[cols["arribada"]].astype(str).str.strip() == st.session_state.filtre_estacio)
+            ]
+            st.write(f"**{len(f_mapa)} rutes amb {st.session_state.filtre_estacio}**")
+            for _, row_m in f_mapa.iterrows():
+                rid_m   = int(row_m[cols["id"]]) if pd.notna(row_m[cols["id"]]) else ""
+                nom_m   = row_m[cols["ruta"]]
+                dif_m   = str(row_m[cols["dif"]]).strip() if pd.notna(row_m[cols["dif"]]) else ""
+                color_m = DIFICULTAT_COLOR.get(dif_m.lower(), "#888888")
+                km_m    = row_m[cols["km"]] if cols.get("km") and pd.notna(row_m[cols["km"]]) else "—"
+                desn_m  = f"+{int(row_m[cols['desn']])} m" if cols.get("desn") and pd.notna(row_m[cols["desn"]]) else "—"
+                baixada_m = f"-{int(row_m[cols['baixada']])} m" if cols.get("baixada") and pd.notna(row_m[cols["baixada"]]) else ""
+                desn_txt_m = f"{desn_m} / {baixada_m}" if baixada_m else desn_m
+                temps_m = "—"
+                if cols.get("temps") and pd.notna(row_m[cols["temps"]]):
+                    try:
+                        hd = float(str(row_m[cols["temps"]]).replace(",", "."))
+                        h, mn = int(hd), round((hd - int(hd)) * 60)
+                        temps_m = f"{h}h{mn:02d}min" if h > 0 and mn > 0 else (f"{h}h" if h > 0 else f"{mn}min")
+                    except: pass
+
+                st.markdown(
+                    f"<div style='margin-top:10px;border:1px solid {color_m}44;border-left:5px solid {color_m};"
+                    f"border-radius:8px;background:white;overflow:hidden;'>"
+                    f"<div style='background:{color_m}18;padding:8px 12px;display:flex;align-items:center;gap:10px;'>"
+                    f"<div style='width:24px;height:24px;border-radius:50%;background:{color_m};color:white;"
+                    f"font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;'>{rid_m}</div>"
+                    f"<div style='flex:1;font-size:14px;font-weight:700;color:#111;'>{nom_m}</div>"
+                    f"<span style='font-size:10px;font-weight:700;background:{color_m};color:white;"
+                    f"padding:2px 8px;border-radius:20px;flex-shrink:0;text-transform:uppercase;'>{dif_m}</span>"
+                    f"</div>"
+                    f"<div style='padding:6px 12px 8px;display:flex;gap:16px;flex-wrap:wrap;'>"
+                    f"<div><div style='font-size:9px;color:#999;text-transform:uppercase;'>Distància</div>"
+                    f"<div style='font-size:13px;font-weight:700;color:#111;'>{km_m} km</div></div>"
+                    f"<div><div style='font-size:9px;color:#999;text-transform:uppercase;'>Desnivell</div>"
+                    f"<div style='font-size:13px;font-weight:700;color:#111;'>{desn_txt_m}</div></div>"
+                    f"<div><div style='font-size:9px;color:#999;text-transform:uppercase;'>Temps</div>"
+                    f"<div style='font-size:13px;font-weight:700;color:#111;'>{temps_m}</div></div>"
+                    f"</div></div>",
+                    unsafe_allow_html=True
+                )
 
     with tab_cims:
         # Inicialitzar filtre de cim
@@ -706,18 +809,6 @@ div[data-testid="stSelectbox"] label {
             f = f[f[cols["linia_s"]].astype(str).apply(
                 lambda x: st.session_state.filtre_btn_linia in [l.strip() for l in x.split(";")]
             )]
-
-        # --- FILTRE PER ESTACIÓ DES DEL MAPA ---
-        if st.session_state.filtre_estacio:
-            st.info(f"🚉 Filtrant per estació: **{st.session_state.filtre_estacio}**")
-            if st.button("✖ Treure filtre d'estació"):
-                st.session_state.filtre_estacio = None
-                st.session_state.map_reset_counter += 1
-                st.rerun()
-            f = f[
-                (f[cols["sortida"]].astype(str).str.strip() == st.session_state.filtre_estacio) |
-                (f[cols["arribada"]].astype(str).str.strip() == st.session_state.filtre_estacio)
-            ]
 
         st.write(f"**Resultats: {len(f)} rutes**")
 
@@ -874,60 +965,41 @@ div[data-testid="stSelectbox"] label {
             # ID únic per a les pestanyes d'aquesta ruta
             tab_id = f"tabs_{ruta_id}"
 
-            # Horaris de tren: construir URL per estació de sortida
-            import datetime
-            op_s_val = str(row[cols["op_s"]]).strip().lower() if cols.get("op_s") and pd.notna(row[cols["op_s"]]) else ""
-            if "rodalies" in op_s_val or "renfe" in op_s_val:
-                horari_url_base = f"https://rodalies.gencat.cat/ca/horaris/?origen={s_est.replace(' ', '+')}"
-                horari_op = "Rodalies"
-            elif "fgc" in op_s_val:
-                horari_url_base = f"https://www.fgc.cat/viatjar/horaris/?origen={s_est.replace(' ', '+')}"
-                horari_op = "FGC"
-            elif "metro" in op_s_val or "tmb" in op_s_val:
-                horari_url_base = "https://www.tmb.cat/ca/barcelona/horaris-metro"
-                horari_op = "Metro TMB"
-            else:
-                horari_url_base = f"https://rodalies.gencat.cat/ca/horaris/?origen={s_est.replace(' ', '+')}"
-                horari_op = "Rodalies"
-
-            horaris_html = (
-                f"<div style='margin-top:10px;border-top:1px solid #eee;padding-top:10px;'>"
-                f"<div style='font-size:13px;font-weight:700;color:#222;margin-bottom:6px;'>🕐 Horaris de tren — {s_est}</div>"
-                f"<a href='{horari_url_base}' target='_blank' "
-                f"style='display:inline-block;background:{dif_color};color:white;border-radius:6px;"
-                f"padding:7px 16px;font-size:13px;font-weight:600;text-decoration:none;"
-                f"box-shadow:0 1px 4px {dif_color}55;margin-top:4px;'>"
-                f"Veure horaris {horari_op} →</a>"
-                f"</div>"
-            )
+            # Horaris HTML
+            horaris_sortida = horaris_html_bloc(s_est, row[cols["linia_s"]] if cols.get("linia_s") else "", row[cols["op_s"]] if cols.get("op_s") else "", dif_color, "sortida")
+            horaris_arribada = horaris_html_bloc(a_est, row[cols["linia_a"]] if cols.get("linia_a") else "", row[cols["op_a"]] if cols.get("op_a") else "", dif_color, "arribada") if s_est.lower() != a_est.lower() else ""
 
             tabs_html = f"""
 <style>
 .{tab_id} input[type="radio"] {{ display:none; }}
-.{tab_id} .tab-labels {{ display:flex; border-bottom:1px solid #e0e0e0; margin-bottom:0; }}
+.{tab_id} .tab-labels {{ display:flex; border-bottom:1px solid #e0e0e0; margin-bottom:0; overflow-x:auto; }}
 .{tab_id} .tab-label {{
-    padding:7px 14px; font-size:14px; font-weight:700; color:#888;
+    padding:7px 12px; font-size:13px; font-weight:700; color:#888;
     cursor:pointer; border-bottom:2px solid transparent; margin-bottom:-1px;
-    user-select:none;
+    user-select:none; white-space:nowrap;
 }}
 .{tab_id} #t1_{ruta_id}:checked ~ .tab-labels label[for="t1_{ruta_id}"],
 .{tab_id} #t2_{ruta_id}:checked ~ .tab-labels label[for="t2_{ruta_id}"],
-.{tab_id} #t3_{ruta_id}:checked ~ .tab-labels label[for="t3_{ruta_id}"] {{
+.{tab_id} #t3_{ruta_id}:checked ~ .tab-labels label[for="t3_{ruta_id}"],
+.{tab_id} #t4_{ruta_id}:checked ~ .tab-labels label[for="t4_{ruta_id}"] {{
     color:{dif_color}; border-bottom:2px solid {dif_color};
 }}
 .{tab_id} .tab-content {{ display:none; padding:10px 0 4px; }}
 .{tab_id} #t1_{ruta_id}:checked ~ .tab-contents .tc1_{ruta_id},
 .{tab_id} #t2_{ruta_id}:checked ~ .tab-contents .tc2_{ruta_id},
-.{tab_id} #t3_{ruta_id}:checked ~ .tab-contents .tc3_{ruta_id} {{ display:block; }}
+.{tab_id} #t3_{ruta_id}:checked ~ .tab-contents .tc3_{ruta_id},
+.{tab_id} #t4_{ruta_id}:checked ~ .tab-contents .tc4_{ruta_id} {{ display:block; }}
 </style>
 <div class="{tab_id}">
   <input type="radio" id="t1_{ruta_id}" name="{tab_id}" checked>
   <input type="radio" id="t2_{ruta_id}" name="{tab_id}">
   <input type="radio" id="t3_{ruta_id}" name="{tab_id}">
+  <input type="radio" id="t4_{ruta_id}" name="{tab_id}">
   <div class="tab-labels">
     <label class="tab-label" for="t1_{ruta_id}">Ruta</label>
     <label class="tab-label" for="t2_{ruta_id}">Perfil</label>
     <label class="tab-label" for="t3_{ruta_id}">Punts d'interès</label>
+    <label class="tab-label" for="t4_{ruta_id}">🕐 Horaris</label>
   </div>
   <div class="tab-contents">
     <div class="tab-content tc1_{ruta_id}">
@@ -938,10 +1010,15 @@ div[data-testid="stSelectbox"] label {
       {svg_perfil_html if svg_perfil_html else "<div style='color:#888;font-size:13px;padding:8px 0;'>Perfil no disponible.</div>"}
       {alt_info_html}
       {barra_dif}
-      {horaris_html}
     </div>
     <div class="tab-content tc3_{ruta_id}">
       {punts_html_content}
+    </div>
+    <div class="tab-content tc4_{ruta_id}">
+      <div style='font-size:13px;font-weight:700;color:#333;margin-bottom:10px;'>
+        🚉 Connexió de Trens</div>
+      {horaris_sortida}
+      {horaris_arribada}
     </div>
   </div>
 </div>"""
