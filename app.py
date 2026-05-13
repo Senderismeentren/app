@@ -874,6 +874,33 @@ div[data-testid="stSelectbox"] label {
             # ID únic per a les pestanyes d'aquesta ruta
             tab_id = f"tabs_{ruta_id}"
 
+            # Horaris de tren: construir URL per estació de sortida
+            import datetime
+            op_s_val = str(row[cols["op_s"]]).strip().lower() if cols.get("op_s") and pd.notna(row[cols["op_s"]]) else ""
+            if "rodalies" in op_s_val or "renfe" in op_s_val:
+                horari_url_base = f"https://rodalies.gencat.cat/ca/horaris/?origen={s_est.replace(' ', '+')}"
+                horari_op = "Rodalies"
+            elif "fgc" in op_s_val:
+                horari_url_base = f"https://www.fgc.cat/viatjar/horaris/?origen={s_est.replace(' ', '+')}"
+                horari_op = "FGC"
+            elif "metro" in op_s_val or "tmb" in op_s_val:
+                horari_url_base = "https://www.tmb.cat/ca/barcelona/horaris-metro"
+                horari_op = "Metro TMB"
+            else:
+                horari_url_base = f"https://rodalies.gencat.cat/ca/horaris/?origen={s_est.replace(' ', '+')}"
+                horari_op = "Rodalies"
+
+            horaris_html = (
+                f"<div style='margin-top:10px;border-top:1px solid #eee;padding-top:10px;'>"
+                f"<div style='font-size:13px;font-weight:700;color:#222;margin-bottom:6px;'>🕐 Horaris de tren — {s_est}</div>"
+                f"<a href='{horari_url_base}' target='_blank' "
+                f"style='display:inline-block;background:{dif_color};color:white;border-radius:6px;"
+                f"padding:7px 16px;font-size:13px;font-weight:600;text-decoration:none;"
+                f"box-shadow:0 1px 4px {dif_color}55;margin-top:4px;'>"
+                f"Veure horaris {horari_op} →</a>"
+                f"</div>"
+            )
+
             tabs_html = f"""
 <style>
 .{tab_id} input[type="radio"] {{ display:none; }}
@@ -911,6 +938,7 @@ div[data-testid="stSelectbox"] label {
       {svg_perfil_html if svg_perfil_html else "<div style='color:#888;font-size:13px;padding:8px 0;'>Perfil no disponible.</div>"}
       {alt_info_html}
       {barra_dif}
+      {horaris_html}
     </div>
     <div class="tab-content tc3_{ruta_id}">
       {punts_html_content}
@@ -970,11 +998,14 @@ div[data-testid="stSelectbox"] label {
                 f"<div style='font-size:14px;font-weight:700;color:#111;'>{temps_fmt}</div></div>"
                 f"</div>"
                 + etiquetes_html +
-                f"<details style='border-top:1px solid #eee;'>"
-                f"<summary style='list-style:none;padding:0;cursor:pointer;display:block;'>"
-                f"<div style='margin:10px 12px 12px;background:{dif_color};color:white;border-radius:8px;"
-                f"padding:12px;text-align:center;font-size:15px;font-weight:700;letter-spacing:0.3px;"
-                f"box-shadow:0 2px 6px {dif_color}66;'>"
+                f"<details id='det_{ruta_id}' style='border-top:1px solid #eee;'>"
+                f"<summary style='list-style:none;padding:0;cursor:pointer;display:block;' "
+                f"onclick=\"this.parentElement.open ? "
+                f"this.querySelector('.det-btn').textContent='Veure detalls' : "
+                f"this.querySelector('.det-btn').textContent='Amagar detalls'\">"
+                f"<div class='det-btn' style='margin:10px auto 12px;background:{dif_color};color:white;border-radius:8px;"
+                f"padding:10px 24px;text-align:center;font-size:14px;font-weight:700;letter-spacing:0.3px;"
+                f"box-shadow:0 2px 6px {dif_color}55;width:fit-content;min-width:160px;'>"
                 f"Veure detalls</div></summary>"
                 f"<div style='padding:8px 12px 12px;'>"
                 + detalls_html +
