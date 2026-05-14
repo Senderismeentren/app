@@ -995,7 +995,7 @@ div[data-testid="stSelectbox"] label {
                 # Comentaris
                 (f"<div style='margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid #eee;'>"
                  f"<div style='font-size:16px;font-weight:700;color:#222;margin-bottom:4px;'>Comentaris</div>"
-                 f"<div style='font-size:16px;color:#444;line-height:1.5;'>{comentaris_val}</div>"
+                 f"<div style='font-size:14px;color:#444;line-height:1.5;'>{comentaris_val}</div>"
                  f"</div>" if comentaris_val else "") +
 
                 # Dades
