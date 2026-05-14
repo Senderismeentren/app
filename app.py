@@ -489,6 +489,71 @@ def mostrar_mapa_general(df_filtrat, cols):
             st.rerun()
 
 # --- CÀRREGA DE DADES ---
+def render_caixa_ruta(row, cols):
+    """Renderitza una caixa de ruta en format complet (igual que la pestanya Rutes)"""
+    ruta_id  = int(row[cols["id"]]) if pd.notna(row[cols["id"]]) else ""
+    nom_ruta = row[cols["ruta"]]
+    dif_raw  = str(row[cols["dif"]]).strip() if pd.notna(row[cols["dif"]]) else ""
+    dif_color = DIFICULTAT_COLOR.get(dif_raw.lower(), "#888888")
+    km_val   = row[cols["km"]] if cols.get("km") and pd.notna(row[cols["km"]]) else "—"
+    desn_p   = row[cols["desn"]] if cols.get("desn") and pd.notna(row[cols["desn"]]) else 0
+    desn_n   = row[cols["baixada"]] if cols.get("baixada") and pd.notna(row[cols["baixada"]]) else 0
+    tipus_r  = str(row[cols["tipus"]]).strip().lower() if cols.get("tipus") and pd.notna(row[cols["tipus"]]) else ""
+
+    if "circular" in tipus_r:
+        desn_txt = f"+/- {int(desn_p)} m"
+    else:
+        desn_txt = f"+{int(desn_p)} m / -{int(desn_n)} m"
+
+    temps_fmt = "—"
+    if cols.get("temps") and pd.notna(row[cols["temps"]]):
+        try:
+            hd = float(str(row[cols["temps"]]).replace(",", "."))
+            h, mn = int(hd), round((hd - int(hd)) * 60)
+            temps_fmt = f"{h}h{mn:02d}min" if h > 0 and mn > 0 else (f"{h}h" if h > 0 else f"{mn}min")
+        except: pass
+
+    comarca_val = str(row[cols["comarca"]]) if cols.get("comarca") and pd.notna(row[cols["comarca"]]) else ""
+    espai_val   = str(row[cols["espai"]])   if cols.get("espai")   and pd.notna(row[cols["espai"]])   else ""
+    cims_val    = str(row[cols["cims"]]).strip().lower() if cols.get("cims") and pd.notna(row[cols["cims"]]) else ""
+    wiki_url    = str(row[cols["wiki"]])    if cols.get("wiki")    and pd.notna(row[cols["wiki"]])    else ""
+
+    etiquetes = ""
+    if comarca_val and comarca_val != "nan":
+        etiquetes += f'<span style="font-size:11px;padding:2px 7px;border-radius:20px;background:#f0f2f6;color:#555;border:0.5px solid #ddd;margin-right:4px;">{comarca_val}</span>'
+    if espai_val and espai_val != "nan":
+        etiquetes += f'<span style="font-size:11px;padding:2px 7px;border-radius:20px;background:#f0f2f6;color:#555;border:0.5px solid #ddd;margin-right:4px;">{espai_val}</span>'
+    if cims_val == "si":
+        etiquetes += '<span style="font-size:11px;padding:2px 7px;border-radius:20px;background:#E1F5EE;color:#0F6E56;border:0.5px solid #9FE1CB;margin-right:4px;">100 Cims</span>'
+    if wiki_url and wiki_url != "nan":
+        etiquetes += f'<a href="{wiki_url}" target="_blank" style="font-size:11px;padding:2px 7px;border-radius:20px;background:#EAF3DE;color:#3B6D11;border:0.5px solid #C0DD97;text-decoration:none;margin-right:4px;">Wikiloc</a>'
+
+    etiquetes_html = f"<div style='padding:2px 12px 8px;'>{etiquetes}</div>" if etiquetes else ""
+
+    st.markdown(
+        f"<div style='margin-top:12px;border:1px solid {dif_color}44;border-left:5px solid {dif_color};"
+        f"border-radius:8px;overflow:visible;background:white;'>"
+        f"<div style='background:{dif_color}18;padding:10px 12px;display:flex;align-items:center;gap:10px;'>"
+        f"<div style='width:26px;height:26px;border-radius:50%;background:{dif_color};color:white;"
+        f"font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;'>{ruta_id}</div>"
+        f"<div style='flex:1;font-size:14px;font-weight:700;color:#111;'>{nom_ruta}</div>"
+        f"<span style='font-size:10px;font-weight:700;background:{dif_color};color:white;"
+        f"padding:2px 9px;border-radius:20px;flex-shrink:0;text-transform:uppercase;letter-spacing:0.5px;'>{dif_raw}</span>"
+        f"</div>"
+        f"<div style='padding:6px 12px 4px;display:flex;gap:20px;flex-wrap:wrap;'>"
+        f"<div><div style='font-size:9px;color:#999;text-transform:uppercase;letter-spacing:0.4px;'>Distància</div>"
+        f"<div style='font-size:14px;font-weight:700;color:#111;'>{km_val} km</div></div>"
+        f"<div><div style='font-size:9px;color:#999;text-transform:uppercase;letter-spacing:0.4px;'>Desnivell</div>"
+        f"<div style='font-size:14px;font-weight:700;color:#111;'>{desn_txt}</div></div>"
+        f"<div><div style='font-size:9px;color:#999;text-transform:uppercase;letter-spacing:0.4px;'>Temps</div>"
+        f"<div style='font-size:14px;font-weight:700;color:#111;'>{temps_fmt}</div></div>"
+        f"</div>"
+        + etiquetes_html +
+        f"</div>",
+        unsafe_allow_html=True
+    )
+
+
 try:
     df_raw = carregar_dades()
 except Exception as e:
@@ -536,6 +601,7 @@ try:
         "terreny":   buscar_col(["senders", "terreny"]),
         "epoca":     buscar_col(["millor_època", "millor_epoca"]),
         "coord_cim": buscar_col(["coordenades_100cims"]),
+        "comentaris": buscar_col(["comentaris", "comentari", "notes"]),
     }
 
     df = df_raw.dropna(subset=[cols["ruta"]]).copy()
@@ -623,40 +689,7 @@ try:
             ]
             st.write(f"**{len(f_mapa)} rutes amb {st.session_state.filtre_estacio}**")
             for _, row_m in f_mapa.iterrows():
-                rid_m    = int(row_m[cols["id"]]) if pd.notna(row_m[cols["id"]]) else ""
-                nom_m    = row_m[cols["ruta"]]
-                dif_m    = str(row_m[cols["dif"]]).strip() if pd.notna(row_m[cols["dif"]]) else ""
-                color_m  = DIFICULTAT_COLOR.get(dif_m.lower(), "#888888")
-                km_m     = row_m[cols["km"]] if cols.get("km") and pd.notna(row_m[cols["km"]]) else "—"
-                desn_m   = f"+{int(row_m[cols['desn']])} m" if cols.get("desn") and pd.notna(row_m[cols["desn"]]) else "—"
-                baixa_m  = f" / -{int(row_m[cols['baixada']])} m" if cols.get("baixada") and pd.notna(row_m[cols["baixada"]]) else ""
-                temps_m  = "—"
-                if cols.get("temps") and pd.notna(row_m[cols["temps"]]):
-                    try:
-                        hd = float(str(row_m[cols["temps"]]).replace(",", "."))
-                        h, mn = int(hd), round((hd - int(hd)) * 60)
-                        temps_m = f"{h}h{mn:02d}min" if h > 0 and mn > 0 else (f"{h}h" if h > 0 else f"{mn}min")
-                    except: pass
-                st.markdown(
-                    f"<div style='margin-top:10px;border:1px solid {color_m}44;border-left:5px solid {color_m};"
-                    f"border-radius:8px;background:white;'>"
-                    f"<div style='background:{color_m}18;padding:8px 12px;display:flex;align-items:center;gap:10px;'>"
-                    f"<div style='width:24px;height:24px;border-radius:50%;background:{color_m};color:white;"
-                    f"font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;'>{rid_m}</div>"
-                    f"<div style='flex:1;font-size:14px;font-weight:700;color:#111;'>{nom_m}</div>"
-                    f"<span style='font-size:10px;font-weight:700;background:{color_m};color:white;"
-                    f"padding:2px 8px;border-radius:20px;text-transform:uppercase;'>{dif_m}</span>"
-                    f"</div>"
-                    f"<div style='padding:6px 12px 8px;display:flex;gap:16px;flex-wrap:wrap;'>"
-                    f"<div><div style='font-size:9px;color:#999;text-transform:uppercase;'>Distància</div>"
-                    f"<div style='font-size:13px;font-weight:700;color:#111;'>{km_m} km</div></div>"
-                    f"<div><div style='font-size:9px;color:#999;text-transform:uppercase;'>Desnivell</div>"
-                    f"<div style='font-size:13px;font-weight:700;color:#111;'>{desn_m}{baixa_m}</div></div>"
-                    f"<div><div style='font-size:9px;color:#999;text-transform:uppercase;'>Temps</div>"
-                    f"<div style='font-size:13px;font-weight:700;color:#111;'>{temps_m}</div></div>"
-                    f"</div></div>",
-                    unsafe_allow_html=True
-                )
+                render_caixa_ruta(row_m, cols)
 
     with tab_cims:
         # Inicialitzar filtre de cim
@@ -678,34 +711,7 @@ try:
                 f_cim = df.iloc[0:0]
             st.write(f"**{len(f_cim)} rutes visiten aquest cim**")
             for _, row_c in f_cim.iterrows():
-                rid_c   = int(row_c[cols["id"]]) if pd.notna(row_c[cols["id"]]) else ""
-                nom_c   = row_c[cols["ruta"]]
-                dif_c   = str(row_c[cols["dif"]]).strip() if pd.notna(row_c[cols["dif"]]) else ""
-                color_c = DIFICULTAT_COLOR.get(dif_c.lower(), "#888888")
-                km_c    = row_c[cols["km"]] if cols["km"] and pd.notna(row_c[cols["km"]]) else "—"
-                desn_c  = int(row_c[cols["desn"]]) if cols["desn"] and pd.notna(row_c[cols["desn"]]) else 0
-
-                st.markdown(
-                    f"<div style='margin-top:8px;background:{color_c}1a;border-left:5px solid {color_c};"
-                    f"border-radius:8px;padding:8px 12px;display:flex;align-items:center;gap:10px;'>"
-                    f"<div style='width:24px;height:24px;border-radius:50%;background:{color_c};color:white;"
-                    f"font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;'>{rid_c}</div>"
-                    f"<div style='flex:1;font-size:14px;font-weight:600;color:#111;'>{nom_c}</div>"
-                    f"<span style='font-size:10px;font-weight:700;background:{color_c};color:white;"
-                    f"padding:2px 8px;border-radius:20px;flex-shrink:0;text-transform:uppercase;'>{dif_c}</span>"
-                    f"</div>",
-                    unsafe_allow_html=True
-                )
-                with st.expander("Veure detalls", key=f"cim_det_{rid_c}_{st.session_state.filtre_cim}"):
-                    st.markdown(
-                        f"<div style='display:flex;gap:20px;padding:4px 0 8px;flex-wrap:wrap;'>"
-                        f"<div><div style='font-size:10px;color:#999;text-transform:uppercase;'>Distància</div>"
-                        f"<div style='font-size:18px;font-weight:700;color:#111;'>{km_c} km</div></div>"
-                        f"<div><div style='font-size:10px;color:#999;text-transform:uppercase;'>Desnivell</div>"
-                        f"<div style='font-size:18px;font-weight:700;color:#111;'>+{desn_c} m</div></div>"
-                        f"</div>",
-                        unsafe_allow_html=True
-                    )
+                render_caixa_ruta(row_c, cols)
         else:
             # MODE LLISTA: cims agrupats per comarca de l'estació de sortida
             if cols.get("cims_noms") and cols.get("comarca"):
@@ -968,80 +974,14 @@ div[data-testid="stSelectbox"] label {
             cats_str     = row[cols["cats"]]     if cols["cats"]     and pd.notna(row[cols["cats"]])     else ""
             punts_html_content = punts_interes_html(elements_str, cats_str) if elements_str else "<div style='color:#888;font-size:13px;padding:8px 0;'>No hi ha punts d'interès registrats.</div>"
 
-            # ID únic per a les pestanyes d'aquesta ruta
-            tab_id = f"tabs_{ruta_id}"
+            # Comentaris columna AH
+            comentaris_val = str(row[cols["comentaris"]]).strip() if cols.get("comentaris") and pd.notna(row[cols["comentaris"]]) and str(row[cols["comentaris"]]).strip() not in ("nan","") else ""
 
-            # Horaris HTML
-            horaris_sortida = horaris_html_bloc(s_est, row[cols["linia_s"]] if cols.get("linia_s") else "", row[cols["op_s"]] if cols.get("op_s") else "", dif_color, "sortida")
+            # Horaris
+            horaris_sortida  = horaris_html_bloc(s_est, row[cols["linia_s"]] if cols.get("linia_s") else "", row[cols["op_s"]] if cols.get("op_s") else "", dif_color, "sortida")
             horaris_arribada = horaris_html_bloc(a_est, row[cols["linia_a"]] if cols.get("linia_a") else "", row[cols["op_a"]] if cols.get("op_a") else "", dif_color, "arribada") if s_est.lower() != a_est.lower() else ""
 
-            tabs_html = f"""
-<style>
-.{tab_id} input[type="radio"] {{ display:none; }}
-.{tab_id} .tab-labels {{ display:flex; border-bottom:1px solid #e0e0e0; margin-bottom:0; overflow-x:auto; }}
-.{tab_id} .tab-label {{
-    padding:7px 12px; font-size:13px; font-weight:700; color:#888;
-    cursor:pointer; border-bottom:2px solid transparent; margin-bottom:-1px;
-    user-select:none; white-space:nowrap;
-}}
-.{tab_id} #t1_{ruta_id}:checked ~ .tab-labels label[for="t1_{ruta_id}"],
-.{tab_id} #t2_{ruta_id}:checked ~ .tab-labels label[for="t2_{ruta_id}"],
-.{tab_id} #t3_{ruta_id}:checked ~ .tab-labels label[for="t3_{ruta_id}"],
-.{tab_id} #t4_{ruta_id}:checked ~ .tab-labels label[for="t4_{ruta_id}"] {{
-    color:{dif_color}; border-bottom:2px solid {dif_color};
-}}
-.{tab_id} .tab-content {{ display:none; padding:10px 0 4px; }}
-.{tab_id} #t1_{ruta_id}:checked ~ .tab-contents .tc1_{ruta_id},
-.{tab_id} #t2_{ruta_id}:checked ~ .tab-contents .tc2_{ruta_id},
-.{tab_id} #t3_{ruta_id}:checked ~ .tab-contents .tc3_{ruta_id},
-.{tab_id} #t4_{ruta_id}:checked ~ .tab-contents .tc4_{ruta_id} {{ display:block; }}
-</style>
-<div class="{tab_id}">
-  <input type="radio" id="t1_{ruta_id}" name="{tab_id}" checked>
-  <input type="radio" id="t2_{ruta_id}" name="{tab_id}">
-  <input type="radio" id="t3_{ruta_id}" name="{tab_id}">
-  <input type="radio" id="t4_{ruta_id}" name="{tab_id}">
-  <div class="tab-labels">
-    <label class="tab-label" for="t1_{ruta_id}">Ruta</label>
-    <label class="tab-label" for="t2_{ruta_id}">Perfil</label>
-    <label class="tab-label" for="t3_{ruta_id}">Punts d'interès</label>
-    <label class="tab-label" for="t4_{ruta_id}">🕐 Horaris</label>
-  </div>
-  <div class="tab-contents">
-    <div class="tab-content tc1_{ruta_id}">
-      {estacions_html}
-      {graella}
-    </div>
-    <div class="tab-content tc2_{ruta_id}">
-      {svg_perfil_html if svg_perfil_html else "<div style='color:#888;font-size:13px;padding:8px 0;'>Perfil no disponible.</div>"}
-      {alt_info_html}
-      {barra_dif}
-    </div>
-    <div class="tab-content tc3_{ruta_id}">
-      {punts_html_content}
-    </div>
-    <div class="tab-content tc4_{ruta_id}">
-      <div style='font-size:13px;font-weight:700;color:#333;margin-bottom:10px;'>
-        🚉 Connexió de Trens</div>
-      {horaris_sortida}
-      {horaris_arribada}
-    </div>
-  </div>
-</div>"""
-
-            # Sidebar: filtre d'operador
-            ops_disponibles = get_unique(cols["op_s"]) if cols.get("op_s") else []
-
-            # Generar contingut per al desplegable: 2 columnes + perfil
-            # Columna dreta: estacions + graella + punts
-            col_dreta = (
-                estacions_html +
-                graella +
-                (f"<div style='margin-top:12px;border-top:1px solid #eee;padding-top:10px;'>"
-                 f"<div style='font-size:16px;font-weight:700;color:#222;margin-bottom:8px;'>Punts d'interès</div>"
-                 f"{punts_html_content}</div>" if punts_html_content else "")
-            )
-
+            # Perfil bloc
             perfil_bloc = ""
             if svg_perfil_html:
                 perfil_bloc = (
@@ -1052,11 +992,30 @@ div[data-testid="stSelectbox"] label {
                 )
 
             detalls_html = (
+                # Comentaris
+                (f"<div style='margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid #eee;'>"
+                 f"<div style='font-size:13px;font-weight:700;color:#222;margin-bottom:4px;'>Comentaris</div>"
+                 f"<div style='font-size:13px;color:#444;line-height:1.5;'>{comentaris_val}</div>"
+                 f"</div>" if comentaris_val else "") +
+
+                # Dades
                 f"<div style='font-size:16px;font-weight:700;color:#222;margin-bottom:8px;'>Dades</div>"
-                f"<div>"
-                + col_dreta +
+                + estacions_html
+                + graella +
+
+                # Punts d'interès
+                (f"<div style='margin-top:12px;border-top:1px solid #eee;padding-top:10px;'>"
+                 f"<div style='font-size:16px;font-weight:700;color:#222;margin-bottom:8px;'>Punts d'interès</div>"
+                 f"{punts_html_content}</div>" if punts_html_content else "") +
+
+                # Perfil
+                perfil_bloc +
+
+                # Horaris
+                f"<div style='margin-top:12px;border-top:1px solid #eee;padding-top:10px;'>"
+                f"<div style='font-size:16px;font-weight:700;color:#222;margin-bottom:8px;'>🕐 Horaris de tren</div>"
+                + horaris_sortida + horaris_arribada +
                 f"</div>"
-                + perfil_bloc
             )
 
             etiquetes_html = f"<div style='padding:2px 12px 8px;'>{etiquetes}</div>" if etiquetes else ""
