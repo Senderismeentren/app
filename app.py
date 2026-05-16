@@ -1,5 +1,5 @@
 # ============================================================
-# SENDERISME EN TREN — v16
+# SENDERISME EN TREN — v72
 # ============================================================
 
 import streamlit as st
@@ -132,7 +132,6 @@ OPERADORS_INFO = {
 def obtenir_horaris_renfe(id_estacio, num=8):
     """Consulta horaris en temps real via API JSON de Renfe/Rodalies"""
     try:
-        # API JSON pública de Renfe per Rodalies
         url = f"https://horarios.renfe.com/cer/HorariosServlet?nucleo=60&origen={id_estacio}&destino=&fchaViaje=&validaReglaNegocio=true&tiempoReal=true&servicioHorarios=VTI&horaViajeOrigen=00&horaViajeLlegada=26&accesibilidadTrenes=false"
         headers = {"Accept": "application/json", "User-Agent": "Mozilla/5.0"}
         resp = requests.get(url, headers=headers, timeout=8)
@@ -169,7 +168,6 @@ def horaris_html_bloc(estacio, linia_str, op_str, dif_color, id_estacio_str, tip
     titol = "Sortida" if tipus_estacio == "sortida" else "Arribada (tornada)"
     icon  = "🟢" if tipus_estacio == "sortida" else "🔴"
 
-    # Intentar horaris en temps real (Rodalies/Renfe)
     taula_html = ""
     if id_est and ("rodalies" in op_lower or "renfe" in op_lower or op_lower == ""):
         trens = obtenir_horaris_renfe(id_est)
@@ -341,12 +339,10 @@ def mostrar_mapa_gpx(ruta_id, lat_s, lng_s, lat_a, lng_a, context="llista"):
         if lat_a and lng_a and (lat_s != lat_a or lng_s != lng_a):
             folium.Marker([lat_a, lng_a], tooltip="Arribada",
                           icon=folium.Icon(color="red", icon="flag", prefix="fa")).add_to(m)
-        # Ajustar zoom per mostrar tota la ruta
         lats_r = [p[0] for p in punts]
         lngs_r = [p[1] for p in punts]
         centre = (sum(lats_r) / len(lats_r), sum(lngs_r) / len(lngs_r))
 
-        # Calcular zoom automàtic a partir de l'extensió de la ruta
         import math
         lat_range = max(lats_r) - min(lats_r)
         lng_range = max(lngs_r) - min(lngs_r)
@@ -392,7 +388,6 @@ def perfil_elevacio_svg(ruta_id, dif_color):
         if len(punts) < 2:
             return None, None, None
 
-        # Distàncies acumulades (km)
         import math
         def haversine(p1, p2):
             R = 6371
@@ -411,7 +406,6 @@ def perfil_elevacio_svg(ruta_id, dif_color):
         alt_min, alt_max = min(elevs), max(elevs)
         alt_rang = max(alt_max - alt_min, 1)
 
-        # Diezmem a ~200 punts per rendiment
         pas = max(1, len(punts) // 200)
         dists_d = dists[::pas]
         elevs_d = elevs[::pas]
@@ -419,7 +413,6 @@ def perfil_elevacio_svg(ruta_id, dif_color):
             dists_d.append(dists[-1])
             elevs_d.append(elevs[-1])
 
-        # SVG
         w, h = 600, 180
         ml, mr, mt, mb = 48, 14, 10, 30
 
@@ -432,7 +425,6 @@ def perfil_elevacio_svg(ruta_id, dif_color):
         poly    = " ".join(f"{x:.1f},{y:.1f}" for x, y in svg_pts)
         area    = poly + f" {svg_pts[-1][0]:.1f},{mt+h-mt-mb:.1f} {svg_pts[0][0]:.1f},{mt+h-mt-mb:.1f}"
 
-        # Eixos Y (altitud)
         eix_y = ""
         for frac in [0, 0.5, 1]:
             y_s = mt + (1 - frac) * (h - mt - mb)
@@ -440,7 +432,6 @@ def perfil_elevacio_svg(ruta_id, dif_color):
             eix_y += (f'<line x1="{ml-3}" y1="{y_s:.1f}" x2="{ml}" y2="{y_s:.1f}" stroke="#bbb" stroke-width="1"/>'
                       f'<text x="{ml-5}" y="{y_s+3:.1f}" text-anchor="end" font-size="8" fill="#888">{val}</text>')
 
-        # Eixos X (km)
         eix_x = ""
         for frac in [0, 0.25, 0.5, 0.75, 1]:
             x_s = ml + frac * (w - ml - mr)
@@ -478,12 +469,10 @@ def mostrar_mapa_general(df_filtrat, cols):
         nom = str(row[cols["ruta"]])
         rid = int(row[cols["id"]]) if pd.notna(row[cols["id"]]) else ""
 
-        # Estació de sortida
         lat_s, lng_s = parse_coord(row[cols["coord_s"]]) if cols.get("coord_s") and pd.notna(row[cols["coord_s"]]) else (None, None)
         s_est = str(row[cols["sortida"]]).strip()
         afegir_estacio(lat_s, lng_s, s_est, rid, nom, "sortida")
 
-        # Estació d'arribada (si té coordenades i és diferent de la sortida)
         lat_a, lng_a = parse_coord(row[cols["coord_a"]]) if cols.get("coord_a") and pd.notna(row[cols["coord_a"]]) else (None, None)
         a_est = str(row[cols["arribada"]]).strip()
         if a_est.lower() != s_est.lower():
@@ -495,12 +484,10 @@ def mostrar_mapa_general(df_filtrat, cols):
 
     lats   = [k[0] for k in punts_mapa]
     lngs   = [k[1] for k in punts_mapa]
-    # Centre i zoom per mostrar tota Catalunya
     m = folium.Map(location=[41.7, 1.8], zoom_start=8, tiles="OpenStreetMap")
 
     for (lat, lng, estacio), info in punts_mapa.items():
         tipus = info["tipus"]
-        # Blau = només sortida | Vermell = només arribada | Verd = ambdues
         if "sortida" in tipus and "arribada" in tipus:
             color_marker = "green"
         elif "arribada" in tipus:
@@ -516,7 +503,6 @@ def mostrar_mapa_general(df_filtrat, cols):
             icon=folium.Icon(color=color_marker, icon="train", prefix="fa")
         ).add_to(m)
 
-    # Key dinàmica per permetre el reset del mapa al treure el filtre
     map_key = f"mapa_general_{st.session_state.get('map_reset_counter', 0)}"
     resultat = st_folium(m, width=None, height=350, returned_objects=["last_object_clicked_tooltip"], key=map_key)
 
@@ -647,7 +633,6 @@ def render_ruta_completa(row, cols, context="llista"):
     if wiki_url and wiki_url != "nan":
         etiquetes += f'<a href="{wiki_url}" target="_blank" style="font-size:11px;padding:2px 7px;border-radius:20px;background:#EAF3DE;color:#3B6D11;border:0.5px solid #C0DD97;text-decoration:none;margin-right:4px;">Wikiloc</a>'
 
-    # Estacions HTML per al detall
     is_circular = s_est.lower() == a_est.lower()
     if is_circular:
         label_est = "Estació de sortida / arribada"
@@ -685,7 +670,6 @@ def render_ruta_completa(row, cols, context="llista"):
             f"</div>"
         )
 
-    # Graella de detalls addicionals
     def get_val(key):
         return str(row[cols[key]]).strip() if cols.get(key) and pd.notna(row[cols[key]]) and str(row[cols[key]]).strip() not in ("nan","") else None
 
@@ -717,7 +701,6 @@ def render_ruta_completa(row, cols, context="llista"):
         f"{c1}{c2}{c3}{c4}</div>"
     )
 
-    # Generar perfil SVG per a la pestanya
     svg_perfil_html = ""
     alt_info_html = ""
     if ruta_id:
@@ -726,7 +709,6 @@ def render_ruta_completa(row, cols, context="llista"):
             svg_perfil_html = svg_p
             alt_info_html = f"<div style='font-size:10px;color:#888;text-align:center;margin-top:4px;'>Altitud mín: <b>{int(alt_min_p)} m</b> · Altitud màx: <b>{int(alt_max_p)} m</b></div>"
 
-    # Barra de dificultat HTML
     nivells_dif = [("Molt fàcil","#2196A6"),("Fàcil","#1D9E75"),("Moderada","#EF9F27"),("Difícil","#E24B4A"),("Molt difícil","#9B1B1B")]
     claus_norm_dif = ["molt facil","facil","moderada","dificil","molt dificil"]
     def normalitza_d(s):
@@ -740,7 +722,6 @@ def render_ruta_completa(row, cols, context="llista"):
         segs_dif+=f'<div style="flex:1;position:relative;">{dot}<div style="height:8px;background:{color_niv};opacity:{opacity};border-radius:{radius};"></div><div style="font-size:8px;color:#555;text-align:center;margin-top:3px;font-weight:{"700" if actiu else "400"};">{nom_niv}</div></div>'
     barra_dif = f'<div style="margin:10px 0 4px;"><div style="font-size:10px;color:#aaa;margin-bottom:10px;text-transform:uppercase;letter-spacing:0.4px;">Dificultat</div><div style="display:flex;gap:2px;">{segs_dif}</div></div>'
 
-    # Punts d'interès HTML
     elements_str = row[cols["elements"]] if cols["elements"] and pd.notna(row[cols["elements"]]) else ""
     cats_str     = row[cols["cats"]]     if cols["cats"]     and pd.notna(row[cols["cats"]])     else ""
     punts_html_content = punts_interes_html(elements_str, cats_str) if elements_str else "<div style='color:#888;font-size:13px;padding:8px 0;'>No hi ha punts d'interès registrats.</div>"
@@ -754,7 +735,6 @@ def render_ruta_completa(row, cols, context="llista"):
     horaris_sortida  = horaris_html_bloc(s_est, row[cols["linia_s"]] if cols.get("linia_s") else "", row[cols["op_s"]] if cols.get("op_s") else "", dif_color, id_est_s, "sortida")
     horaris_arribada = horaris_html_bloc(a_est, row[cols["linia_a"]] if cols.get("linia_a") else "", row[cols["op_a"]] if cols.get("op_a") else "", dif_color, id_est_a, "arribada") if s_est.lower() != a_est.lower() else ""
 
-    # Perfil bloc
     perfil_bloc = ""
     if svg_perfil_html:
         perfil_bloc = (
@@ -764,12 +744,19 @@ def render_ruta_completa(row, cols, context="llista"):
             f"</div>"
         )
 
+    # FIX 2: Descripció de la ruta (columna AH) ABANS de Dades
+    descripcio_bloc = ""
+    if comentaris_val:
+        descripcio_bloc = (
+            f"<div style='margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid #eee;'>"
+            f"<div style='font-size:16px;font-weight:700;color:#222;margin-bottom:4px;'>Descripció de la ruta</div>"
+            f"<div style='font-size:13px;color:#444;line-height:1.5;'>{comentaris_val}</div>"
+            f"</div>"
+        )
+
     detalls_html = (
-        # Descripció / Comentaris
-        (f"<div style='margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid #eee;'>"
-         f"<div style='font-size:16px;font-weight:700;color:#222;margin-bottom:4px;'>Descripció de la ruta</div>"
-         f"<div style='font-size:13px;color:#444;line-height:1.5;'>{comentaris_val}</div>"
-         f"</div>" if comentaris_val else "") +
+        # Descripció PRIMER
+        descripcio_bloc +
 
         # Dades
         f"<div style='font-size:16px;font-weight:700;color:#222;margin-bottom:8px;'>Dades</div>"
@@ -793,7 +780,7 @@ def render_ruta_completa(row, cols, context="llista"):
 
     etiquetes_html = f"<div style='padding:2px 12px 8px;'>{etiquetes}</div>" if etiquetes else ""
 
-    # TARGETA UNIFICADA
+    # FIX 2: "Veure ruta" / "Tancar ruta"
     card_html = (
         f"<div style='margin-top:12px;border:1px solid {dif_color}44;border-left:5px solid {dif_color};"
         f"border-radius:8px;overflow:visible;background:white;'>"
@@ -816,19 +803,18 @@ def render_ruta_completa(row, cols, context="llista"):
         f"<details id='det_{ruta_id}' style='border-top:1px solid #eee;'>"
         f"<summary style='list-style:none;padding:0;cursor:pointer;display:block;' "
         f"onclick=\"this.parentElement.open ? "
-        f"this.querySelector('.det-btn').textContent='Veure detalls' : "
-        f"this.querySelector('.det-btn').textContent='Tancar detalls'\">"
+        f"this.querySelector('.det-btn').textContent='Veure ruta' : "
+        f"this.querySelector('.det-btn').textContent='Tancar ruta'\">"
         f"<div class='det-btn' style='margin:10px auto 12px;background:{dif_color};color:white;border-radius:8px;"
         f"padding:10px 24px;text-align:center;font-size:14px;font-weight:700;letter-spacing:0.3px;"
         f"box-shadow:0 2px 6px {dif_color}55;width:fit-content;min-width:160px;'>"
-        f"Veure detalls</div></summary>"
+        f"Veure ruta</div></summary>"
         f"<div style='padding:8px 12px 12px;'>"
         + detalls_html +
         f"</div></details></div>"
     )
     st.markdown(card_html, unsafe_allow_html=True)
 
-    # Mapa interactiu — arrow coherent amb Veure detalls via CSS global
     with st.expander("🗺️ Mapa del recorregut", key=f"mapa_{context}_{ruta_id}"):
         with st.spinner("Carregant mapa..."):
             if ruta_id:
@@ -924,7 +910,7 @@ try:
     min_km, max_km = float(df[cols["km"]].min()), float(df[cols["km"]].max())
     sel_km      = st.sidebar.slider("📏 Distància (km)", min_km, max_km, (min_km, max_km))
 
-    # --- APLICAR FILTRES ---
+    # --- APLICAR FILTRES SIDEBAR ---
     f = df.copy()
     if sel_100cims and cols["cims"]:
         f = f[f[cols["cims"]].astype(str).str.strip().str.lower() == "si"]
@@ -968,39 +954,36 @@ try:
                     st.session_state.filtre_estacio = None
                     st.session_state.map_reset_counter += 1
                     st.rerun()
-            f_mapa = df[
-                (df[cols["sortida"]].astype(str).str.strip() == st.session_state.filtre_estacio) |
-                (df[cols["arribada"]].astype(str).str.strip() == st.session_state.filtre_estacio)
+            # FIX 1: usar f (ja filtrat pel sidebar) en lloc de df
+            f_mapa = f[
+                (f[cols["sortida"]].astype(str).str.strip() == st.session_state.filtre_estacio) |
+                (f[cols["arribada"]].astype(str).str.strip() == st.session_state.filtre_estacio)
             ]
             st.write(f"**{len(f_mapa)} rutes amb {st.session_state.filtre_estacio}**")
             for _, row_m in f_mapa.iterrows():
                 render_ruta_completa(row_m, cols, context="mapa")
 
     with tab_cims:
-        # Inicialitzar filtre de cim
         if "filtre_cim" not in st.session_state:
             st.session_state.filtre_cim = None
 
         if st.session_state.filtre_cim:
-            # MODE FILTRE: mostrar rutes que visiten aquest cim
             st.markdown(f"### 🏔️ {st.session_state.filtre_cim}")
             if st.button("← Tornar a la llista de cims"):
                 st.session_state.filtre_cim = None
                 st.rerun()
-            # Filtrar rutes que contenen el cim a la columna W
+            # FIX 1: usar f (ja filtrat pel sidebar) en lloc de df
             if cols.get("cims_noms"):
-                f_cim = df[df[cols["cims_noms"]].astype(str).str.contains(
+                f_cim = f[f[cols["cims_noms"]].astype(str).str.contains(
                     st.session_state.filtre_cim, case=False, na=False, regex=False
                 )]
             else:
-                f_cim = df.iloc[0:0]
+                f_cim = f.iloc[0:0]
             st.write(f"**{len(f_cim)} rutes visiten aquest cim**")
             for _, row_c in f_cim.iterrows():
                 render_caixa_ruta(row_c, cols)
         else:
-            # MODE LLISTA: cims agrupats per comarca de l'estació de sortida
             if cols.get("cims_noms") and cols.get("comarca"):
-                # Construir dict: cim -> set de comarques
                 cim_comarques = {}
                 for _, row_ci in df.iterrows():
                     val_cims = str(row_ci[cols["cims_noms"]]) if pd.notna(row_ci[cols["cims_noms"]]) else ""
@@ -1013,7 +996,6 @@ try:
                             if comarca_ci and comarca_ci.lower() not in ("nan", ""):
                                 cim_comarques[c].add(comarca_ci)
 
-                # Agrupar cims per comarca
                 comarca_cims = {}
                 for cim, comarques in cim_comarques.items():
                     comarca_key = ", ".join(sorted(comarques)) if comarques else "Sense comarca"
@@ -1048,7 +1030,6 @@ try:
                 st.info("No hi ha dades de cims disponibles.")
 
     with tab_llista:
-        # --- FILTRES EN FORMAT BOTÓ PILL ---
         if "filtre_btn_estacio" not in st.session_state:
             st.session_state.filtre_btn_estacio = None
         if "filtre_btn_linia" not in st.session_state:
@@ -1060,7 +1041,6 @@ try:
             for l in val.split(";") if l.strip() and l.strip().lower() != "nan"
         )) if cols.get("linia_s") else []
 
-        # CSS per als selects amb aparença de botó pill
         st.markdown("""<style>
 div[data-testid="stSelectbox"] > div > div {
     background: #f0f0f0 !important;
@@ -1096,7 +1076,6 @@ div[data-testid="stSelectbox"] label {
                 key="sel_lin_btn", label_visibility="collapsed")
             st.session_state.filtre_btn_linia = sel_lin_btn if sel_lin_btn != "🚆 Línia" else None
 
-        # Aplicar filtres de botó
         if st.session_state.filtre_btn_estacio:
             f = f[
                 (f[cols["sortida"]].astype(str).str.strip() == st.session_state.filtre_btn_estacio) |
