@@ -828,23 +828,20 @@ def render_ruta_completa(row, cols, context="llista"):
     TITOL_SECCIO = "font-size:16px;font-weight:700;color:#222;margin-bottom:8px;"
     SEP_SECCIO   = "margin-top:12px;border-top:1px solid #eee;padding-top:10px;"
 
-    # Descripció de la ruta (columna AH) — primera secció, mateix estil de títol que les altres
-    descripcio_bloc = ""
+    # Descripció de la ruta (columna AH) — just a sobre de les estacions, dins la secció "Dades"
+    descripcio_dins_dades = ""
     if comentaris_val:
-        descripcio_bloc = (
-            f"<div style='{SEP_SECCIO}'>"
-            f"<div style='{TITOL_SECCIO}'>Descripció de la ruta</div>"
-            f"<div style='font-size:13px;color:#444;line-height:1.6;'>{comentaris_val}</div>"
-            f"</div>"
+        descripcio_dins_dades = (
+            f"<div style='font-size:13px;color:#444;line-height:1.6;margin-bottom:10px;'>"
+            f"<div style='font-size:11px;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;'>Descripció de la ruta</div>"
+            f"{comentaris_val}</div>"
         )
 
     detalls_html = (
-        # 1. Descripció PRIMER
-        descripcio_bloc +
-
-        # 2. Dades
+        # 1. Dades (amb descripció a sobre de les estacions)
         f"<div style='{SEP_SECCIO}'>"
         f"<div style='{TITOL_SECCIO}'>Dades</div>"
+        + descripcio_dins_dades
         + estacions_html
         + graella +
         f"</div>" +
