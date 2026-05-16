@@ -1,5 +1,5 @@
 # ============================================================
-# SENDERISME EN TREN — v73
+# SENDERISME EN TREN — v16
 # ============================================================
 
 import streamlit as st
@@ -129,19 +129,75 @@ OPERADORS_INFO = {
 }
 
 @st.cache_data(ttl=30)
-def obtenir_horaris_renfe(id_estacio, num=8):
-    """Consulta horaris en temps real via API JSON de Renfe/Rodalies"""
+def obtenir_horaris_rodalies(id_estacio, num=8):
+    """API Rodalies/Renfe en temps real (nucli 60 = Catalunya)"""
     try:
-        url = f"https://horarios.renfe.com/cer/HorariosServlet?nucleo=60&origen={id_estacio}&destino=&fchaViaje=&validaReglaNegocio=true&tiempoReal=true&servicioHorarios=VTI&horaViajeOrigen=00&horaViajeLlegada=26&accesibilidadTrenes=false"
+        url = (
+            f"https://horarios.renfe.com/cer/HorariosServlet"
+            f"?nucleo=60&origen={id_estacio}&destino=&fchaViaje="
+            f"&validaReglaNegocio=true&tiempoReal=true&servicioHorarios=VTI"
+            f"&horaViajeOrigen=00&horaViajeLlegada=26&accesibilidadTrenes=false"
+        )
         headers = {"Accept": "application/json", "User-Agent": "Mozilla/5.0"}
         resp = requests.get(url, headers=headers, timeout=8)
         if resp.status_code == 200:
             data = resp.json()
-            trens = data.get("horario", [])
-            return trens[:num]
+            return data.get("horario", [])[:num]
     except:
         pass
     return None
+
+@st.cache_data(ttl=30)
+def obtenir_horaris_fgc(id_estacio, num=8):
+    """API FGC en temps real"""
+    try:
+        url = f"https://www.fgc.cat/api/v1/departure-board/{id_estacio}"
+        headers = {"Accept": "application/json", "User-Agent": "Mozilla/5.0"}
+        resp = requests.get(url, headers=headers, timeout=8)
+        if resp.status_code == 200:
+            data = resp.json()
+            if isinstance(data, list):
+                return data[:num]
+            return data.get("departures", data.get("data", []))[:num]
+    except:
+        pass
+    return None
+
+def _taula_horaris_html(files_data, dif_color, url_horaris, nom_op):
+    """Genera HTML de taula d'horaris normalitzada"""
+    if not files_data:
+        return (
+            f"<div style='background:#f8f9fa;border-radius:6px;padding:8px 10px;margin-top:6px;'>"
+            f"<a href='{url_horaris}' target='_blank' style='font-size:12px;color:{dif_color};"
+            f"font-weight:600;text-decoration:none;'>Veure horaris {nom_op} →</a></div>"
+        )
+    files_html = ""
+    for t in files_data:
+        retard = t.get("retard", 0) or 0
+        try: retard = int(retard)
+        except: retard = 0
+        if retard > 0:
+            estat = f"<span style='color:#E24B4A;font-weight:700;font-size:10px;'>+{retard} min</span>"
+        else:
+            estat = "<span style='color:#1D9E75;font-size:10px;'>✓ En temps</span>"
+        files_html += (
+            f"<div style='display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:4px;"
+            f"padding:5px 0;border-bottom:1px solid #eee;align-items:center;'>"
+            f"<span style='font-size:12px;color:#222;'>{t.get('desti','—')}</span>"
+            f"<span style='font-size:11px;color:#555;'>{t.get('linia','')}</span>"
+            f"<span style='font-size:12px;font-weight:600;color:#111;'>{t.get('hora','—')}</span>"
+            f"{estat}</div>"
+        )
+    header = (
+        f"<div style='display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:4px;"
+        f"padding:4px 0;margin-bottom:2px;'>"
+        f"<span style='font-size:10px;font-weight:700;color:#aaa;text-transform:uppercase;'>Destinació</span>"
+        f"<span style='font-size:10px;font-weight:700;color:#aaa;text-transform:uppercase;'>Línia</span>"
+        f"<span style='font-size:10px;font-weight:700;color:#aaa;text-transform:uppercase;'>Hora</span>"
+        f"<span style='font-size:10px;font-weight:700;color:#aaa;text-transform:uppercase;'>Estat</span>"
+        f"</div>"
+    )
+    return f"<div style='background:#f8f9fa;border-radius:6px;padding:8px 10px;margin-top:6px;'>{header}{files_html}</div>"
 
 def horaris_html_bloc(estacio, linia_str, op_str, dif_color, id_estacio_str, tipus_estacio="sortida"):
     """Genera HTML d'horaris per a una estació amb temps real si disponible"""
@@ -149,12 +205,22 @@ def horaris_html_bloc(estacio, linia_str, op_str, dif_color, id_estacio_str, tip
     linies   = [l.strip() for l in str(linia_str).split(";") if l.strip() and l.strip().lower() != "nan"]
     id_est   = str(id_estacio_str).strip() if id_estacio_str and str(id_estacio_str).strip() not in ("nan","") else ""
 
+    # URL i nom de l'operador
     if "fgc" in op_lower:
         url_horaris = f"https://www.fgc.cat/viatjar/horaris/?origen={estacio.replace(' ', '+')}"
         nom_op = "FGC"
     elif "metro" in op_lower or "tmb" in op_lower:
         url_horaris = "https://www.tmb.cat/ca/barcelona/horaris-metro"
         nom_op = "Metro TMB"
+    elif "tram" in op_lower:
+        url_horaris = "https://www.tram.cat/ca/linies-i-horaris"
+        nom_op = "Tram"
+    elif "sncf" in op_lower:
+        url_horaris = "https://www.sncf-connect.com"
+        nom_op = "SNCF"
+    elif "cremallera" in op_lower:
+        url_horaris = "https://www.valldenuria.cat/ca/cremallera"
+        nom_op = "Cremallera de Núria"
     else:
         url_horaris = f"https://rodalies.gencat.cat/ca/inici/horaris/?origen={estacio.replace(' ', '+')}"
         nom_op = "Rodalies"
@@ -168,51 +234,37 @@ def horaris_html_bloc(estacio, linia_str, op_str, dif_color, id_estacio_str, tip
     titol = "Sortida" if tipus_estacio == "sortida" else "Arribada (tornada)"
     icon  = "🟢" if tipus_estacio == "sortida" else "🔴"
 
-    taula_html = ""
-    if id_est and ("rodalies" in op_lower or "renfe" in op_lower or op_lower == ""):
-        trens = obtenir_horaris_renfe(id_est)
-        if trens:
-            files = ""
-            for t in trens:
-                desti    = t.get("destino", t.get("destinoNombre", "—"))
-                linia_t  = t.get("cdgoTren", t.get("linia", ""))
-                hora     = t.get("horaSalidaReal", t.get("horaSalida", "—"))
-                retard   = t.get("retraso", 0)
-                if isinstance(retard, str): retard = int(retard) if retard.isdigit() else 0
-                if retard > 0:
-                    estat = f"<span style='color:#E24B4A;font-weight:700;font-size:10px;'>+{retard} min</span>"
-                else:
-                    estat = "<span style='color:#1D9E75;font-size:10px;'>EN TEMPS</span>"
-                files += (
-                    f"<div style='display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:4px;"
-                    f"padding:5px 0;border-bottom:1px solid #eee;align-items:center;'>"
-                    f"<span style='font-size:12px;color:#222;'>{desti}</span>"
-                    f"<span style='font-size:11px;color:#555;'>{linia_t}</span>"
-                    f"<span style='font-size:12px;font-weight:600;color:#111;'>{hora}</span>"
-                    f"{estat}</div>"
-                )
-            header = (
-                f"<div style='display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:4px;"
-                f"padding:4px 0;margin-bottom:2px;'>"
-                f"<span style='font-size:10px;font-weight:700;color:#aaa;text-transform:uppercase;'>Destinació</span>"
-                f"<span style='font-size:10px;font-weight:700;color:#aaa;text-transform:uppercase;'>Línia</span>"
-                f"<span style='font-size:10px;font-weight:700;color:#aaa;text-transform:uppercase;'>Hora</span>"
-                f"<span style='font-size:10px;font-weight:700;color:#aaa;text-transform:uppercase;'>Estat</span>"
-                f"</div>"
-            )
-            taula_html = f"<div style='background:#f8f9fa;border-radius:6px;padding:8px 10px;margin-top:6px;'>{header}{files}</div>"
-        else:
-            taula_html = (
-                f"<div style='background:#f8f9fa;border-radius:6px;padding:8px 10px;margin-top:6px;'>"
-                f"<a href='{url_horaris}' target='_blank' style='font-size:12px;color:{dif_color};font-weight:600;text-decoration:none;'>"
-                f"Veure horaris {nom_op} →</a></div>"
-            )
-    else:
-        taula_html = (
-            f"<div style='background:#f8f9fa;border-radius:6px;padding:8px 10px;margin-top:6px;'>"
-            f"<a href='{url_horaris}' target='_blank' style='font-size:12px;color:{dif_color};font-weight:600;text-decoration:none;'>"
-            f"Veure horaris {nom_op} →</a></div>"
-        )
+    # --- Obtenir horaris en temps real segons operador ---
+    files_data = None
+
+    if id_est:
+        if "fgc" in op_lower:
+            raw = obtenir_horaris_fgc(id_est)
+            if raw:
+                files_data = []
+                for t in raw:
+                    files_data.append({
+                        "desti": t.get("destination", t.get("destinació", t.get("headsign", "—"))),
+                        "linia": t.get("line", t.get("linia", t.get("route", ""))),
+                        "hora":  t.get("scheduledTime", t.get("time", t.get("hora", "—"))),
+                        "retard": t.get("delay", t.get("retard", 0)),
+                    })
+        elif any(k in op_lower for k in ("rodalies", "renfe", "tren dels llacs", "alta velocitat", "adif")) or op_lower == "":
+            raw = obtenir_horaris_rodalies(id_est)
+            if raw:
+                files_data = []
+                for t in raw:
+                    retard = t.get("retraso", 0)
+                    try: retard = int(retard)
+                    except: retard = 0
+                    files_data.append({
+                        "desti": t.get("destino", t.get("destinoNombre", "—")),
+                        "linia": t.get("cdgoTren", t.get("linia", "")),
+                        "hora":  t.get("horaSalidaReal", t.get("horaSalida", "—")),
+                        "retard": retard,
+                    })
+
+    taula_html = _taula_horaris_html(files_data, dif_color, url_horaris, nom_op)
 
     return (
         f"<div style='margin-bottom:14px;'>"
@@ -773,33 +825,41 @@ def render_ruta_completa(row, cols, context="llista"):
             f"</div>"
         )
 
-    # Descripció de la ruta (columna AH) — apareix just sota el botó, primer element del panel
+    TITOL_SECCIO = "font-size:16px;font-weight:700;color:#222;margin-bottom:8px;"
+    SEP_SECCIO   = "margin-top:12px;border-top:1px solid #eee;padding-top:10px;"
+
+    # Descripció de la ruta (columna AH) — primera secció, mateix estil de títol que les altres
     descripcio_bloc = ""
     if comentaris_val:
         descripcio_bloc = (
-            f"<div style='padding:12px 12px 10px;border-bottom:1px solid #eee;'>"
-            f"<div style='font-size:16px;font-weight:700;color:#222;margin-bottom:6px;'>Descripció de la ruta</div>"
+            f"<div style='{SEP_SECCIO}'>"
+            f"<div style='{TITOL_SECCIO}'>Descripció de la ruta</div>"
             f"<div style='font-size:13px;color:#444;line-height:1.6;'>{comentaris_val}</div>"
             f"</div>"
         )
 
     detalls_html = (
-        # Dades
-        f"<div style='font-size:16px;font-weight:700;color:#222;margin-bottom:8px;'>Dades</div>"
+        # 1. Descripció PRIMER
+        descripcio_bloc +
+
+        # 2. Dades
+        f"<div style='{SEP_SECCIO}'>"
+        f"<div style='{TITOL_SECCIO}'>Dades</div>"
         + estacions_html
         + graella +
+        f"</div>" +
 
-        # Punts d'interès
-        (f"<div style='margin-top:12px;border-top:1px solid #eee;padding-top:10px;'>"
-         f"<div style='font-size:16px;font-weight:700;color:#222;margin-bottom:8px;'>Punts d'interès</div>"
+        # 3. Punts d'interès
+        (f"<div style='{SEP_SECCIO}'>"
+         f"<div style='{TITOL_SECCIO}'>Punts d'interès</div>"
          f"{punts_html_content}</div>" if punts_html_content else "") +
 
-        # Perfil
+        # 4. Perfil
         perfil_bloc +
 
-        # Horaris
-        f"<div style='margin-top:12px;border-top:1px solid #eee;padding-top:10px;'>"
-        f"<div style='font-size:16px;font-weight:700;color:#222;margin-bottom:8px;'>🕐 Horaris de tren</div>"
+        # 5. Horaris
+        f"<div style='{SEP_SECCIO}'>"
+        f"<div style='{TITOL_SECCIO}'>🕐 Horaris de tren</div>"
         + horaris_sortida + horaris_arribada +
         f"</div>"
     )
@@ -834,9 +894,7 @@ def render_ruta_completa(row, cols, context="llista"):
         f"padding:10px 24px;text-align:center;font-size:14px;font-weight:700;letter-spacing:0.3px;"
         f"box-shadow:0 2px 6px {dif_color}55;width:fit-content;min-width:160px;'>"
         f"Veure ruta</div></summary>"
-        # Descripció just sota el botó, FORA del padding general del panel
-        + descripcio_bloc +
-        f"<div style='padding:8px 12px 12px;'>"
+        f"<div style='padding:4px 12px 16px;'>"
         + detalls_html +
         f"</div></details></div>"
     )
@@ -925,8 +983,62 @@ try:
     )
     sel_100cims = st.sidebar.checkbox("Rutes amb 100 Cims")
     cerca       = st.sidebar.text_input("📝 Paraula clau")
-    sel_sortida = st.sidebar.multiselect("🚉 Estació de sortida", get_unique(cols["sortida"]))
-    sel_linia   = st.sidebar.multiselect("🚆 Línia de tren", get_unique(cols["linia_s"]))
+
+    # Construir estacions agrupades per operador
+    def estacions_per_operador():
+        grups = {}
+        for _, r in df.iterrows():
+            for col_est, col_op in [(cols["sortida"], cols["op_s"]), (cols["arribada"], cols["op_a"])]:
+                if not col_est or not col_op: continue
+                est = str(r[col_est]).strip() if pd.notna(r[col_est]) else ""
+                op  = str(r[col_op]).strip().split(";")[0].strip().title() if pd.notna(r[col_op]) else "Altres"
+                if not est or est.lower() in ("nan",""):  continue
+                if op.lower() in ("nan","","none"): op = "Altres"
+                grups.setdefault(op, set()).add(est)
+        return {op: sorted(ests) for op, ests in sorted(grups.items())}
+
+    def linies_per_operador():
+        grups = {}
+        for _, r in df.iterrows():
+            for col_lin, col_op in [(cols["linia_s"], cols["op_s"]), (cols["linia_a"], cols["op_a"])]:
+                if not col_lin or not col_op: continue
+                lins = [l.strip() for l in str(r[col_lin]).split(";") if l.strip() and l.strip().lower() not in ("nan","")]
+                op   = str(r[col_op]).strip().split(";")[0].strip().title() if pd.notna(r[col_op]) else "Altres"
+                if op.lower() in ("nan","","none"): op = "Altres"
+                for l in lins:
+                    grups.setdefault(op, set()).add(l)
+        return {op: sorted(lins) for op, lins in sorted(grups.items())}
+
+    grups_estacions = estacions_per_operador()
+    grups_linies    = linies_per_operador()
+
+    # Multiselect estacions amb grups visuals
+    opcions_estacions = []
+    for op, ests in grups_estacions.items():
+        opcions_estacions.append(f"── {op} ──")
+        opcions_estacions.extend(ests)
+
+    sel_sortida_raw = st.sidebar.multiselect(
+        "🚉 Estació de sortida",
+        opcions_estacions,
+        format_func=lambda x: x
+    )
+    # Filtrar capçaleres de grup
+    sel_sortida = [e for e in sel_sortida_raw if not e.startswith("──")]
+
+    # Multiselect línies amb grups visuals
+    opcions_linies = []
+    for op, lins in grups_linies.items():
+        opcions_linies.append(f"── {op} ──")
+        opcions_linies.extend(lins)
+
+    sel_linia_raw = st.sidebar.multiselect(
+        "🚆 Línia de tren",
+        opcions_linies,
+        format_func=lambda x: x
+    )
+    sel_linia = [l for l in sel_linia_raw if not l.startswith("──")]
+
     sel_op      = st.sidebar.multiselect("🏢 Operador", get_unique(cols["op_s"]))
     sel_dif     = st.sidebar.multiselect("🧗 Dificultat", ["Molt fàcil","Fàcil","Moderada","Difícil","Molt difícil"])
     min_desn    = float(df[cols["desn"]].min()) if cols["desn"] else 0.0
