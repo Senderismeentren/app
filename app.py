@@ -810,6 +810,9 @@ def render_ruta_completa(row, cols, context="llista"):
     # Comentaris columna AH
     comentaris_val = str(row[cols["comentaris"]]).strip() if cols.get("comentaris") and pd.notna(row[cols["comentaris"]]) and str(row[cols["comentaris"]]).strip() not in ("nan","") else ""
 
+    # Descripció de la ruta (columna Descripció_ruta)
+    desc_ruta_val = str(row[cols["desc_ruta"]]).strip() if cols.get("desc_ruta") and pd.notna(row[cols["desc_ruta"]]) and str(row[cols["desc_ruta"]]).strip() not in ("nan","") else ""
+
     # Horaris
     id_est_s = str(row[cols["id_est_s"]]).strip() if cols.get("id_est_s") and pd.notna(row[cols["id_est_s"]]) else ""
     id_est_a = str(row[cols["id_est_a"]]).strip() if cols.get("id_est_a") and pd.notna(row[cols["id_est_a"]]) else ""
@@ -828,20 +831,21 @@ def render_ruta_completa(row, cols, context="llista"):
     TITOL_SECCIO = "font-size:16px;font-weight:700;color:#222;margin-bottom:8px;"
     SEP_SECCIO   = "margin-top:12px;border-top:1px solid #eee;padding-top:10px;"
 
-    # Descripció de la ruta (columna AH) — just a sobre de les estacions, dins la secció "Dades"
-    descripcio_dins_dades = ""
-    if comentaris_val:
-        descripcio_dins_dades = (
-            f"<div style='font-size:13px;color:#444;line-height:1.6;margin-bottom:10px;'>"
-            f"<div style='font-size:11px;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;'>Descripció de la ruta</div>"
-            f"{comentaris_val}</div>"
+    # Descripció de la ruta (columna Descripció_ruta) — just a sobre de les estacions
+    desc_ruta_html = ""
+    if desc_ruta_val:
+        desc_ruta_html = (
+            f"<div style='margin-bottom:10px;'>"
+            f"<div style='{TITOL_SECCIO}'>Descripció de la ruta</div>"
+            f"<div style='font-size:14px;color:#444;line-height:1.6;'>{desc_ruta_val}</div>"
+            f"</div>"
         )
 
     detalls_html = (
-        # 1. Dades (amb descripció a sobre de les estacions)
+        # 1. Dades (amb descripció just a sobre de les estacions)
         f"<div style='{SEP_SECCIO}'>"
         f"<div style='{TITOL_SECCIO}'>Dades</div>"
-        + descripcio_dins_dades
+        + desc_ruta_html
         + estacions_html
         + graella +
         f"</div>" +
@@ -953,6 +957,7 @@ try:
         "epoca":     buscar_col(["millor_època", "millor_epoca"]),
         "coord_cim": buscar_col(["coordenades_100cims"]),
         "comentaris": buscar_col(["comentaris", "comentari", "notes"]),
+        "desc_ruta":  buscar_col(["descripció_ruta", "descripcio_ruta", "descripcion_ruta"]),
     }
 
     df = df_raw.dropna(subset=[cols["ruta"]]).copy()
