@@ -1,5 +1,5 @@
 # ============================================================
-# SENDERISME EN TREN — v72
+# SENDERISME EN TREN — v73
 # ============================================================
 
 import streamlit as st
@@ -453,53 +453,81 @@ def perfil_elevacio_svg(ruta_id, dif_color):
         return None, None, None
 
 
+def color_folium_per_operador(op_str):
+    """Retorna el color de Folium segons l'operador principal de l'estació."""
+    if not op_str or str(op_str).strip().lower() in ("nan", ""):
+        return "orange"  # Rodalies per defecte
+    op = str(op_str).strip().lower().split(";")[0].strip()
+    if "rodalies" in op:
+        return "orange"
+    if "fgc" in op:
+        return "green"
+    if "metro" in op or "tmb" in op:
+        return "red"
+    if "tram" in op:
+        return "lightgreen"
+    if "adif" in op:
+        return "purple"
+    if "renfe" in op:
+        return "darkblue"
+    if "tren dels llacs" in op:
+        return "cadetblue"
+    if "alta velocitat" in op:
+        return "darkred"
+    if "sncf" in op:
+        return "darkpurple"
+    if "cremallera" in op:
+        return "beige"
+    return "orange"
+
 def mostrar_mapa_general(df_filtrat, cols):
     punts_mapa = {}
 
-    def afegir_estacio(lat, lng, estacio, rid, nom, tipus):
+    def afegir_estacio(lat, lng, estacio, rid, nom, op_str):
         if not lat or not lng:
             return
         key = (lat, lng, estacio)
         if key not in punts_mapa:
-            punts_mapa[key] = {"tipus": set(), "rutes": []}
-        punts_mapa[key]["tipus"].add(tipus)
+            punts_mapa[key] = {"rutes": [], "op": op_str}
         punts_mapa[key]["rutes"].append(f"Ruta {rid}: {nom}")
 
     for _, row in df_filtrat.iterrows():
         nom = str(row[cols["ruta"]])
         rid = int(row[cols["id"]]) if pd.notna(row[cols["id"]]) else ""
+        op_s = str(row[cols["op_s"]]).strip() if cols.get("op_s") and pd.notna(row[cols["op_s"]]) else ""
+        op_a = str(row[cols["op_a"]]).strip() if cols.get("op_a") and pd.notna(row[cols["op_a"]]) else ""
 
         lat_s, lng_s = parse_coord(row[cols["coord_s"]]) if cols.get("coord_s") and pd.notna(row[cols["coord_s"]]) else (None, None)
         s_est = str(row[cols["sortida"]]).strip()
-        afegir_estacio(lat_s, lng_s, s_est, rid, nom, "sortida")
+        afegir_estacio(lat_s, lng_s, s_est, rid, nom, op_s)
 
         lat_a, lng_a = parse_coord(row[cols["coord_a"]]) if cols.get("coord_a") and pd.notna(row[cols["coord_a"]]) else (None, None)
         a_est = str(row[cols["arribada"]]).strip()
         if a_est.lower() != s_est.lower():
-            afegir_estacio(lat_a, lng_a, a_est, rid, nom, "arribada")
+            afegir_estacio(lat_a, lng_a, a_est, rid, nom, op_a)
 
     if not punts_mapa:
         st.info("No hi ha coordenades disponibles per mostrar al mapa.")
         return
 
-    lats   = [k[0] for k in punts_mapa]
-    lngs   = [k[1] for k in punts_mapa]
+    # Mapa de nom d'estació -> key, per fer la cerca al clic
+    estacio_a_key = {}
+    for key in punts_mapa:
+        _, _, nom_est = key
+        estacio_a_key[nom_est] = key
+
     m = folium.Map(location=[41.7, 1.8], zoom_start=8, tiles="OpenStreetMap")
 
     for (lat, lng, estacio), info in punts_mapa.items():
-        tipus = info["tipus"]
-        if "sortida" in tipus and "arribada" in tipus:
-            color_marker = "green"
-        elif "arribada" in tipus:
-            color_marker = "red"
-        else:
-            color_marker = "blue"
+        color_marker = color_folium_per_operador(info["op"])
         n_rutes = len(info["rutes"])
         paraula = "ruta" if n_rutes == 1 else "rutes"
-        tooltip_text = f"Estació de {estacio} ({n_rutes} {paraula})"
+        # Tooltip: NOMÉS el nom de l'estació, sense prefix, per recuperar-lo fiablement
+        tooltip_text = f"{estacio}||{n_rutes} {paraula}"
         folium.Marker(
             location=[lat, lng],
-            tooltip=tooltip_text,
+            tooltip=estacio,
+            popup=folium.Popup(f"<b>{estacio}</b><br>{n_rutes} {paraula}", max_width=200),
             icon=folium.Icon(color=color_marker, icon="train", prefix="fa")
         ).add_to(m)
 
@@ -508,7 +536,8 @@ def mostrar_mapa_general(df_filtrat, cols):
 
     if resultat and resultat.get("last_object_clicked_tooltip"):
         tooltip = resultat["last_object_clicked_tooltip"]
-        estacio_clicada = re.sub(r"\s*\(\d+ rutes?\)$", "", tooltip.replace("Estació de ", "")).strip()
+        # El tooltip és directament el nom de l'estació
+        estacio_clicada = str(tooltip).strip()
         if estacio_clicada != st.session_state.filtre_estacio:
             st.session_state.filtre_estacio = estacio_clicada
             st.session_state.pestanya_activa = "mapa"
@@ -744,20 +773,17 @@ def render_ruta_completa(row, cols, context="llista"):
             f"</div>"
         )
 
-    # FIX 2: Descripció de la ruta (columna AH) ABANS de Dades
+    # Descripció de la ruta (columna AH) — apareix just sota el botó, primer element del panel
     descripcio_bloc = ""
     if comentaris_val:
         descripcio_bloc = (
-            f"<div style='margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid #eee;'>"
-            f"<div style='font-size:16px;font-weight:700;color:#222;margin-bottom:4px;'>Descripció de la ruta</div>"
-            f"<div style='font-size:13px;color:#444;line-height:1.5;'>{comentaris_val}</div>"
+            f"<div style='padding:12px 12px 10px;border-bottom:1px solid #eee;'>"
+            f"<div style='font-size:16px;font-weight:700;color:#222;margin-bottom:6px;'>Descripció de la ruta</div>"
+            f"<div style='font-size:13px;color:#444;line-height:1.6;'>{comentaris_val}</div>"
             f"</div>"
         )
 
     detalls_html = (
-        # Descripció PRIMER
-        descripcio_bloc +
-
         # Dades
         f"<div style='font-size:16px;font-weight:700;color:#222;margin-bottom:8px;'>Dades</div>"
         + estacions_html
@@ -780,7 +806,6 @@ def render_ruta_completa(row, cols, context="llista"):
 
     etiquetes_html = f"<div style='padding:2px 12px 8px;'>{etiquetes}</div>" if etiquetes else ""
 
-    # FIX 2: "Veure ruta" / "Tancar ruta"
     card_html = (
         f"<div style='margin-top:12px;border:1px solid {dif_color}44;border-left:5px solid {dif_color};"
         f"border-radius:8px;overflow:visible;background:white;'>"
@@ -803,12 +828,14 @@ def render_ruta_completa(row, cols, context="llista"):
         f"<details id='det_{ruta_id}' style='border-top:1px solid #eee;'>"
         f"<summary style='list-style:none;padding:0;cursor:pointer;display:block;' "
         f"onclick=\"this.parentElement.open ? "
-        f"this.querySelector('.det-btn').textContent='Veure ruta' : "
-        f"this.querySelector('.det-btn').textContent='Tancar ruta'\">"
+        f"this.querySelector('.det-btn').textContent='Tancar ruta' : "
+        f"this.querySelector('.det-btn').textContent='Veure ruta'\">"
         f"<div class='det-btn' style='margin:10px auto 12px;background:{dif_color};color:white;border-radius:8px;"
         f"padding:10px 24px;text-align:center;font-size:14px;font-weight:700;letter-spacing:0.3px;"
         f"box-shadow:0 2px 6px {dif_color}55;width:fit-content;min-width:160px;'>"
         f"Veure ruta</div></summary>"
+        # Descripció just sota el botó, FORA del padding general del panel
+        + descripcio_bloc +
         f"<div style='padding:8px 12px 12px;'>"
         + detalls_html +
         f"</div></details></div>"
