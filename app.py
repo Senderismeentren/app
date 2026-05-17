@@ -138,13 +138,25 @@ def obtenir_horaris_rodalies(id_estacio, num=8):
             f"&validaReglaNegocio=true&tiempoReal=true&servicioHorarios=VTI"
             f"&horaViajeOrigen=00&horaViajeLlegada=26&accesibilidadTrenes=false"
         )
-        headers = {"Accept": "application/json", "User-Agent": "Mozilla/5.0"}
-        resp = requests.get(url, headers=headers, timeout=8)
+        headers = {
+            "Accept": "application/json",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+            "Referer": "https://horarios.renfe.com/",
+            "Origin": "https://horarios.renfe.com",
+        }
+        resp = requests.get(url, headers=headers, timeout=10)
         if resp.status_code == 200:
-            data = resp.json()
-            return data.get("horario", [])[:num]
-    except:
-        pass
+            try:
+                data = resp.json()
+                horari = data.get("horario", [])
+                if horari:
+                    return horari[:num]
+            except Exception as e:
+                st.session_state["debug_rodalies"] = f"JSON error: {e} | body: {resp.text[:200]}"
+        else:
+            st.session_state["debug_rodalies"] = f"HTTP {resp.status_code} per estació {id_estacio}"
+    except Exception as e:
+        st.session_state["debug_rodalies"] = f"Excepció: {e}"
     return None
 
 @st.cache_data(ttl=30)
@@ -152,15 +164,25 @@ def obtenir_horaris_fgc(id_estacio, num=8):
     """API FGC en temps real"""
     try:
         url = f"https://www.fgc.cat/api/v1/departure-board/{id_estacio}"
-        headers = {"Accept": "application/json", "User-Agent": "Mozilla/5.0"}
-        resp = requests.get(url, headers=headers, timeout=8)
+        headers = {
+            "Accept": "application/json",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+            "Referer": "https://www.fgc.cat/",
+            "Origin": "https://www.fgc.cat",
+        }
+        resp = requests.get(url, headers=headers, timeout=10)
         if resp.status_code == 200:
-            data = resp.json()
-            if isinstance(data, list):
-                return data[:num]
-            return data.get("departures", data.get("data", []))[:num]
-    except:
-        pass
+            try:
+                data = resp.json()
+                if isinstance(data, list):
+                    return data[:num]
+                return data.get("departures", data.get("data", []))[:num]
+            except Exception as e:
+                st.session_state["debug_fgc"] = f"JSON error: {e} | body: {resp.text[:200]}"
+        else:
+            st.session_state["debug_fgc"] = f"HTTP {resp.status_code} per estació {id_estacio}"
+    except Exception as e:
+        st.session_state["debug_fgc"] = f"Excepció: {e}"
     return None
 
 def _taula_horaris_html(files_data, dif_color, url_horaris, nom_op):
@@ -504,31 +526,31 @@ def perfil_elevacio_svg(ruta_id, dif_color):
 
 
 def color_folium_per_operador(op_str):
-    """Retorna el color de Folium segons l'operador principal de l'estació."""
+    """Retorna el color hex segons l'operador principal de l'estació."""
     if not op_str or str(op_str).strip().lower() in ("nan", ""):
-        return "orange"  # Rodalies per defecte
+        return "#EE7F00"  # Rodalies taronja Pantone 152
     op = str(op_str).strip().lower().split(";")[0].strip()
     if "rodalies" in op:
-        return "orange"
+        return "#EE7F00"  # Taronja Pantone 152 / RAL 2000
     if "fgc" in op:
-        return "green"
+        return "#97D700"  # Verd Pantone 375C / RAL S 0580-G30Y
     if "metro" in op or "tmb" in op:
-        return "red"
+        return "#E30613"
     if "tram" in op:
-        return "lightgreen"
+        return "#78BE20"
     if "adif" in op:
-        return "purple"
+        return "#8B008B"
     if "renfe" in op:
-        return "darkblue"
+        return "#003DA5"
     if "tren dels llacs" in op:
-        return "cadetblue"
+        return "#5F9EA0"
     if "alta velocitat" in op:
-        return "darkred"
+        return "#8B0000"
     if "sncf" in op:
-        return "darkpurple"
+        return "#C00000"
     if "cremallera" in op:
-        return "beige"
-    return "orange"
+        return "#C8A96E"
+    return "#EE7F00"
 
 def mostrar_mapa_general(df_filtrat, cols):
     punts_mapa = {}
@@ -574,11 +596,16 @@ def mostrar_mapa_general(df_filtrat, cols):
         paraula = "ruta" if n_rutes == 1 else "rutes"
         # Tooltip: NOMÉS el nom de l'estació, sense prefix, per recuperar-lo fiablement
         tooltip_text = f"{estacio}||{n_rutes} {paraula}"
+        icon_html = (
+            f"<div style='background:{color_marker};width:28px;height:28px;border-radius:50%;"
+            f"border:2px solid white;box-shadow:0 1px 4px rgba(0,0,0,0.4);"
+            f"display:flex;align-items:center;justify-content:center;font-size:13px;'>🚉</div>"
+        )
         folium.Marker(
             location=[lat, lng],
             tooltip=estacio,
             popup=folium.Popup(f"<b>{estacio}</b><br>{n_rutes} {paraula}", max_width=200),
-            icon=folium.Icon(color=color_marker, icon="train", prefix="fa")
+            icon=folium.DivIcon(html=icon_html, icon_size=(28, 28), icon_anchor=(14, 14))
         ).add_to(m)
 
     map_key = f"mapa_general_{st.session_state.get('map_reset_counter', 0)}"
@@ -1079,11 +1106,25 @@ try:
     if "pestanya_activa" not in st.session_state:
         st.session_state.pestanya_activa = "rutes"
 
+    # --- MODE MAPA SOL (per a WordPress iframe: ?page=mapa) ---
+    query_params = st.query_params
+    if query_params.get("page") == "mapa":
+        mostrar_mapa_general(f, cols)
+        if "debug_rodalies" in st.session_state:
+            st.caption(f"⚙️ Debug Rodalies: {st.session_state['debug_rodalies']}")
+        if "debug_fgc" in st.session_state:
+            st.caption(f"⚙️ Debug FGC: {st.session_state['debug_fgc']}")
+        st.stop()
+
     # --- PESTANYES ---
     tab_llista, tab_mapa, tab_cims = st.tabs(["🥾 Rutes", "🗺️ Mapa", "🏔️ 100 Cims"])
 
     with tab_mapa:
         mostrar_mapa_general(f, cols)
+        if "debug_rodalies" in st.session_state:
+            st.caption(f"⚙️ Debug Rodalies: {st.session_state['debug_rodalies']}")
+        if "debug_fgc" in st.session_state:
+            st.caption(f"⚙️ Debug FGC: {st.session_state['debug_fgc']}")
         if st.session_state.filtre_estacio:
             col_info, col_btn = st.columns([3, 1])
             with col_info:
