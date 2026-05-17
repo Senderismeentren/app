@@ -1106,42 +1106,8 @@ try:
     if "pestanya_activa" not in st.session_state:
         st.session_state.pestanya_activa = "rutes"
 
-    # --- MODE MAPA SOL (per a WordPress iframe: ?page=mapa) ---
-    query_params = st.query_params
-    if query_params.get("page") == "mapa":
-        mostrar_mapa_general(f, cols)
-        if "debug_rodalies" in st.session_state:
-            st.caption(f"⚙️ Debug Rodalies: {st.session_state['debug_rodalies']}")
-        if "debug_fgc" in st.session_state:
-            st.caption(f"⚙️ Debug FGC: {st.session_state['debug_fgc']}")
-        st.stop()
-
     # --- PESTANYES ---
-    tab_llista, tab_mapa, tab_cims = st.tabs(["🥾 Rutes", "🗺️ Mapa", "🏔️ 100 Cims"])
-
-    with tab_mapa:
-        mostrar_mapa_general(f, cols)
-        if "debug_rodalies" in st.session_state:
-            st.caption(f"⚙️ Debug Rodalies: {st.session_state['debug_rodalies']}")
-        if "debug_fgc" in st.session_state:
-            st.caption(f"⚙️ Debug FGC: {st.session_state['debug_fgc']}")
-        if st.session_state.filtre_estacio:
-            col_info, col_btn = st.columns([3, 1])
-            with col_info:
-                st.info(f"🚉 Estació: **{st.session_state.filtre_estacio}**")
-            with col_btn:
-                if st.button("✖ Treure filtre", key="btn_treure_mapa"):
-                    st.session_state.filtre_estacio = None
-                    st.session_state.map_reset_counter += 1
-                    st.rerun()
-            # FIX 1: usar f (ja filtrat pel sidebar) en lloc de df
-            f_mapa = f[
-                (f[cols["sortida"]].astype(str).str.strip() == st.session_state.filtre_estacio) |
-                (f[cols["arribada"]].astype(str).str.strip() == st.session_state.filtre_estacio)
-            ]
-            st.write(f"**{len(f_mapa)} rutes amb {st.session_state.filtre_estacio}**")
-            for _, row_m in f_mapa.iterrows():
-                render_ruta_completa(row_m, cols, context="mapa")
+    tab_llista, tab_cims = st.tabs(["🥾 Rutes", "🏔️ 100 Cims"])
 
     with tab_cims:
         if "filtre_cim" not in st.session_state:
