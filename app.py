@@ -269,9 +269,7 @@ def horaris_html_bloc(estacio, linia_str, op_str, dif_color, id_estacio_str, tip
     return (
         f"<div style='margin-bottom:14px;'>"
         f"<div style='font-size:13px;font-weight:700;color:#333;margin-bottom:4px;'>{icon} {titol}: {estacio}</div>"
-        f"<div style='display:flex;align-items:center;gap:8px;margin-bottom:4px;'>{linies_html}"
-        f"<a href='{url_horaris}' target='_blank' style='font-size:11px;font-weight:700;color:{dif_color};text-decoration:none;'>"
-        f"HORARI {nom_op.upper()} →</a></div>"
+        f"<div style='display:flex;align-items:center;gap:8px;margin-bottom:4px;'>{linies_html}</div>"
         f"{taula_html}"
         f"</div>"
     )
@@ -842,10 +840,10 @@ def render_ruta_completa(row, cols, context="llista"):
         )
 
     detalls_html = (
-        # 1. Dades (amb descripció just a sobre de les estacions)
+        # 1. Dades (descripció primer, títol "Dades" just a sobre de les estacions)
         f"<div style='{SEP_SECCIO}'>"
-        f"<div style='{TITOL_SECCIO}'>Dades</div>"
         + desc_ruta_html
+        + f"<div style='{TITOL_SECCIO}'>Dades</div>"
         + estacions_html
         + graella +
         f"</div>" +
