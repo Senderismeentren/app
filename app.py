@@ -1106,6 +1106,11 @@ try:
     if "pestanya_activa" not in st.session_state:
         st.session_state.pestanya_activa = "rutes"
 
+    # --- MODE MAPA SOL (per a WordPress iframe: ?page=mapa) ---
+    if st.query_params.get("page") == "mapa":
+        mostrar_mapa_general(f, cols)
+        st.stop()
+
     # --- PESTANYES ---
     tab_llista, tab_mapa, tab_cims = st.tabs(["🥾 Rutes", "🗺️ Mapa", "🏔️ 100 Cims"])
 
