@@ -1107,7 +1107,26 @@ try:
         st.session_state.pestanya_activa = "rutes"
 
     # --- PESTANYES ---
-    tab_llista, tab_cims = st.tabs(["🥾 Rutes", "🏔️ 100 Cims"])
+    tab_llista, tab_mapa, tab_cims = st.tabs(["🥾 Rutes", "🗺️ Mapa", "🏔️ 100 Cims"])
+
+    with tab_mapa:
+        mostrar_mapa_general(f, cols)
+        if st.session_state.get("filtre_estacio"):
+            col_info, col_btn = st.columns([3, 1])
+            with col_info:
+                st.info(f"🚉 Estació: **{st.session_state.filtre_estacio}**")
+            with col_btn:
+                if st.button("✖ Treure filtre", key="btn_treure_mapa"):
+                    st.session_state.filtre_estacio = None
+                    st.session_state.map_reset_counter += 1
+                    st.rerun()
+            f_mapa = f[
+                (f[cols["sortida"]].astype(str).str.strip() == st.session_state.filtre_estacio) |
+                (f[cols["arribada"]].astype(str).str.strip() == st.session_state.filtre_estacio)
+            ]
+            st.write(f"**{len(f_mapa)} rutes amb {st.session_state.filtre_estacio}**")
+            for _, row_m in f_mapa.iterrows():
+                render_ruta_completa(row_m, cols, context="mapa")
 
     with tab_cims:
         if "filtre_cim" not in st.session_state:
