@@ -1386,6 +1386,19 @@ div[data-testid="stSelectbox"] label {
                 lambda x: (x or "0") == _codi_sel
             )]
 
+        # ── Botó per netejar tots tres filtres ──
+        _algun_filtre = (
+            st.session_state.get("filtre_btn_estacio") or
+            st.session_state.get("filtre_btn_linia") or
+            st.session_state.get("filtre_btn_ruta")
+        )
+        if _algun_filtre:
+            if st.button("✖ Treure tots els filtres", key="btn_treure_tots"):
+                st.session_state.filtre_btn_estacio = None
+                st.session_state.filtre_btn_linia   = None
+                st.session_state.filtre_btn_ruta    = None
+                st.rerun()
+
         st.write(f"**Resultats: {len(f)} rutes**")
 
         for _, row in f.iterrows():
