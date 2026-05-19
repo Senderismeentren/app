@@ -332,6 +332,7 @@ def carregar_dades():
     return pd.DataFrame(full.get_all_records())
 
 def parse_coord(coord_str):
+    """Mante compatibilitat amb format antic lat,lon en una sola columna."""
     try:
         parts = str(coord_str).split(",")
         if len(parts) == 2:
@@ -339,6 +340,15 @@ def parse_coord(coord_str):
     except:
         pass
     return None, None
+
+def get_coord(row, col_lat, col_lon):
+    """Llegeix lat i lon de dues columnes separades (nou format)."""
+    try:
+        lat = float(str(row[col_lat]).replace(",", ".")) if col_lat and pd.notna(row[col_lat]) and str(row[col_lat]).strip() not in ("", "nan") else None
+        lon = float(str(row[col_lon]).replace(",", ".")) if col_lon and pd.notna(row[col_lon]) and str(row[col_lon]).strip() not in ("", "nan") else None
+        return lat, lon
+    except:
+        return None, None
 
 def logos_linies_html(linies_str):
     if not linies_str or str(linies_str).strip().lower() in ("nan", ""):
@@ -569,11 +579,11 @@ def mostrar_mapa_general(df_filtrat, cols):
         op_s = str(row[cols["op_s"]]).strip() if cols.get("op_s") and pd.notna(row[cols["op_s"]]) else ""
         op_a = str(row[cols["op_a"]]).strip() if cols.get("op_a") and pd.notna(row[cols["op_a"]]) else ""
 
-        lat_s, lng_s = parse_coord(row[cols["coord_s"]]) if cols.get("coord_s") and pd.notna(row[cols["coord_s"]]) else (None, None)
+        lat_s, lng_s = get_coord(row, cols.get("coord_s"), cols.get("lon_s"))
         s_est = str(row[cols["sortida"]]).strip()
         afegir_estacio(lat_s, lng_s, s_est, rid, nom, op_s)
 
-        lat_a, lng_a = parse_coord(row[cols["coord_a"]]) if cols.get("coord_a") and pd.notna(row[cols["coord_a"]]) else (None, None)
+        lat_a, lng_a = get_coord(row, cols.get("coord_a"), cols.get("lon_a"))
         a_est = str(row[cols["arribada"]]).strip()
         if a_est.lower() != s_est.lower():
             afegir_estacio(lat_a, lng_a, a_est, rid, nom, op_a)
@@ -714,8 +724,8 @@ def render_ruta_completa(row, cols, context="llista"):
         except:
             temps_fmt = str(row[cols["temps"]])
 
-    lat_s, lng_s = parse_coord(row[cols["coord_s"]]) if cols.get("coord_s") and pd.notna(row[cols["coord_s"]]) else (None, None)
-    lat_a, lng_a = parse_coord(row[cols["coord_a"]]) if cols.get("coord_a") and pd.notna(row[cols["coord_a"]]) else (None, None)
+    lat_s, lng_s = get_coord(row, cols.get("coord_s"), cols.get("lon_s"))
+    lat_a, lng_a = get_coord(row, cols.get("coord_a"), cols.get("lon_a"))
     bloc_s = bloc_estacio_html(row[cols["op_s"]], row[cols["linia_s"]])
     bloc_a = bloc_estacio_html(row[cols["op_a"]], row[cols["linia_a"]])
 
@@ -973,7 +983,9 @@ try:
         "elements":  buscar_col(["elements_interès", "elements_interes"]),
         "cats":      buscar_col(["categories_elements_interès", "categories_elements_interes"]),
         "coord_s":   buscar_col(["lat_sortida", "coordenades_sortida"]),
+        "lon_s":     buscar_col(["lon_sortida"]),
         "coord_a":   buscar_col(["lat_arribada", "coordenades_arribada"]),
+        "lon_a":     buscar_col(["lon_arribada"]),
         "temps":     buscar_col(["durada_estimada", "durada", "temps"]),
         "cims_noms": buscar_col(["nom_100cims", "nom_100_cims"]),
         "punt_alt":  buscar_col(["punt_mes_alt", "punt_més_alt"]),
@@ -981,6 +993,7 @@ try:
         "terreny":   buscar_col(["senders", "terreny"]),
         "epoca":     buscar_col(["millor_època", "millor_epoca"]),
         "coord_cim": buscar_col(["lat_100cims", "coordenades_100cims"]),
+        "lon_cim":   buscar_col(["lon_100cims"]),
         "comentaris": buscar_col(["elements_interès", "elements_interes"]),
         "desc_ruta":  buscar_col(["descripció_ruta", "descripcio_ruta"]),
     }
