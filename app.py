@@ -70,53 +70,61 @@ div[data-testid="stExpander"] > details[open] > summary::before {
 portada_url = "https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/imatges/portada.png"
 logo_url    = "https://avatars.githubusercontent.com/u/279401247?v=4"
 
-# CSS per amagar les pestanyes natives de Streamlit i ajustar marges
+# CSS: pestanyes natives estilitzades com a píndoles flotants sobre la imatge
 st.markdown("""
 <style>
-div[data-testid="stTabs"] > div:first-child { display: none !important; }
-div[data-testid="stTabs"] { margin-top: 0 !important; }
-.stTabs [data-baseweb="tab-list"] { display: none !important; }
-.stTabs [data-baseweb="tab-panel"] { padding-top: 12px !important; }
+/* Elimina el marge entre la capçalera i les pestanyes */
+div[data-testid="stTabs"] { margin-top: -2px !important; }
+
+/* Barra de pestanyes: fons transparent, centrada */
+div[data-baseweb="tab-list"] {
+    background: transparent !important;
+    justify-content: center !important;
+    gap: 8px !important;
+    padding: 10px 0 6px 0 !important;
+    border-bottom: none !important;
+}
+
+/* Cada pestanya: estil píndola */
+button[data-baseweb="tab"] {
+    background: rgba(255,255,255,0.18) !important;
+    border: 1.5px solid rgba(255,255,255,0.5) !important;
+    border-radius: 30px !important;
+    color: #333 !important;
+    font-size: 15px !important;
+    font-weight: 600 !important;
+    padding: 8px 22px !important;
+    backdrop-filter: blur(4px) !important;
+}
+
+/* Pestanya activa: fons blanc sòlid */
+button[data-baseweb="tab"][aria-selected="true"] {
+    background: white !important;
+    color: #222 !important;
+    font-weight: 700 !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.18) !important;
+    border: none !important;
+}
+
+/* Treu la línia taronja de sota */
+div[data-baseweb="tab-highlight"] { display: none !important; }
+div[data-baseweb="tab-border"]    { display: none !important; }
 </style>
 """, unsafe_allow_html=True)
 
-# Capçalera amb pestanyes flotants
-_tab_activa = st.session_state.get("pestanya_activa", "rutes")
-_tabs_html = [
-    ("rutes", "🥾 Rutes"),
-    ("mapa",  "🗺️ Mapa"),
-    ("cims",  "🏔️ 100 Cims"),
-]
-_botons = ""
-for _key, _label in _tabs_html:
-    if _key == _tab_activa:
-        _style = "background:white;color:#222;font-weight:700;padding:9px 22px;border-radius:30px;font-size:15px;border:none;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.18);"
-    else:
-        _style = "background:rgba(255,255,255,0.22);color:white;font-weight:600;padding:9px 22px;border-radius:30px;font-size:15px;border:1.5px solid rgba(255,255,255,0.5);cursor:pointer;backdrop-filter:blur(4px);"
-    _url = f"?tab={_key}"
-    _botons += f'<button onclick="window.location.href=\"{_url}\"" style="{_style}">{_label}</button>'
-
 st.markdown(f'''
-    <div style="position:relative;width:100%;height:300px;border-radius:12px;overflow:hidden;margin-bottom:0;">
+    <div style="position:relative;width:100%;height:260px;border-radius:12px 12px 0 0;overflow:hidden;margin-bottom:0;">
         <img src="{portada_url}" style="width:100%;height:100%;object-fit:cover;object-position:right center;">
         <div style="position:absolute;inset:0;background:linear-gradient(to right,rgba(0,0,0,0.55) 0%,rgba(0,0,0,0.1) 60%,transparent 100%);"></div>
         <div style="position:absolute;top:18px;left:50%;transform:translateX(-50%);">
             <img src="{logo_url}" style="width:48px;height:48px;border-radius:50%;box-shadow:0 2px 8px rgba(0,0,0,0.4);">
         </div>
-        <div style="position:absolute;bottom:60px;left:28px;">
+        <div style="position:absolute;bottom:28px;left:28px;">
             <h1 style="margin:0;font-size:32px;font-weight:800;color:white;text-shadow:0 2px 6px rgba(0,0,0,0.5);">Senderisme en tren</h1>
             <p style="margin:6px 0 0 0;font-size:15px;color:rgba(255,255,255,0.9);text-shadow:0 1px 4px rgba(0,0,0,0.4);">Rutes i excursions a peu amb accés en tren, metro, cremallera o funicular.</p>
         </div>
-        <div style="position:absolute;bottom:18px;left:50%;transform:translateX(-50%);display:flex;gap:10px;white-space:nowrap;">
-            {_botons}
-        </div>
     </div>
 ''', unsafe_allow_html=True)
-
-# Llegim la pestanya activa des del query param si ve d'un clic
-_tab_param = st.query_params.get("tab", None)
-if _tab_param in ("rutes", "mapa", "cims"):
-    st.session_state.pestanya_activa = _tab_param
 
 # --- COLOR DE FONS FIX ---
 st.markdown(
@@ -1174,11 +1182,7 @@ try:
     # --- PESTANYES (les natives queden amagades pel CSS, però cal declarar-les) ---
     tab_llista, tab_mapa, tab_cims = st.tabs(["🥾 Rutes", "🗺️ Mapa", "🏔️ 100 Cims"])
 
-    # Sincronitzem la pestanya nativa amb l'estat
-    _p = st.session_state.get("pestanya_activa", "rutes")
-
     with tab_mapa:
-        if _p != "mapa": st.empty()
         mostrar_mapa_general(f, cols)
         if st.session_state.get("filtre_estacio"):
             col_info, col_btn = st.columns([3, 1])
@@ -1198,7 +1202,6 @@ try:
                 render_ruta_completa(row_m, cols, context="mapa")
 
     with tab_cims:
-        if _p != "cims": st.empty()
         if "filtre_cim" not in st.session_state:
             st.session_state.filtre_cim = None
 
@@ -1265,7 +1268,6 @@ try:
                 st.info("No hi ha dades de cims disponibles.")
 
     with tab_llista:
-        if _p != "rutes": st.empty()
         if "filtre_btn_estacio" not in st.session_state:
             st.session_state.filtre_btn_estacio = None
         if "filtre_btn_linia" not in st.session_state:
