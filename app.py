@@ -1272,12 +1272,62 @@ try:
             st.session_state.filtre_btn_estacio = None
         if "filtre_btn_linia" not in st.session_state:
             st.session_state.filtre_btn_linia = None
+        if "filtre_btn_ruta" not in st.session_state:
+            st.session_state.filtre_btn_ruta = None
 
-        estacions_list = sorted(f[cols["sortida"]].dropna().astype(str).unique().tolist()) if cols.get("sortida") else []
-        linies_list = sorted(set(
-            l.strip() for val in f[cols["linia_s"]].dropna().astype(str)
-            for l in val.split(";") if l.strip() and l.strip().lower() != "nan"
-        )) if cols.get("linia_s") else []
+        # ── Estacions ordenades per operador ──
+        def build_estacions_agrupades():
+            grups = {}
+            for _, r in df.iterrows():
+                for col_est, col_op in [(cols.get("sortida"), cols.get("op_s")),
+                                        (cols.get("arribada"), cols.get("op_a"))]:
+                    if not col_est or not col_op: continue
+                    est = str(r[col_est]).strip() if pd.notna(r[col_est]) else ""
+                    op  = str(r[col_op]).strip().split(";")[0].strip().title() if pd.notna(r[col_op]) else "Altres"
+                    if not est or est.lower() in ("nan","","none"): continue
+                    if op.lower() in ("nan","","none"): op = "Altres"
+                    grups.setdefault(op, set()).add(est)
+            opcions = ["🚉 Estació"]
+            for op in sorted(grups.keys()):
+                opcions.append(f"── {op} ──")
+                opcions.extend(sorted(grups[op]))
+            return opcions
+
+        # ── Línies ordenades per operador ──
+        def build_linies_agrupades():
+            grups = {}
+            for _, r in df.iterrows():
+                for col_lin, col_op in [(cols.get("linia_s"), cols.get("op_s")),
+                                        (cols.get("linia_a"), cols.get("op_a"))]:
+                    if not col_lin or not col_op: continue
+                    lins = [l.strip() for l in str(r[col_lin]).split(";")
+                            if l.strip() and l.strip().lower() not in ("nan","")]
+                    op   = str(r[col_op]).strip().split(";")[0].strip().title() if pd.notna(r[col_op]) else "Altres"
+                    if op.lower() in ("nan","","none"): op = "Altres"
+                    for l in lins:
+                        grups.setdefault(op, set()).add(l)
+            opcions = ["🚆 Línia"]
+            for op in sorted(grups.keys()):
+                opcions.append(f"── {op} ──")
+                opcions.extend(sorted(grups[op]))
+            return opcions
+
+        # ── Llistat de rutes ordenat per Núm_Ruta ──
+        def build_rutes_llista():
+            opcions = ["📋 Llistat de rutes"]
+            if not cols.get("id") or not cols.get("ruta"): return opcions
+            rutes_df = df[[cols["id"], cols["ruta"]]].dropna(subset=[cols["id"]])
+            rutes_df = rutes_df.sort_values(by=cols["id"])
+            for _, r in rutes_df.iterrows():
+                num  = str(r[cols["id"]]).strip()
+                nom  = str(r[cols["ruta"]]).strip() if pd.notna(r[cols["ruta"]]) else ""
+                codi = f"ST{int(float(num)):03d}" if num.replace(".","").isdigit() else f"ST{num}"
+                opcions.append(f"{codi} · {nom}")
+            return opcions
+
+        est_options  = build_estacions_agrupades()
+        lin_options  = build_linies_agrupades()
+        ruta_options = build_rutes_llista()
 
         st.markdown("""<style>
 div[data-testid="stSelectbox"] > div > div {
@@ -1295,24 +1345,30 @@ div[data-testid="stSelectbox"] label {
 }
 </style>""", unsafe_allow_html=True)
 
-        col_f1, col_f2, col_rest = st.columns([1, 1, 2])
+        col_f1, col_f2, col_f3 = st.columns([1, 1, 1])
         with col_f1:
-            est_options = ["🚉 Estació"] + estacions_list
             sel_est_btn = st.selectbox("Estació", est_options,
                 index=0 if not st.session_state.filtre_btn_estacio else
                       est_options.index(st.session_state.filtre_btn_estacio)
                       if st.session_state.filtre_btn_estacio in est_options else 0,
                 key="sel_est_btn", label_visibility="collapsed")
-            st.session_state.filtre_btn_estacio = sel_est_btn if sel_est_btn != "🚉 Estació" else None
+            st.session_state.filtre_btn_estacio = sel_est_btn if sel_est_btn != "🚉 Estació" and not sel_est_btn.startswith("──") else None
 
         with col_f2:
-            lin_options = ["🚆 Línia"] + linies_list
             sel_lin_btn = st.selectbox("Línia", lin_options,
                 index=0 if not st.session_state.filtre_btn_linia else
                       lin_options.index(st.session_state.filtre_btn_linia)
                       if st.session_state.filtre_btn_linia in lin_options else 0,
                 key="sel_lin_btn", label_visibility="collapsed")
-            st.session_state.filtre_btn_linia = sel_lin_btn if sel_lin_btn != "🚆 Línia" else None
+            st.session_state.filtre_btn_linia = sel_lin_btn if sel_lin_btn != "🚆 Línia" and not sel_lin_btn.startswith("──") else None
+
+        with col_f3:
+            sel_ruta_btn = st.selectbox("Llistat de rutes", ruta_options,
+                index=0 if not st.session_state.filtre_btn_ruta else
+                      ruta_options.index(st.session_state.filtre_btn_ruta)
+                      if st.session_state.filtre_btn_ruta in ruta_options else 0,
+                key="sel_ruta_btn", label_visibility="collapsed")
+            st.session_state.filtre_btn_ruta = sel_ruta_btn if sel_ruta_btn != "📋 Llistat de rutes" else None
 
         if st.session_state.filtre_btn_estacio:
             f = f[
@@ -1322,6 +1378,12 @@ div[data-testid="stSelectbox"] label {
         if st.session_state.filtre_btn_linia:
             f = f[f[cols["linia_s"]].astype(str).apply(
                 lambda x: st.session_state.filtre_btn_linia in [l.strip() for l in x.split(";")]
+            )]
+        if st.session_state.filtre_btn_ruta and cols.get("id") and cols.get("ruta"):
+            # Extraiem el número de la selecció "ST001 · Nom ruta"
+            _codi_sel = st.session_state.filtre_btn_ruta.split(" · ")[0].replace("ST","").lstrip("0") or "0"
+            f = f[f[cols["id"]].astype(str).str.replace(".0","",regex=False).str.lstrip("0").apply(
+                lambda x: (x or "0") == _codi_sel
             )]
 
         st.write(f"**Resultats: {len(f)} rutes**")
