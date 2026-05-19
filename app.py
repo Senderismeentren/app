@@ -735,7 +735,7 @@ def render_ruta_completa(row, cols, context="llista"):
         desn_txt = f"+{int(desn_pujada)} m / -{int(desn_baixada)} m"
 
     comarca_val = str(row[cols["comarca"]]) if pd.notna(row[cols["comarca"]]) else ""
-    espai_val   = str(row[cols["espai"]])   if pd.notna(row[cols["espai"]])   else ""
+    espai_val   = str(row[cols["espai"]]) if cols.get("espai") and pd.notna(row[cols["espai"]]) else ""
     cims_val    = str(row[cols["cims"]]).strip().lower() if cols["cims"] and pd.notna(row[cols["cims"]]) else ""
     wiki_url    = str(row[cols["wiki"]])    if pd.notna(row[cols["wiki"]])    else ""
 
@@ -953,49 +953,61 @@ except Exception as e:
 try:
     df_raw.columns = df_raw.columns.str.strip().str.lower()
 
+    def norm(s):
+        """Normalitza string: minúscules i sense accents, per comparació robusta."""
+        return (s.lower()
+                 .replace("à","a").replace("á","a")
+                 .replace("è","e").replace("é","e")
+                 .replace("í","i").replace("ï","i")
+                 .replace("ò","o").replace("ó","o")
+                 .replace("ú","u").replace("ü","u")
+                 .replace("ç","c"))
+
     def buscar_col(llista):
         for c in df_raw.columns:
+            c_norm = norm(str(c))
             for p in llista:
-                if p in str(c): return c
+                if norm(p) in c_norm:
+                    return c
         return None
 
     cols = {
-        "id":        buscar_col(["núm_ruta", "num_ruta", "id_ruta", "id"]),
-        "ruta":      buscar_col(["nom_ruta", "nom_de_la_ruta"]),
-        "desc":      buscar_col(["descripció_ruta", "descripcio_ruta", "descripció", "descripcio", "subtitol"]),
-        "km":        buscar_col(["km"]),
-        "cims":      buscar_col(["100cims", "100_cims"]),
-        "sortida":   buscar_col(["estació_sortida", "estacio_sortida", "sortida"]),
-        "id_est_s":  buscar_col(["id_estació_sortida", "id_estacio_sortida"]),
-        "op_s":      buscar_col(["operador_sortida"]),
-        "arribada":  buscar_col(["estació_arribada", "estacio_arribada", "arribada"]),
-        "id_est_a":  buscar_col(["id_estació_arribada", "id_estacio_arribada"]),
-        "op_a":      buscar_col(["operador_arribada"]),
-        "linia_s":   buscar_col(["linies_sortida"]),
-        "linia_a":   buscar_col(["linies_arribada", "linies_arribada"]),
-        "comarca":   buscar_col(["comarca_sortida", "comarca"]),
-        "espai":     buscar_col(["espai_natural"]),
-        "desn":      buscar_col(["desnivell_positiu"]),
-        "baixada":   buscar_col(["desnivell_negatiu"]),
-        "tipus":     buscar_col(["tipus_ruta", "tipus"]),
-        "dif":       buscar_col(["dificultat"]),
-        "wiki":      buscar_col(["enllaç_wikiloc", "enllac_wikiloc", "wikiloc"]),
-        "elements":  buscar_col(["elements_interès", "elements_interes"]),
-        "cats":      buscar_col(["categories_elements_interès", "categories_elements_interes"]),
-        "coord_s":   buscar_col(["lat_sortida", "coordenades_sortida"]),
-        "lon_s":     buscar_col(["lon_sortida"]),
-        "coord_a":   buscar_col(["lat_arribada", "coordenades_arribada"]),
-        "lon_a":     buscar_col(["lon_arribada"]),
-        "temps":     buscar_col(["durada_estimada", "durada", "temps"]),
-        "cims_noms": buscar_col(["nom_100cims", "nom_100_cims"]),
-        "punt_alt":  buscar_col(["punt_mes_alt", "punt_més_alt"]),
-        "altitud_max": buscar_col(["alçada_punt_alt", "alcada_punt_alt"]),
-        "terreny":   buscar_col(["senders", "terreny"]),
-        "epoca":     buscar_col(["millor_època", "millor_epoca"]),
-        "coord_cim": buscar_col(["lat_100cims", "coordenades_100cims"]),
-        "lon_cim":   buscar_col(["lon_100cims"]),
-        "comentaris": buscar_col(["elements_interès", "elements_interes"]),
-        "desc_ruta":  buscar_col(["descripció_ruta", "descripcio_ruta"]),
+        "id":          buscar_col(["num_ruta", "id_ruta", "id"]),
+        "ruta":        buscar_col(["nom_ruta"]),
+        "wiki":        buscar_col(["enllac_wikiloc", "wikiloc"]),
+        "sortida":     buscar_col(["estacio_sortida"]),
+        "op_s":        buscar_col(["operador_sortida"]),
+        "id_est_s":    buscar_col(["id_estacio_sortida"]),
+        "coord_s":     buscar_col(["lat_sortida"]),
+        "lon_s":       buscar_col(["lon_sortida"]),
+        "linia_s":     buscar_col(["linies_sortida"]),
+        "comarca":     buscar_col(["comarca_sortida"]),
+        "arribada":    buscar_col(["estacio_arribada"]),
+        "op_a":        buscar_col(["operador_arribada"]),
+        "id_est_a":    buscar_col(["id_estacio_arribada"]),
+        "coord_a":     buscar_col(["lat_arribada"]),
+        "lon_a":       buscar_col(["lon_arribada"]),
+        "linia_a":     buscar_col(["linies_arribada"]),
+        "km":          buscar_col(["km"]),
+        "desn":        buscar_col(["desnivell_positiu"]),
+        "baixada":     buscar_col(["desnivell_negatiu"]),
+        "tipus":       buscar_col(["tipus_ruta"]),
+        "dif":         buscar_col(["dificultat"]),
+        "temps":       buscar_col(["durada_estimada"]),
+        "epoca":       buscar_col(["millor_epoca"]),
+        "punt_alt":    buscar_col(["punt_mes_alt"]),
+        "altitud_max": buscar_col(["alcada_punt_alt"]),
+        "cims":        buscar_col(["100cims"]),
+        "cims_noms":   buscar_col(["nom_100cims"]),
+        "coord_cim":   buscar_col(["lat_100cims"]),
+        "lon_cim":     buscar_col(["lon_100cims"]),
+        "terreny":     buscar_col(["senders"]),
+        "elements":    buscar_col(["elements_interes"]),
+        "cats":        buscar_col(["categories_elements_interes"]),
+        "desc_ruta":   buscar_col(["descripcio_ruta"]),
+        "espai":       None,
+        "comentaris":  None,
+        "desc":        buscar_col(["descripcio_ruta"]),
     }
 
     df = df_raw.dropna(subset=[cols["ruta"]]).copy()
@@ -1085,7 +1097,7 @@ try:
     max_desn    = float(df[cols["desn"]].max()) if cols["desn"] else 9999.0
     sel_desn    = st.sidebar.slider("📈 Desnivell (m)", min_desn, max_desn, (min_desn, max_desn))
     sel_comarca = st.sidebar.multiselect("📍 Comarca", get_unique(cols["comarca"]))
-    sel_espai   = st.sidebar.multiselect("🌲 Espai natural", get_unique(cols["espai"]))
+    sel_espai   = st.sidebar.multiselect("🌲 Espai natural", get_unique(cols.get("espai")))
     min_km, max_km = float(df[cols["km"]].min()), float(df[cols["km"]].max())
     sel_km      = st.sidebar.slider("📏 Distància (km)", min_km, max_km, (min_km, max_km))
 
