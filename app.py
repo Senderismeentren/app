@@ -340,6 +340,60 @@ def horaris_html_bloc(estacio, linia_str, op_str, dif_color, id_estacio_str, tip
     )
 
 
+RECORREGUTS_LINIA = {
+    # Rodalies
+    "R1":      "Molins de Rei - Maçanet-Massanes",
+    "R2":      "Sant Vicenç de Calders - Granollers Centre",
+    "R2 Nord": "Aeroport - Maçanet-Massanes",
+    "R2 Sud":  "Vilanova i la Geltrú - Granollers Centre",
+    "R3":      "L'Hospitalet de Llobregat - Puigcerdà",
+    "R4":      "Manresa - Sant Vicenç de Calders",
+    "R7":      "Barcelona Sants - Martorell",
+    "R8":      "Martorell - Granollers Centre",
+    "R11":     "L'Hospitalet de Llobregat - Aeroport",
+    "RG1":     "Girona - Portbou",
+    "RG2":     "Girona - Figueres",
+    "RL1":     "Lleida - La Pobla de Segur",
+    "RT1":     "Tarragona - L'Aldea-Amposta-Tortosa",
+    "RT2":     "Tarragona - Reus - Mora la Nova",
+    # FGC Metropolità
+    "L6":      "Reina Elisenda - Av. Tibidabo",
+    "L7":      "Plaça Catalunya - Av. Tibidabo",
+    "S1":      "Plaça Espanya - Igualada",
+    "S2":      "Plaça Espanya - Castelldefels",
+    "S3":      "Plaça Espanya - Les Planes",
+    "S4":      "Plaça Espanya - Olesa de Montserrat",
+    "S5":      "Plaça Espanya - Rubí",
+    "S6":      "Plaça Espanya - Sant Joan Despí",
+    "S7":      "Plaça Espanya - Manresa",
+    "S8":      "Plaça Espanya - Martorell Enllaç",
+    "S33":     "Plaça Espanya - Martorell Enllaç",
+    "R5":      "Plaça Espanya - Manresa",
+    "R6":      "Plaça Espanya - Igualada",
+    # FGC Girona / Lleida
+    "L1":      "Plaça Catalunya - Vallvidrera Superior",
+    # Cremallera i funicular
+    "CR":      "Ribes de Freser - Núria",
+    "FM":      "Montserrat Aeri - Monistrol de Montserrat",
+    # Metro TMB
+    "L2":      "Badalona Pompeu Fabra - Pep Ventura",
+    "L3":      "Zona Universitària - Trinitat Nova",
+    "L4":      "La Pau - Trinitat Nova",
+    "L5":      "Cornellà Centre - Horta",
+    "L9N":     "La Sagrera - Can Zam / Gorg",
+    "L9S":     "Aeroport T1 - Zona Universitària",
+    "L10N":    "La Sagrera - Gorg",
+    "L10S":    "Zona Universitària - Foc",
+    "L11":     "Trinitat Nova - Can Cuiàs",
+    # Tram
+    "T1":      "Francesc Macià - Sant Feliu",
+    "T2":      "Francesc Macià - Quatre Camins",
+    "T3":      "Francesc Macià - Baix Llobregat",
+    "T4":      "Ciutadella - La Pau",
+    "T5":      "Glòries - Badalona Pompeu Fabra",
+    "T6":      "Glòries - Besòs",
+}
+
 CATEGORIES_ICONES = {
     "100 cims": "🏔️", "búnquer": "🪖", "castell": "🏰", "cova": "🕳️",
     "dolmen": "🪨", "ermita": "⛪", "ferrocarril": "🚂", "jaciment ibèric": "🏛️",
@@ -1309,7 +1363,9 @@ try:
             opcions = ["🚆 Línia"]
             for op in sorted(grups.keys()):
                 opcions.append(f"── {op} ──")
-                opcions.extend(sorted(grups[op]))
+                for l in sorted(grups[op]):
+                    recorregut = RECORREGUTS_LINIA.get(l, "")
+                    opcions.append(f"{l}  {recorregut}" if recorregut else l)
             return opcions
 
         # ── Llistat de rutes ordenat per Núm_Ruta ──
@@ -1345,29 +1401,36 @@ div[data-testid="stSelectbox"] label {
 }
 </style>""", unsafe_allow_html=True)
 
+        if "filtre_reset_counter" not in st.session_state:
+            st.session_state.filtre_reset_counter = 0
+
+        _reset_sfx = st.session_state.filtre_reset_counter
+
         col_f1, col_f2, col_f3 = st.columns([1, 1, 1])
         with col_f1:
             sel_est_btn = st.selectbox("Estació", est_options,
                 index=0 if not st.session_state.filtre_btn_estacio else
                       est_options.index(st.session_state.filtre_btn_estacio)
                       if st.session_state.filtre_btn_estacio in est_options else 0,
-                key="sel_est_btn", label_visibility="collapsed")
+                key=f"sel_est_btn_{_reset_sfx}", label_visibility="collapsed")
             st.session_state.filtre_btn_estacio = sel_est_btn if sel_est_btn != "🚉 Estació" and not sel_est_btn.startswith("──") else None
 
         with col_f2:
             sel_lin_btn = st.selectbox("Línia", lin_options,
-                index=0 if not st.session_state.filtre_btn_linia else
-                      lin_options.index(st.session_state.filtre_btn_linia)
-                      if st.session_state.filtre_btn_linia in lin_options else 0,
-                key="sel_lin_btn", label_visibility="collapsed")
-            st.session_state.filtre_btn_linia = sel_lin_btn if sel_lin_btn != "🚆 Línia" and not sel_lin_btn.startswith("──") else None
+                index=0,
+                key=f"sel_lin_btn_{_reset_sfx}", label_visibility="collapsed")
+            # Guardem el codi de línia real (sense el recorregut que va darrere dels dos espais)
+            if sel_lin_btn and sel_lin_btn != "🚆 Línia" and not sel_lin_btn.startswith("──"):
+                st.session_state.filtre_btn_linia = sel_lin_btn.split("  ")[0].strip()
+            else:
+                st.session_state.filtre_btn_linia = None
 
         with col_f3:
             sel_ruta_btn = st.selectbox("Llistat de rutes", ruta_options,
                 index=0 if not st.session_state.filtre_btn_ruta else
                       ruta_options.index(st.session_state.filtre_btn_ruta)
                       if st.session_state.filtre_btn_ruta in ruta_options else 0,
-                key="sel_ruta_btn", label_visibility="collapsed")
+                key=f"sel_ruta_btn_{_reset_sfx}", label_visibility="collapsed")
             st.session_state.filtre_btn_ruta = sel_ruta_btn if sel_ruta_btn != "📋 Llistat de rutes" else None
 
         if st.session_state.filtre_btn_estacio:
@@ -1397,6 +1460,7 @@ div[data-testid="stSelectbox"] label {
                 st.session_state.filtre_btn_estacio = None
                 st.session_state.filtre_btn_linia   = None
                 st.session_state.filtre_btn_ruta    = None
+                st.session_state.filtre_reset_counter = st.session_state.get("filtre_reset_counter", 0) + 1
                 st.rerun()
 
         st.write(f"**Resultats: {len(f)} rutes**")
