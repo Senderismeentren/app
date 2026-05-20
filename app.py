@@ -345,7 +345,7 @@ RECORREGUTS_LINIA = {
     "R1":      "Molins de Rei - Maçanet-Massanes",
     "R2":      "Sant Vicenç de Calders - Granollers Centre",
     "R2 Nord": "Aeroport - Maçanet-Massanes",
-    "R2 Sud":  "Estació de França - Sant Vicenç de Calders / Vilanova i la Geltrú",
+    "R2 Sud":  "Estació de França - Sant Vicenç de Calders",
     "R3":      "L'Hospitalet de Llobregat - Puigcerdà",
     "R4":      "Manresa - Sant Vicenç de Calders",
     "R7":      "Barcelona Sants - Martorell",
