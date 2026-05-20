@@ -1,5 +1,5 @@
 # ============================================================
-# SENDERISME EN TREN — v16
+# SENDERISME EN TREN — v86
 # ============================================================
 
 import streamlit as st
@@ -1131,6 +1131,8 @@ try:
         "cats":        buscar_col(["categories_elements_interes"]),
         "desc_ruta":   buscar_col(["descripcio_ruta"]),
         "espai":       buscar_col(["espai_natural"]),
+        "comarca_a":   buscar_col(["comarca_arribada"]),
+        "espai_a":     buscar_col(["espai_natural_arribada"]),
         "comentaris":  None,
         "desc":        buscar_col(["descripcio_ruta"]),
     }
@@ -1142,15 +1144,16 @@ try:
     if cols["baixada"]:
         df[cols["baixada"]] = pd.to_numeric(df[cols["baixada"]].astype(str).str.replace(',', '.'), errors='coerce').fillna(0)
 
-    def get_unique(col_name):
-        if col_name and col_name in df.columns:
-            vals = df[col_name].dropna().astype(str)
-            res  = set()
-            for v in vals:
-                for s in re.split(";|,", v):
-                    if s.strip(): res.add(s.strip())
-            return sorted(list(res))
-        return []
+    def get_unique(col_name, col_name2=None):
+        res = set()
+        for cn in [col_name, col_name2]:
+            if cn and cn in df.columns:
+                vals = df[cn].dropna().astype(str)
+                for v in vals:
+                    for s in re.split(";|,", v):
+                        if s.strip() and s.strip().lower() not in ("nan", ""):
+                            res.add(s.strip())
+        return sorted(list(res))
 
     # --- FILTRES SIDEBAR ---
     st.sidebar.header("🔎 Filtres")
@@ -1158,8 +1161,8 @@ try:
         '<img src="https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/logo-100cims.svg" width="80" style="margin-bottom:5px;">',
         unsafe_allow_html=True
     )
-    sel_100cims = st.sidebar.checkbox("Rutes amb 100 Cims")
-    cerca       = st.sidebar.text_input("📝 Paraula clau")
+    sel_100cims = st.sidebar.checkbox("Rutes amb 100 Cims", key="sb_100cims")
+    cerca       = st.sidebar.text_input("📝 Paraula clau", key="sb_cerca")
 
     # Construir estacions agrupades per operador
     def estacions_per_operador():
@@ -1198,7 +1201,8 @@ try:
     sel_sortida_raw = st.sidebar.multiselect(
         "🚉 Estació de sortida",
         opcions_estacions,
-        format_func=lambda x: x
+        format_func=lambda x: x,
+        key="sb_sortida"
     )
     # Filtrar capçaleres de grup
     sel_sortida = [e for e in sel_sortida_raw if not e.startswith("──")]
@@ -1212,19 +1216,20 @@ try:
     sel_linia_raw = st.sidebar.multiselect(
         "🚆 Línia de tren",
         opcions_linies,
-        format_func=lambda x: x
+        format_func=lambda x: x,
+        key="sb_linia"
     )
     sel_linia = [l for l in sel_linia_raw if not l.startswith("──")]
 
-    sel_op      = st.sidebar.multiselect("🏢 Operador", get_unique(cols["op_s"]))
-    sel_dif     = st.sidebar.multiselect("🧗 Dificultat", ["Molt fàcil","Fàcil","Moderada","Difícil","Molt difícil"])
+    sel_op      = st.sidebar.multiselect("🏢 Operador", get_unique(cols["op_s"], cols.get("op_a")), key="sb_op")
+    sel_dif     = st.sidebar.multiselect("🧗 Dificultat", ["Molt fàcil","Fàcil","Moderada","Difícil","Molt difícil"], key="sb_dif")
     min_desn    = float(df[cols["desn"]].min()) if cols["desn"] else 0.0
     max_desn    = float(df[cols["desn"]].max()) if cols["desn"] else 9999.0
-    sel_desn    = st.sidebar.slider("📈 Desnivell (m)", min_desn, max_desn, (min_desn, max_desn))
-    sel_comarca = st.sidebar.multiselect("📍 Comarca", get_unique(cols["comarca"]))
-    sel_espai   = st.sidebar.multiselect("🌲 Espai natural", get_unique(cols.get("espai")))
+    sel_desn    = st.sidebar.slider("📈 Desnivell (m)", min_desn, max_desn, (min_desn, max_desn), key="sb_desn")
+    sel_comarca = st.sidebar.multiselect("📍 Comarca", get_unique(cols["comarca"], cols.get("comarca_a")), key="sb_comarca")
+    sel_espai   = st.sidebar.multiselect("🌲 Espai natural", get_unique(cols.get("espai"), cols.get("espai_a")), key="sb_espai")
     min_km, max_km = float(df[cols["km"]].min()), float(df[cols["km"]].max())
-    sel_km      = st.sidebar.slider("📏 Distància (km)", min_km, max_km, (min_km, max_km))
+    sel_km      = st.sidebar.slider("📏 Distància (km)", min_km, max_km, (min_km, max_km), key="sb_km")
 
     # --- APLICAR FILTRES SIDEBAR ---
     f = df.copy()
@@ -1235,15 +1240,23 @@ try:
     if sel_sortida:
         f = f[f[cols["sortida"]].astype(str).apply(lambda x: any(s in x for s in sel_sortida))]
     if sel_linia:
-        f = f[f[cols["linia_s"]].astype(str).apply(lambda x: any(l in x for l in sel_linia))]
+        mask_s = f[cols["linia_s"]].astype(str).apply(lambda x: any(l in x for l in sel_linia))
+        mask_a = f[cols["linia_a"]].astype(str).apply(lambda x: any(l in x for l in sel_linia)) if cols.get("linia_a") else pd.Series(False, index=f.index)
+        f = f[mask_s | mask_a]
     if sel_op and cols.get("op_s"):
-        f = f[f[cols["op_s"]].astype(str).apply(lambda x: any(o in x for o in sel_op))]
+        mask_s = f[cols["op_s"]].astype(str).apply(lambda x: any(o in x for o in sel_op))
+        mask_a = f[cols["op_a"]].astype(str).apply(lambda x: any(o in x for o in sel_op)) if cols.get("op_a") else pd.Series(False, index=f.index)
+        f = f[mask_s | mask_a]
     if sel_dif:
         f = f[f[cols["dif"]].astype(str).apply(lambda x: any(d in x for d in sel_dif))]
     if sel_comarca:
-        f = f[f[cols["comarca"]].astype(str).apply(lambda x: any(c in x for c in sel_comarca))]
+        mask_s = f[cols["comarca"]].astype(str).apply(lambda x: any(c in x for c in sel_comarca))
+        mask_a = f[cols["comarca_a"]].astype(str).apply(lambda x: any(c in x for c in sel_comarca)) if cols.get("comarca_a") else pd.Series(False, index=f.index)
+        f = f[mask_s | mask_a]
     if sel_espai:
-        f = f[f[cols["espai"]].astype(str).apply(lambda x: any(e in x for e in sel_espai))]
+        mask_s = f[cols["espai"]].astype(str).apply(lambda x: any(e in x for e in sel_espai))
+        mask_a = f[cols["espai_a"]].astype(str).apply(lambda x: any(e in x for e in sel_espai)) if cols.get("espai_a") else pd.Series(False, index=f.index)
+        f = f[mask_s | mask_a]
     f = f[(f[cols["km"]] >= sel_km[0]) & (f[cols["km"]] <= sel_km[1])]
     if cols["desn"]:
         f = f[(f[cols["desn"]] >= sel_desn[0]) & (f[cols["desn"]] <= sel_desn[1])]
@@ -1486,10 +1499,23 @@ div[data-testid="stSelectbox"] label {
         # ── Botó Netejar filtres (sempre visible al menú lateral) ──
         st.sidebar.markdown("---")
         if st.sidebar.button("🗑️ Netejar filtres", key="btn_netejar_filtres", use_container_width=True):
+            # Filtres dels tres desplegables
             st.session_state.filtre_btn_estacio = None
             st.session_state.filtre_btn_linia   = None
             st.session_state.filtre_btn_ruta    = None
             st.session_state.filtre_reset_counter = st.session_state.get("filtre_reset_counter", 0) + 1
+            # Filtres del sidebar (multiselect i sliders)
+            for key in ["sb_op", "sb_dif", "sb_comarca", "sb_espai", "sb_sortida", "sb_linia"]:
+                if key in st.session_state:
+                    st.session_state[key] = []
+            for key in ["sb_desn", "sb_km"]:
+                if key in st.session_state:
+                    del st.session_state[key]
+            # Checkbox i text input
+            if "sb_100cims" in st.session_state:
+                st.session_state["sb_100cims"] = False
+            if "sb_cerca" in st.session_state:
+                st.session_state["sb_cerca"] = ""
             st.rerun()
 
         st.write(f"**Resultats: {len(f)} rutes**")
