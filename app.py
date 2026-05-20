@@ -345,12 +345,17 @@ RECORREGUTS_LINIA = {
     "R1":      "Molins de Rei - Maçanet-Massanes",
     "R2":      "Sant Vicenç de Calders - Granollers Centre",
     "R2 Nord": "Aeroport - Maçanet-Massanes",
-    "R2 Sud":  "Vilanova i la Geltrú - Granollers Centre",
+    "R2 Sud":  "Estació de França - Sant Vicenç de Calders / Vilanova i la Geltrú",
     "R3":      "L'Hospitalet de Llobregat - Puigcerdà",
     "R4":      "Manresa - Sant Vicenç de Calders",
     "R7":      "Barcelona Sants - Martorell",
     "R8":      "Martorell - Granollers Centre",
     "R11":     "L'Hospitalet de Llobregat - Aeroport",
+    "R13":     "Barcelona - Lleida (per Valls)",
+    "R14":     "Barcelona - Lleida (per Tarragona i Reus)",
+    "R15":     "Barcelona - Reus - Riba-roja d'Ebre",
+    "R16":     "Barcelona - Tarragona - Tortosa / Ulldecona",
+    "R17":     "Barcelona - Salou-Port Aventura",
     "RG1":     "Girona - Portbou",
     "RG2":     "Girona - Figueres",
     "RL1":     "Lleida - La Pobla de Segur",
@@ -359,19 +364,24 @@ RECORREGUTS_LINIA = {
     # FGC Metropolità
     "L6":      "Reina Elisenda - Av. Tibidabo",
     "L7":      "Plaça Catalunya - Av. Tibidabo",
+    "L8":      "Plaça Espanya - Molí Nou-Ciutat Cooperativa",
     "S1":      "Plaça Espanya - Igualada",
     "S2":      "Plaça Espanya - Castelldefels",
-    "S3":      "Plaça Espanya - Les Planes",
+    "S3":      "Plaça Espanya - Les Planes / Can Ros",
     "S4":      "Plaça Espanya - Olesa de Montserrat",
     "S5":      "Plaça Espanya - Rubí",
     "S6":      "Plaça Espanya - Sant Joan Despí",
     "S7":      "Plaça Espanya - Manresa",
     "S8":      "Plaça Espanya - Martorell Enllaç",
+    "S9":      "Plaça Espanya - Quatre Camins",
     "S33":     "Plaça Espanya - Martorell Enllaç",
     "R5":      "Plaça Espanya - Manresa",
+    "R50":     "Plaça Espanya - Manresa (via Montserrat)",
     "R6":      "Plaça Espanya - Igualada",
+    "R60":     "Plaça Espanya - Igualada (directe)",
     # FGC Girona / Lleida
     "L1":      "Plaça Catalunya - Vallvidrera Superior",
+    "RL2":     "Lleida - La Pobla de Segur",
     # Cremallera i funicular
     "CR":      "Ribes de Freser - Núria",
     "FM":      "Montserrat Aeri - Monistrol de Montserrat",
@@ -945,12 +955,6 @@ def render_ruta_completa(row, cols, context="llista"):
     # Descripció de la ruta (columna Descripció_ruta)
     desc_ruta_val = str(row[cols["desc_ruta"]]).strip() if cols.get("desc_ruta") and pd.notna(row[cols["desc_ruta"]]) and str(row[cols["desc_ruta"]]).strip() not in ("nan","") else ""
 
-    # Horaris
-    id_est_s = str(row[cols["id_est_s"]]).strip() if cols.get("id_est_s") and pd.notna(row[cols["id_est_s"]]) else ""
-    id_est_a = str(row[cols["id_est_a"]]).strip() if cols.get("id_est_a") and pd.notna(row[cols["id_est_a"]]) else ""
-    horaris_sortida  = horaris_html_bloc(s_est, row[cols["linia_s"]] if cols.get("linia_s") else "", row[cols["op_s"]] if cols.get("op_s") else "", dif_color, id_est_s, "sortida")
-    horaris_arribada = horaris_html_bloc(a_est, row[cols["linia_a"]] if cols.get("linia_a") else "", row[cols["op_a"]] if cols.get("op_a") else "", dif_color, id_est_a, "arribada") if s_est.lower() != a_est.lower() else ""
-
     perfil_bloc = ""
     if svg_perfil_html:
         perfil_bloc = (
@@ -988,13 +992,7 @@ def render_ruta_completa(row, cols, context="llista"):
          f"{punts_html_content}</div>" if punts_html_content else "") +
 
         # 4. Perfil
-        perfil_bloc +
-
-        # 5. Horaris
-        f"<div style='{SEP_SECCIO}'>"
-        f"<div style='{TITOL_SECCIO}'>🕐 Horaris de tren</div>"
-        + horaris_sortida + horaris_arribada +
-        f"</div>"
+        perfil_bloc
     )
 
     etiquetes_html = f"<div style='padding:2px 12px 8px;'>{etiquetes}</div>" if etiquetes else ""
