@@ -564,6 +564,74 @@ def mostrar_mapa_gpx(ruta_id, lat_s, lng_s, lat_a, lng_a, context="llista"):
     except:
         return False
 
+@st.cache_data(ttl=3600)
+def miniatura_mapa_svg(ruta_id):
+    """Genera un SVG petit amb el traçat geogràfic de la ruta (per mostrar dins la caixa)."""
+    gpx_url = BASE_GPX_URL.format(id=int(ruta_id))
+    try:
+        resp = requests.get(gpx_url, timeout=10)
+        if resp.status_code != 200:
+            return None
+        gpx   = gpxpy.parse(resp.text)
+        punts = [(p.latitude, p.longitude)
+                 for t in gpx.tracks for s in t.segments for p in s.points]
+        if len(punts) < 2:
+            return None
+
+        import math
+
+        # Submostrar per eficiència
+        pas = max(1, len(punts) // 300)
+        punts = punts[::pas]
+        if punts[-1] != punts[-1]:  # sempre incloure últim punt
+            punts.append(punts[-1])
+
+        lats = [p[0] for p in punts]
+        lons = [p[1] for p in punts]
+        lat_min, lat_max = min(lats), max(lats)
+        lon_min, lon_max = min(lons), max(lons)
+
+        # Correcció de projecció Mercator (amplada ajustada per latitud)
+        lat_mid = math.radians((lat_min + lat_max) / 2)
+        cos_lat = math.cos(lat_mid)
+
+        lat_rang = max(lat_max - lat_min, 0.001)
+        lon_rang = max((lon_max - lon_min) * cos_lat, 0.001)
+
+        W, H = 110, 90
+        pad = 6
+
+        def to_svg(lat, lon):
+            x = pad + ((lon - lon_min) * cos_lat / lon_rang) * (W - 2 * pad)
+            y = (H - pad) - ((lat - lat_min) / lat_rang) * (H - 2 * pad)
+            return x, y
+
+        svg_pts = [to_svg(lat, lon) for lat, lon in punts]
+        poly    = " ".join(f"{x:.1f},{y:.1f}" for x, y in svg_pts)
+
+        # Punt de sortida (primer) i arribada (últim)
+        x0, y0 = svg_pts[0]
+        xf, yf = svg_pts[-1]
+        is_circular = math.hypot(lats[0] - lats[-1], lons[0] - lons[-1]) < 0.005
+
+        # Marker de sortida (cercle verd) i d'arribada (bandera roja) si no circular
+        markers = f'<circle cx="{x0:.1f}" cy="{y0:.1f}" r="3.5" fill="#1D9E75" stroke="white" stroke-width="1.2"/>'
+        if not is_circular:
+            markers += f'<circle cx="{xf:.1f}" cy="{yf:.1f}" r="3.5" fill="#E24B4A" stroke="white" stroke-width="1.2"/>'
+
+        svg = (
+            f'<svg viewBox="0 0 {W} {H}" xmlns="http://www.w3.org/2000/svg" '
+            f'style="width:{W}px;height:{H}px;border-radius:6px 0 0 6px;display:block;flex-shrink:0;">'
+            f'<rect width="{W}" height="{H}" fill="#e8eff5" rx="6" ry="0"/>'
+            f'<polyline points="{poly}" fill="none" stroke="#3a7bd5" stroke-width="2" '
+            f'stroke-linejoin="round" stroke-linecap="round" opacity="0.9"/>'
+            f'{markers}'
+            f'</svg>'
+        )
+        return svg
+    except:
+        return None
+
 def perfil_elevacio_svg(ruta_id, dif_color):
     gpx_url = BASE_GPX_URL.format(id=int(ruta_id))
     try:
@@ -997,13 +1065,25 @@ def render_ruta_completa(row, cols, context="llista"):
 
     etiquetes_html = f"<div style='padding:2px 12px 8px;'>{etiquetes}</div>" if etiquetes else ""
 
+    # Miniatura del mapa (SVG estàtic del traçat)
+    mini_svg = miniatura_mapa_svg(ruta_id) if ruta_id else None
+    mini_html = mini_svg if mini_svg else (
+        f"<div style='width:110px;height:90px;flex-shrink:0;border-radius:6px 0 0 0;"
+        f"background:#e8eff5;display:flex;align-items:center;justify-content:center;'>"
+        f"<span style='font-size:22px;opacity:0.4;'>🗺️</span></div>"
+    )
+
     card_html = (
         f"<div style='margin-top:12px;border:1px solid {dif_color}44;border-left:5px solid {dif_color};"
-        f"border-radius:8px;overflow:visible;background:white;'>"
+        f"border-radius:8px;overflow:hidden;background:white;'>"
+        # Capçalera: miniatura esquerra + contingut dreta
+        f"<div style='display:flex;align-items:stretch;'>"
+        f"<div style='flex-shrink:0;overflow:hidden;border-radius:6px 0 0 0;'>{mini_html}</div>"
+        f"<div style='flex:1;min-width:0;'>"
         f"<div style='background:{dif_color}18;padding:10px 12px;display:flex;align-items:center;gap:10px;'>"
         f"<div style='width:26px;height:26px;border-radius:50%;background:{dif_color};color:white;"
         f"font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;'>{ruta_id}</div>"
-        f"<div style='flex:1;font-size:14px;font-weight:700;color:#111;'>{nom_ruta}</div>"
+        f"<div style='flex:1;font-size:14px;font-weight:700;color:#111;line-height:1.3;'>{nom_ruta}</div>"
         f"<span style='font-size:10px;font-weight:700;background:{dif_color};color:white;"
         f"padding:2px 9px;border-radius:20px;flex-shrink:0;text-transform:uppercase;letter-spacing:0.5px;'>{dif_raw}</span>"
         f"</div>"
@@ -1016,6 +1096,8 @@ def render_ruta_completa(row, cols, context="llista"):
         f"<div style='font-size:14px;font-weight:700;color:#111;'>{temps_fmt}</div></div>"
         f"</div>"
         + etiquetes_html +
+        f"</div>"  # tanca columna dreta
+        f"</div>"  # tanca flex capçalera
         f"<details id='det_{ruta_id}' style='border-top:1px solid #eee;'>"
         f"<summary style='list-style:none;padding:0;cursor:pointer;display:block;' "
         f"onclick=\"this.parentElement.open ? "
