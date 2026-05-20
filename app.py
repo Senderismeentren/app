@@ -966,38 +966,47 @@ def render_ruta_completa(row, cols, context="llista"):
     perfil_bloc = ""
     if svg_perfil_html:
         perfil_bloc = (
-            f"<div style='margin-top:12px;border-top:1px solid #eee;padding-top:10px;'>"
-            f"<div style='font-size:16px;font-weight:700;color:#222;margin-bottom:8px;'>Perfil de la ruta</div>"
-            + svg_perfil_html + alt_info_html + barra_dif +
+            f"<div style='margin-top:10px;border:1px solid #e0e0e0;border-radius:8px;overflow:hidden;'>"
+            f"<div style='background:#f5f5f5;padding:8px 12px;border-bottom:1px solid #e0e0e0;'>"
+            f"<span style='font-size:13px;font-weight:700;color:#444;text-transform:uppercase;letter-spacing:0.5px;'>⛰️ Perfil de la ruta</span>"
             f"</div>"
+            f"<div style='padding:10px 12px;'>"
+            + svg_perfil_html + alt_info_html + barra_dif +
+            f"</div></div>"
         )
 
-    TITOL_SECCIO = "font-size:16px;font-weight:700;color:#222;margin-bottom:8px;"
-    SEP_SECCIO   = "margin-top:12px;border-top:1px solid #eee;padding-top:10px;"
+    TITOL_SECCIO = "font-size:13px;font-weight:700;color:#444;text-transform:uppercase;letter-spacing:0.5px;"
+    CAP_SECCIO   = "background:#f5f5f5;padding:8px 12px;border-bottom:1px solid #e0e0e0;"
+    COS_SECCIO   = "padding:10px 12px;"
+    BOX_SECCIO   = "margin-top:10px;border:1px solid #e0e0e0;border-radius:8px;overflow:hidden;"
 
     # Descripció de la ruta (columna Descripció_ruta) — just a sobre de les estacions
     desc_ruta_html = ""
     if desc_ruta_val:
         desc_ruta_html = (
-            f"<div style='margin-bottom:10px;'>"
-            f"<div style='{TITOL_SECCIO}'>Descripció de la ruta</div>"
-            f"<div style='font-size:14px;color:#444;line-height:1.6;'>{desc_ruta_val}</div>"
+            f"<div style='{BOX_SECCIO}'>"
+            f"<div style='{CAP_SECCIO}'><span style='{TITOL_SECCIO}'>📋 Descripció de la ruta</span></div>"
+            f"<div style='{COS_SECCIO}font-size:14px;color:#444;line-height:1.6;'>{desc_ruta_val}</div>"
             f"</div>"
         )
 
     detalls_html = (
-        # 1. Dades (descripció primer, títol "Dades" just a sobre de les estacions)
-        f"<div style='{SEP_SECCIO}'>"
-        + desc_ruta_html
-        + f"<div style='{TITOL_SECCIO}'>Dades</div>"
+        # 1. Dades
+        f"<div style='{BOX_SECCIO}'>"
+        f"<div style='{CAP_SECCIO}'><span style='{TITOL_SECCIO}'>📊 Dades</span></div>"
+        f"<div style='{COS_SECCIO}'>"
         + estacions_html
         + graella +
-        f"</div>" +
+        f"</div></div>" +
+
+        # 2. Descripció
+        desc_ruta_html +
 
         # 3. Punts d'interès
-        (f"<div style='{SEP_SECCIO}'>"
-         f"<div style='{TITOL_SECCIO}'>Punts d'interès</div>"
-         f"{punts_html_content}</div>" if punts_html_content else "") +
+        (f"<div style='{BOX_SECCIO}'>"
+         f"<div style='{CAP_SECCIO}'><span style='{TITOL_SECCIO}'>📍 Punts d'interès</span></div>"
+         f"<div style='{COS_SECCIO}'>{punts_html_content}</div>"
+         f"</div>" if punts_html_content else "") +
 
         # 4. Perfil
         perfil_bloc
