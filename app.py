@@ -345,7 +345,7 @@ RECORREGUTS_LINIA = {
     "R1":      "Molins de Rei - Maçanet-Massanes",
     "R2":      "Sant Vicenç de Calders - Granollers Centre",
     "R2 Nord": "Aeroport - Maçanet-Massanes",
-    "R2 Sud":  "Estació de França - Sant Vicenç de Calders",
+    "R2 Sud":  "Estació de França - Sant Vicenç de Calders / Vilanova i la Geltrú",
     "R3":      "L'Hospitalet de Llobregat - Puigcerdà",
     "R4":      "Manresa - Sant Vicenç de Calders",
     "R7":      "Barcelona Sants - Martorell",
@@ -487,7 +487,15 @@ def punts_interes_html(elements_str, categories_str):
     targetes = []
     for i, element in enumerate(elements):
         categoria = categories[i] if i < len(categories) else ""
-        icona     = CATEGORIES_ICONES.get(categoria, "📍")
+        # Cerca exacta primer, després cerca parcial per si la categoria conté la clau
+        icona = CATEGORIES_ICONES.get(categoria)
+        if not icona:
+            for clau, ico in CATEGORIES_ICONES.items():
+                if clau in categoria or categoria in clau:
+                    icona = ico
+                    break
+        if not icona:
+            icona = "📍"
         targetes.append(
             "<div style=\"display:flex;align-items:center;gap:8px;background:#f8f9fa;"
             "border-radius:8px;padding:7px 10px;font-size:13px;color:#333;\">"
@@ -875,7 +883,7 @@ def render_ruta_completa(row, cols, context="llista"):
         estacions_html = (
             f"<div style='display:flex;align-items:center;gap:10px;padding:10px 0 2px;'>"
             f"<div style='flex:1;'>"
-            f"<div style='font-size:9px;color:#999;text-transform:uppercase;letter-spacing:0.5px;font-weight:600;'>Estació de sortida</div>"
+            f"<div style='font-size:11px;color:#999;text-transform:uppercase;letter-spacing:0.5px;font-weight:600;'>Estació de sortida</div>"
             f"<div style='font-size:14px;font-weight:700;color:#111;display:flex;align-items:center;gap:6px;margin-top:2px;'>"
             f"<span style='width:9px;height:9px;border-radius:50%;background:#1D9E75;display:inline-block;'></span>"
             f"<a href='https://www.google.com/maps/search/{s_est}+estacio' target='_blank' style='text-decoration:none;color:#111;'>{s_est}</a>"
@@ -884,7 +892,7 @@ def render_ruta_completa(row, cols, context="llista"):
             f"</div>"
             f"<div style='display:flex;align-items:center;gap:10px;padding:2px 0 8px;'>"
             f"<div style='flex:1;'>"
-            f"<div style='font-size:9px;color:#999;text-transform:uppercase;letter-spacing:0.5px;font-weight:600;'>Estació d'arribada</div>"
+            f"<div style='font-size:11px;color:#999;text-transform:uppercase;letter-spacing:0.5px;font-weight:600;'>Estació d'arribada</div>"
             f"<div style='font-size:14px;font-weight:700;color:#111;display:flex;align-items:center;gap:6px;margin-top:2px;'>"
             f"<span style='width:9px;height:9px;border-radius:50%;background:#E24B4A;display:inline-block;'></span>"
             f"<a href='https://www.google.com/maps/search/{a_est}+estacio' target='_blank' style='text-decoration:none;color:#111;'>{a_est}</a>"
@@ -909,7 +917,7 @@ def render_ruta_completa(row, cols, context="llista"):
         return (
             f"<div style='display:flex;gap:8px;align-items:flex-start;padding:8px 0;'>"
             f"<span style='font-size:16px;color:#aaa;flex-shrink:0;width:20px;margin-top:2px;'>{icon}</span>"
-            f"<div><div style='font-size:9px;text-transform:uppercase;letter-spacing:0.5px;color:#bbb;font-weight:600;'>{label}</div>"
+            f"<div><div style='font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:#bbb;font-weight:600;'>{label}</div>"
             f"<div style='font-size:13px;font-weight:600;color:#222;margin-top:1px;'>{val1}</div>{v2}</div>"
             f"</div>"
         )
@@ -1031,12 +1039,12 @@ def render_ruta_completa(row, cols, context="llista"):
         f"<summary style='list-style:none;padding:0;cursor:pointer;display:block;' "
         f"onclick=\"this.parentElement.open ? "
         f"this.querySelector('.det-btn').textContent='Tancar ruta' : "
-        f"this.querySelector('.det-btn').textContent='Veure ruta'\">"
+        f"this.querySelector('.det-btn').textContent='Veure detalls'\">"
         f"<div style='display:flex;justify-content:center;gap:10px;margin:10px 0 12px;flex-wrap:wrap;'>"
         f"<div class='det-btn' style='background:{dif_color};color:white;border-radius:8px;"
         f"padding:10px 24px;text-align:center;font-size:14px;font-weight:700;letter-spacing:0.3px;"
         f"box-shadow:0 2px 6px {dif_color}55;min-width:160px;cursor:pointer;'>"
-        f"Veure ruta</div>"
+        f"Veure detalls</div>"
         + wikiloc_btn +
         f"</div></summary>"
         f"<div style='padding:4px 12px 16px;'>"
@@ -1114,7 +1122,7 @@ try:
         "elements":    buscar_col(["elements_interes"]),
         "cats":        buscar_col(["categories_elements_interes"]),
         "desc_ruta":   buscar_col(["descripcio_ruta"]),
-        "espai":       None,
+        "espai":       buscar_col(["espai_natural"]),
         "comentaris":  None,
         "desc":        buscar_col(["descripcio_ruta"]),
     }
