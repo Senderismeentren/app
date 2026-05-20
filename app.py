@@ -990,16 +990,16 @@ def render_ruta_completa(row, cols, context="llista"):
         )
 
     detalls_html = (
-        # 1. Dades
+        # 1. Descripció de la ruta (primera)
+        desc_ruta_html +
+
+        # 2. Dades
         f"<div style='{BOX_SECCIO}'>"
         f"<div style='{CAP_SECCIO}'><span style='{TITOL_SECCIO}'>📊 Dades</span></div>"
         f"<div style='{COS_SECCIO}'>"
         + estacions_html
         + graella +
         f"</div></div>" +
-
-        # 2. Descripció
-        desc_ruta_html +
 
         # 3. Punts d'interès
         (f"<div style='{BOX_SECCIO}'>"
@@ -1217,7 +1217,7 @@ try:
     sel_linia = [l for l in sel_linia_raw if not l.startswith("──")]
 
     sel_op      = st.sidebar.multiselect("🏢 Operador", get_unique(cols["op_s"]))
-    sel_dif     = st.sidebar.multiselect("🧗 Dificultat", ["Molt Fàcil","Fàcil","Moderada","Difícil","Molt difícil"])
+    sel_dif     = st.sidebar.multiselect("🧗 Dificultat", ["Molt fàcil","Fàcil","Moderada","Difícil","Molt difícil"])
     min_desn    = float(df[cols["desn"]].min()) if cols["desn"] else 0.0
     max_desn    = float(df[cols["desn"]].max()) if cols["desn"] else 9999.0
     sel_desn    = st.sidebar.slider("📈 Desnivell (m)", min_desn, max_desn, (min_desn, max_desn))
@@ -1462,14 +1462,20 @@ div[data-testid="stSelectbox"] label {
             st.session_state.filtre_btn_ruta = sel_ruta_btn if sel_ruta_btn != "📋 Llistat de rutes" else None
 
         if st.session_state.filtre_btn_estacio:
+            # Estació de sortida: només cerca a la columna sortida
             f = f[
-                (f[cols["sortida"]].astype(str).str.strip() == st.session_state.filtre_btn_estacio) |
-                (f[cols["arribada"]].astype(str).str.strip() == st.session_state.filtre_btn_estacio)
+                f[cols["sortida"]].astype(str).str.strip() == st.session_state.filtre_btn_estacio
             ]
         if st.session_state.filtre_btn_linia:
-            f = f[f[cols["linia_s"]].astype(str).apply(
-                lambda x: st.session_state.filtre_btn_linia in [l.strip() for l in x.split(";")]
-            )]
+            _lin = st.session_state.filtre_btn_linia
+            # Cerca la línia tant a sortida com a arribada
+            mask_s = f[cols["linia_s"]].astype(str).apply(
+                lambda x: _lin in [l.strip() for l in x.split(";")]
+            )
+            mask_a = f[cols["linia_a"]].astype(str).apply(
+                lambda x: _lin in [l.strip() for l in x.split(";")]
+            ) if cols.get("linia_a") else pd.Series([False] * len(f), index=f.index)
+            f = f[mask_s | mask_a]
         if st.session_state.filtre_btn_ruta and cols.get("id") and cols.get("ruta"):
             # Extraiem el número de la selecció "ST001 · Nom ruta"
             _codi_sel = st.session_state.filtre_btn_ruta.split(" · ")[0].replace("ST","").lstrip("0") or "0"
@@ -1477,19 +1483,14 @@ div[data-testid="stSelectbox"] label {
                 lambda x: (x or "0") == _codi_sel
             )]
 
-        # ── Botó per netejar tots tres filtres ──
-        _algun_filtre = (
-            st.session_state.get("filtre_btn_estacio") or
-            st.session_state.get("filtre_btn_linia") or
-            st.session_state.get("filtre_btn_ruta")
-        )
-        if _algun_filtre:
-            if st.button("✖ Treure tots els filtres", key="btn_treure_tots"):
-                st.session_state.filtre_btn_estacio = None
-                st.session_state.filtre_btn_linia   = None
-                st.session_state.filtre_btn_ruta    = None
-                st.session_state.filtre_reset_counter = st.session_state.get("filtre_reset_counter", 0) + 1
-                st.rerun()
+        # ── Botó Netejar filtres (sempre visible al menú lateral) ──
+        st.sidebar.markdown("---")
+        if st.sidebar.button("🗑️ Netejar filtres", key="btn_netejar_filtres", use_container_width=True):
+            st.session_state.filtre_btn_estacio = None
+            st.session_state.filtre_btn_linia   = None
+            st.session_state.filtre_btn_ruta    = None
+            st.session_state.filtre_reset_counter = st.session_state.get("filtre_reset_counter", 0) + 1
+            st.rerun()
 
         st.write(f"**Resultats: {len(f)} rutes**")
 
