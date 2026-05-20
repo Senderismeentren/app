@@ -1,5 +1,5 @@
 # ============================================================
-# SENDERISME EN TREN — v86
+# SENDERISME EN TREN — v16
 # ============================================================
 
 import streamlit as st
@@ -1161,6 +1161,27 @@ try:
         '<img src="https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/logo-100cims.svg" width="80" style="margin-bottom:5px;">',
         unsafe_allow_html=True
     )
+
+    # ── Botó Netejar filtres — ABANS dels widgets per poder modificar session_state ──
+    st.sidebar.markdown("---")
+    if st.sidebar.button("🗑️ Netejar filtres", key="btn_netejar_filtres", use_container_width=True):
+        st.session_state.filtre_btn_estacio = None
+        st.session_state.filtre_btn_linia   = None
+        st.session_state.filtre_btn_ruta    = None
+        st.session_state.filtre_reset_counter = st.session_state.get("filtre_reset_counter", 0) + 1
+        for key in ["sb_op", "sb_dif", "sb_comarca", "sb_espai", "sb_sortida", "sb_linia"]:
+            if key in st.session_state:
+                st.session_state[key] = []
+        for key in ["sb_desn", "sb_km"]:
+            if key in st.session_state:
+                del st.session_state[key]
+        if "sb_100cims" in st.session_state:
+            st.session_state["sb_100cims"] = False
+        if "sb_cerca" in st.session_state:
+            st.session_state["sb_cerca"] = ""
+        st.rerun()
+    st.sidebar.markdown("---")
+
     sel_100cims = st.sidebar.checkbox("Rutes amb 100 Cims", key="sb_100cims")
     cerca       = st.sidebar.text_input("📝 Paraula clau", key="sb_cerca")
 
@@ -1204,7 +1225,6 @@ try:
         format_func=lambda x: x,
         key="sb_sortida"
     )
-    # Filtrar capçaleres de grup
     sel_sortida = [e for e in sel_sortida_raw if not e.startswith("──")]
 
     # Multiselect línies amb grups visuals
@@ -1221,15 +1241,70 @@ try:
     )
     sel_linia = [l for l in sel_linia_raw if not l.startswith("──")]
 
-    sel_op      = st.sidebar.multiselect("🏢 Operador", get_unique(cols["op_s"], cols.get("op_a")), key="sb_op")
-    sel_dif     = st.sidebar.multiselect("🧗 Dificultat", ["Molt fàcil","Fàcil","Moderada","Difícil","Molt difícil"], key="sb_dif")
-    min_desn    = float(df[cols["desn"]].min()) if cols["desn"] else 0.0
-    max_desn    = float(df[cols["desn"]].max()) if cols["desn"] else 9999.0
-    sel_desn    = st.sidebar.slider("📈 Desnivell (m)", min_desn, max_desn, (min_desn, max_desn), key="sb_desn")
-    sel_comarca = st.sidebar.multiselect("📍 Comarca", get_unique(cols["comarca"], cols.get("comarca_a")), key="sb_comarca")
-    sel_espai   = st.sidebar.multiselect("🌲 Espai natural", get_unique(cols.get("espai"), cols.get("espai_a")), key="sb_espai")
+    sel_op  = st.sidebar.multiselect("🏢 Operador", get_unique(cols["op_s"], cols.get("op_a")), key="sb_op")
+    sel_dif = st.sidebar.multiselect("🧗 Dificultat", ["Molt Fàcil", "Fàcil", "Moderada", "Exigent", "Molt exigent"], key="sb_dif")
+
+    # ── Comarca ordenada per provincies ──
+    COMARQUES_PROVINCIA = {
+        "Barcelona": [
+            "Alt Penedès","Anoia","Bages","Baix Llobregat","Barcelonès","Berguedà",
+            "Garraf","Maresme","Moianès","Osona","Vallès Occidental","Vallès Oriental",
+        ],
+        "Girona": [
+            "Alt Empordà","Baix Empordà","Cerdanya","Garrotxa","Gironès","Pla de l'Estany",
+            "Ripollès","Selva","Osona",
+        ],
+        "Lleida": [
+            "Alta Ribagorça","Alt Urgell","Cerdanya","Garrigues","Noguera","Pallars Jussà",
+            "Pallars Sobirà","Pla d'Urgell","Segarra","Segrià","Solsonès","Urgell",
+            "Val d'Aran",
+        ],
+        "Tarragona": [
+            "Alt Camp","Baix Camp","Baix Ebre","Baix Penedès","Conca de Barberà",
+            "Montsià","Priorat","Ribera d'Ebre","Tarragonès","Terra Alta",
+        ],
+        "Catalunya Nord": [
+            "Alt Conflent","Capcir","Cerdanya","Conflent","Fenolledès","Rosselló",
+            "Vallespir",
+        ],
+        "Aragó": [],
+        "País Valencià": [],
+        "Occitània": [],
+        "Madrid": [],
+    }
+
+    def comarques_agrupades():
+        totes = set(get_unique(cols["comarca"], cols.get("comarca_a")))
+        opcions = []
+        assignades = set()
+        for provincia, llista in COMARQUES_PROVINCIA.items():
+            comarques_prov = [c for c in llista if c in totes]
+            # Afegir també comarques de l'Excel que no estan a la llista predefinida
+            # però que podrien pertànyer a aquesta provincia si coincideix el nom
+            if comarques_prov:
+                opcions.append(f"── {provincia} ──")
+                for c in sorted(comarques_prov):
+                    opcions.append(c)
+                    assignades.add(c)
+        # Comarques que no hem assignat a cap provincia
+        sense_assignar = [c for c in sorted(totes) if c not in assignades]
+        if sense_assignar:
+            opcions.append("── Altres ──")
+            opcions.extend(sense_assignar)
+        return opcions
+
+    opcions_comarques = comarques_agrupades()
+    sel_comarca_raw = st.sidebar.multiselect("📍 Comarca", opcions_comarques, format_func=lambda x: x, key="sb_comarca")
+    sel_comarca = [c for c in sel_comarca_raw if not c.startswith("──")]
+
+    sel_espai = st.sidebar.multiselect("🌲 Espai natural", get_unique(cols.get("espai"), cols.get("espai_a")), key="sb_espai")
+
     min_km, max_km = float(df[cols["km"]].min()), float(df[cols["km"]].max())
-    sel_km      = st.sidebar.slider("📏 Distància (km)", min_km, max_km, (min_km, max_km), key="sb_km")
+    sel_km   = st.sidebar.slider("📏 Distància (km)", min_km, max_km, (min_km, max_km), key="sb_km")
+
+    min_desn = float(df[cols["desn"]].min()) if cols["desn"] else 0.0
+    max_desn = float(df[cols["desn"]].max()) if cols["desn"] else 9999.0
+    sel_desn = st.sidebar.slider("📈 Desnivell (m)", min_desn, max_desn, (min_desn, max_desn), key="sb_desn")
 
     # --- APLICAR FILTRES SIDEBAR ---
     f = df.copy()
@@ -1495,28 +1570,6 @@ div[data-testid="stSelectbox"] label {
             f = f[f[cols["id"]].astype(str).str.replace(".0","",regex=False).str.lstrip("0").apply(
                 lambda x: (x or "0") == _codi_sel
             )]
-
-        # ── Botó Netejar filtres (sempre visible al menú lateral) ──
-        st.sidebar.markdown("---")
-        if st.sidebar.button("🗑️ Netejar filtres", key="btn_netejar_filtres", use_container_width=True):
-            # Filtres dels tres desplegables
-            st.session_state.filtre_btn_estacio = None
-            st.session_state.filtre_btn_linia   = None
-            st.session_state.filtre_btn_ruta    = None
-            st.session_state.filtre_reset_counter = st.session_state.get("filtre_reset_counter", 0) + 1
-            # Filtres del sidebar (multiselect i sliders)
-            for key in ["sb_op", "sb_dif", "sb_comarca", "sb_espai", "sb_sortida", "sb_linia"]:
-                if key in st.session_state:
-                    st.session_state[key] = []
-            for key in ["sb_desn", "sb_km"]:
-                if key in st.session_state:
-                    del st.session_state[key]
-            # Checkbox i text input
-            if "sb_100cims" in st.session_state:
-                st.session_state["sb_100cims"] = False
-            if "sb_cerca" in st.session_state:
-                st.session_state["sb_cerca"] = ""
-            st.rerun()
 
         st.write(f"**Resultats: {len(f)} rutes**")
 
