@@ -1217,7 +1217,7 @@ try:
     sel_linia = [l for l in sel_linia_raw if not l.startswith("──")]
 
     sel_op      = st.sidebar.multiselect("🏢 Operador", get_unique(cols["op_s"]))
-    sel_dif     = st.sidebar.multiselect("🧗 Dificultat", ["Molt fàcil","Fàcil","Moderada","Difícil","Molt difícil"])
+    sel_dif     = st.sidebar.multiselect("🧗 Dificultat", ["Molt Fàcil","Fàcil","Moderada","Difícil","Molt difícil"])
     min_desn    = float(df[cols["desn"]].min()) if cols["desn"] else 0.0
     max_desn    = float(df[cols["desn"]].max()) if cols["desn"] else 9999.0
     sel_desn    = st.sidebar.slider("📈 Desnivell (m)", min_desn, max_desn, (min_desn, max_desn))
