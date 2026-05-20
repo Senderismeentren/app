@@ -1,5 +1,5 @@
 # ============================================================
-# SENDERISME EN TREN — v87
+# SENDERISME EN TREN — v16
 # ============================================================
 
 import streamlit as st
@@ -414,10 +414,11 @@ CATEGORIES_ICONES = {
 }
 
 DIFICULTAT_COLOR = {
-    "fàcil": "#1D9E75", "facil": "#1D9E75",
-    "mitjana": "#EF9F27", "mitja": "#EF9F27",
-    "difícil": "#E24B4A", "dificil": "#E24B4A",
-    "molt difícil": "#9B1B1B", "molt dificil": "#9B1B1B",
+    "molt fàcil":   "#85C1E9", "molt facil":   "#85C1E9",
+    "fàcil":        "#2E8B57", "facil":        "#2E8B57",
+    "moderada":     "#E6C229",
+    "exigent":      "#E67E22",
+    "molt exigent": "#222222",
 }
 
 BASE_LOGO_LINIA = "https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/Logo-{linia}.svg"
