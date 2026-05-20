@@ -1411,15 +1411,6 @@ div[data-testid="stSelectbox"] > div > div {
 div[data-testid="stSelectbox"] label {
     display: none !important;
 }
-div[data-testid="stSelectbox"] label {
-    display: none !important;
-}
-div[data-testid="stSelectbox"] input {    ← línia nova
-    font-size: 16px !important;           ← línia nova
-    caret-color: transparent !important;  ← línia nova
-    pointer-events: none !important;      ← línia nova
-}                                         ← línia nova
-</style>
 </style>""", unsafe_allow_html=True)
 
         if "filtre_reset_counter" not in st.session_state:
