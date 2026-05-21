@@ -423,6 +423,8 @@ DIFICULTAT_COLOR = {
 
 BASE_LOGO_LINIA = "https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/Logo-{linia}.svg"
 BASE_GPX_URL    = "https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/gpx/ruta-{id:03d}.gpx"
+BASE_FOTO_URL   = "https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/fotos/ruta-{id:03d}/foto-{n}.jpg"
+MAX_FOTOS_RUTA  = 9
 LOGO_SIZE        = 18
 SHEET_ID         = "12SrgpFkVTowVdfjSMTprs-XBYR5zUKTr-uU3tyYeVEE"
 SHEET_NAME       = "Rutes"
@@ -648,6 +650,50 @@ def perfil_elevacio_svg(ruta_id, dif_color):
         return svg, alt_min, alt_max
     except:
         return None, None, None
+
+
+@st.cache_data(ttl=3600)
+def obtenir_fotos_ruta(ruta_id):
+    """Comprova quantes fotos existeixen a GitHub per a una ruta i retorna les URLs vàlides."""
+    urls = []
+    for n in range(1, MAX_FOTOS_RUTA + 1):
+        url = BASE_FOTO_URL.format(id=int(ruta_id), n=n)
+        try:
+            resp = requests.head(url, timeout=5)
+            if resp.status_code == 200:
+                urls.append(url)
+            else:
+                break  # Si no existeix foto-n, no en busquem més
+        except Exception:
+            break
+    return urls
+
+def fotos_bloc_html(ruta_id, titol_seccio, cap_seccio, cos_seccio, box_seccio):
+    """Genera el bloc HTML de fotos si n'hi ha, o retorna cadena buida."""
+    if not ruta_id:
+        return ""
+    urls = obtenir_fotos_ruta(ruta_id)
+    if not urls:
+        return ""
+    fotos_html = ""
+    for url in urls:
+        fotos_html += (
+            f"<a href='{url}' target='_blank' style='display:block;aspect-ratio:1;overflow:hidden;"
+            f"border-radius:6px;border:0.5px solid #e0e0e0;'>"
+            f"<img src='{url}' style='width:100%;height:100%;object-fit:cover;display:block;' "
+            f"loading='lazy' onerror=\"this.parentElement.style.display='none'\">"
+            f"</a>"
+        )
+    return (
+        f"<div style='{box_seccio}'>"
+        f"<div style='{cap_seccio}'><span style='{titol_seccio}'>📷 Fotos de la ruta</span></div>"
+        f"<div style='{cos_seccio}'>"
+        f"<div style='display:grid;grid-template-columns:repeat(3,1fr);gap:6px;'>"
+        f"{fotos_html}"
+        f"</div>"
+        f"<p style='font-size:11px;color:#aaa;margin:6px 0 0;text-align:right;'>Clica per veure a mida completa</p>"
+        f"</div></div>"
+    )
 
 
 def color_folium_per_operador(op_str):
@@ -1009,7 +1055,10 @@ def render_ruta_completa(row, cols, context="llista"):
          f"</div>" if punts_html_content else "") +
 
         # 4. Perfil
-        perfil_bloc
+        perfil_bloc +
+
+        # 5. Fotos
+        fotos_bloc_html(ruta_id, TITOL_SECCIO, CAP_SECCIO, COS_SECCIO, BOX_SECCIO)
     )
 
     etiquetes_html = f"<div style='padding:2px 12px 8px;'>{etiquetes}</div>" if etiquetes else ""
