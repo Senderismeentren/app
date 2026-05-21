@@ -1,5 +1,5 @@
 # ============================================================
-# SENDERISME EN TREN — v98
+# SENDERISME EN TREN — v16
 # ============================================================
 
 import streamlit as st
@@ -1457,7 +1457,7 @@ try:
                 f_cim = f.iloc[0:0]
             st.write(f"**{len(f_cim)} rutes visiten aquest cim**")
             for _, row_c in f_cim.iterrows():
-                render_ruta_completa(row_c, cols)
+                render_ruta_completa(row_c, cols, context="cims")
         else:
             if cols.get("cims_noms") and cols.get("comarca"):
                 cim_comarques = {}
