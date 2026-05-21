@@ -677,8 +677,8 @@ def obtenir_fotos_ruta(ruta_id):
                 break
     return urls
 
-def fotos_bloc_html(ruta_id, titol_seccio, cap_seccio, cos_seccio, box_seccio):
-    """Genera el bloc HTML de fotos si n'hi ha, o retorna cadena buida."""
+def fotos_contingut_html(ruta_id):
+    """Retorna el contingut intern de les fotos (sense embolcall de seccio), o cadena buida."""
     if not ruta_id:
         return ""
     urls = obtenir_fotos_ruta(ruta_id)
@@ -694,14 +694,10 @@ def fotos_bloc_html(ruta_id, titol_seccio, cap_seccio, cos_seccio, box_seccio):
             f"</a>"
         )
     return (
-        f"<div style='{box_seccio}'>"
-        f"<div style='{cap_seccio}'><span style='{titol_seccio}'>📷 Fotos de la ruta</span></div>"
-        f"<div style='{cos_seccio}'>"
         f"<div style='display:grid;grid-template-columns:repeat(3,1fr);gap:6px;'>"
         f"{fotos_html}"
         f"</div>"
         f"<p style='font-size:11px;color:#aaa;margin:6px 0 0;text-align:right;'>Clica per veure a mida completa</p>"
-        f"</div></div>"
     )
 
 
@@ -1068,7 +1064,8 @@ def render_ruta_completa(row, cols, context="llista"):
         perfil_bloc +
 
         # 5. Fotos
-        fotos_bloc_html(ruta_id, TITOL_SECCIO, CAP_SECCIO, COS_SECCIO, BOX_SECCIO)
+        (seccio_plegable("📷 Fotos de la ruta", fotos_contingut_html(ruta_id), obert=True)
+         if fotos_contingut_html(ruta_id) else "")
     )
 
     etiquetes_html = f"<div style='padding:2px 12px 8px;'>{etiquetes}</div>" if etiquetes else ""
@@ -1195,6 +1192,7 @@ try:
         "espai_a":     buscar_col(["espai_natural_arribada"]),
         "comentaris":  None,
         "desc":        buscar_col(["descripcio_ruta"]),
+        "millors":     buscar_col(["millors_rutes"]),
     }
 
     df = df_raw.dropna(subset=[cols["ruta"]]).copy()
@@ -1561,40 +1559,15 @@ try:
             return opcions
 
         # ── Millors rutes: categories destacades, ordenades per categoria i nom ──
-        CATEGORIES_MILLORS_RUTES_ORDRE = [
-            ("boscos",            {"boscos", "bosc"}),
-            ("castell visitable", {"castell visitable"}),
-            ("cami equipat",      {"cami equipat", "cami equipat"}),
-            ("litoral",           {"litoral"}),
-            ("mon iberic",        {"mon iberic", "mon iberic"}),
-            ("vf",                {"vf"}),
-        ]
-
-        ETIQUETA_CATEGORIA_MILLORS = {
-            "boscos":            "🌲 Boscos",
-            "castell visitable": "🏰 Castell visitable",
-            "cami equipat":      "🧗 Cami equipat",
-            "litoral":           "🏖️ Litoral",
-            "mon iberic":        "🏛️ Mon iberic",
-            "vf":                "⛰️ VF",
-        }
-
-        def norm_cat(s):
-            return (s.lower()
-                    .replace("à","a").replace("á","a")
-                    .replace("è","e").replace("é","e")
-                    .replace("í","i").replace("ï","i")
-                    .replace("ò","o").replace("ó","o")
-                    .replace("ú","u").replace("ü","u")
-                    .replace("ç","c").strip())
-
         def build_millors_rutes():
+            """Llegeix la columna Millors_rutes de Sheets i agrupa per categoria."""
             opcions = ["⭐ Millors rutes"]
-            if not cols.get("cats") or not cols.get("ruta") or not cols.get("id"): return opcions
-            per_cat = {clau: [] for clau, _ in CATEGORIES_MILLORS_RUTES_ORDRE}
+            if not cols.get("millors") or not cols.get("ruta") or not cols.get("id"):
+                return opcions
+            per_cat = {}
             for _, r in df.iterrows():
-                cats_str = str(r[cols["cats"]]).strip() if pd.notna(r[cols["cats"]]) else ""
-                cats_norm = [norm_cat(c) for c in re.split(r";|,", cats_str) if c.strip()]
+                cat = str(r[cols["millors"]]).strip() if pd.notna(r[cols["millors"]]) else ""
+                if not cat or cat.lower() in ("nan", ""): continue
                 nom = str(r[cols["ruta"]]).strip() if pd.notna(r[cols["ruta"]]) else ""
                 if not nom or nom.lower() in ("nan", ""): continue
                 num_raw = str(r[cols["id"]]).strip() if pd.notna(r[cols["id"]]) else ""
@@ -1603,15 +1576,13 @@ try:
                 except Exception:
                     codi = f"ST{num_raw}"
                 etiqueta = f"Ruta {codi}. {nom}"
-                for clau, variants in CATEGORIES_MILLORS_RUTES_ORDRE:
-                    if any(cn in variants for cn in cats_norm):
-                        if etiqueta not in per_cat[clau]:
-                            per_cat[clau].append(etiqueta)
-                        break
-            for clau, _ in CATEGORIES_MILLORS_RUTES_ORDRE:
-                rutes_cat = sorted(per_cat[clau])
+                per_cat.setdefault(cat, [])
+                if etiqueta not in per_cat[cat]:
+                    per_cat[cat].append(etiqueta)
+            for cat in sorted(per_cat.keys()):
+                rutes_cat = sorted(per_cat[cat])
                 if rutes_cat:
-                    opcions.append(f"── {ETIQUETA_CATEGORIA_MILLORS[clau]} ──")
+                    opcions.append(f"── {cat} ──")
                     opcions.extend(rutes_cat)
             return opcions
 
