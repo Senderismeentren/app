@@ -1,5 +1,5 @@
 # ============================================================
-# SENDERISME EN TREN — v96
+# SENDERISME EN TREN — v16
 # ============================================================
 
 import streamlit as st
@@ -844,7 +844,7 @@ def render_caixa_ruta(row, cols):
         f"<div style='background:{dif_color}18;padding:10px 12px;display:flex;align-items:center;gap:10px;'>"
         f"<div style='width:26px;height:26px;border-radius:50%;background:{dif_color};color:white;"
         f"font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;'>{ruta_id}</div>"
-        f"<div style='flex:1;font-size:14px;font-weight:700;color:#111;'>{nom_ruta}{'  📷' if te_fotos else ''}</div>"
+        f"<div style='flex:1;font-size:14px;font-weight:700;color:#111;'>{nom_ruta}{'  <span style=\"font-size:17px;\">📷</span>' if te_fotos else ''}</div>"
         f"<span style='font-size:10px;font-weight:700;background:{dif_color};color:white;"
         f"padding:2px 9px;border-radius:20px;flex-shrink:0;text-transform:uppercase;letter-spacing:0.5px;'>{dif_raw}</span>"
         f"</div>"
@@ -1087,7 +1087,7 @@ def render_ruta_completa(row, cols, context="llista", te_fotos=False):
         f"<div style='background:{dif_color}18;padding:10px 12px;display:flex;align-items:center;gap:10px;'>"
         f"<div style='width:26px;height:26px;border-radius:50%;background:{dif_color};color:white;"
         f"font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;'>{ruta_id}</div>"
-        f"<div style='flex:1;font-size:14px;font-weight:700;color:#111;'>{nom_ruta}{'  📷' if te_fotos else ''}</div>"
+        f"<div style='flex:1;font-size:14px;font-weight:700;color:#111;'>{nom_ruta}{'  <span style=\"font-size:17px;\">📷</span>' if te_fotos else ''}</div>"
         f"<span style='font-size:10px;font-weight:700;background:{dif_color};color:white;"
         f"padding:2px 9px;border-radius:20px;flex-shrink:0;text-transform:uppercase;letter-spacing:0.5px;'>{dif_raw}</span>"
         f"</div>"
@@ -1111,15 +1111,22 @@ def render_ruta_completa(row, cols, context="llista", te_fotos=False):
         f"box-shadow:0 2px 6px #7D8B9955;min-width:130px;cursor:pointer;'>"
         f"Veure detalls</div>"
         + wikiloc_btn +
-        f"<div onclick=\"navigator.clipboard.writeText(window.location.origin+window.location.pathname+'?ruta={ruta_id:03d}');this.textContent='✓ Copiat!';setTimeout(()=>this.textContent='🔗 Compartir',2000);event.stopPropagation();\" "
-        f"style='background:#f0f0f0;color:#555;border-radius:8px;padding:7px 14px;font-size:12px;"
-        f"font-weight:600;cursor:pointer;border:1px solid #ddd;'>🔗 Compartir</div>"
         f"</div></summary>"
         f"<div style='padding:4px 12px 16px;'>"
         + detalls_html +
         f"</div></details></div>"
     )
     st.markdown(card_html, unsafe_allow_html=True)
+
+    _url_ruta = f"?ruta={ruta_id:03d}" if ruta_id else ""
+    st.markdown(
+        f"<div style='text-align:right;margin:-6px 0 4px;'>"
+        f"<span onclick=\"navigator.clipboard.writeText(window.location.origin+window.location.pathname+'{_url_ruta}');"
+        f"this.textContent='✓ Copiat!';setTimeout(()=>this.textContent='🔗 Compartir',2000);\""
+        f" style='font-size:11px;color:#aaa;cursor:pointer;padding:2px 6px;border-radius:4px;"
+        f"border:0.5px solid #e0e0e0;background:#fafafa;'>🔗 Compartir</span></div>",
+        unsafe_allow_html=True
+    )
 
     with st.expander("🗺️ Mapa del recorregut", key=f"mapa_{context}_{ruta_id}"):
         with st.spinner("Carregant mapa..."):
