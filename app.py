@@ -652,7 +652,7 @@ def perfil_elevacio_svg(ruta_id, dif_color):
         return None, None, None
 
 
-@st.cache_data(ttl=3600)
+@st.cache_data(ttl=300)
 def obtenir_fotos_ruta(ruta_id):
     """Comprova quantes fotos existeixen a GitHub per a una ruta i retorna les URLs vàlides."""
     urls = []
