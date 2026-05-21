@@ -417,7 +417,7 @@ DIFICULTAT_COLOR = {
     "molt fàcil":   "#85C1E9", "molt facil":   "#85C1E9",
     "fàcil":        "#2E8B57", "facil":        "#2E8B57",
     "moderada":     "#E6C229",
-    "exigent":      "#E67E22",
+    "exigent":      "#E74C3C",
     "molt exigent": "#222222",
 }
 
@@ -1050,9 +1050,9 @@ def render_ruta_completa(row, cols, context="llista"):
         f"this.querySelector('.det-btn').textContent='Tancar ruta' : "
         f"this.querySelector('.det-btn').textContent='Veure detalls'\">"
         f"<div style='display:flex;justify-content:center;gap:10px;margin:10px 0 12px;flex-wrap:wrap;'>"
-        f"<div class='det-btn' style='background:{dif_color};color:white;border-radius:8px;"
+        f"<div class='det-btn' style='background:#7D8B99;color:white;border-radius:8px;"
         f"padding:10px 24px;text-align:center;font-size:14px;font-weight:700;letter-spacing:0.3px;"
-        f"box-shadow:0 2px 6px {dif_color}55;min-width:160px;cursor:pointer;'>"
+        f"box-shadow:0 2px 6px #7D8B9955;min-width:160px;cursor:pointer;'>"
         f"Veure detalls</div>"
         + wikiloc_btn +
         f"</div></summary>"
@@ -1169,6 +1169,7 @@ try:
         st.session_state.filtre_btn_estacio = None
         st.session_state.filtre_btn_linia   = None
         st.session_state.filtre_btn_ruta    = None
+        st.session_state.filtre_btn_millors = None
         st.session_state.filtre_reset_counter = st.session_state.get("filtre_reset_counter", 0) + 1
         for key in ["sb_op", "sb_dif", "sb_comarca", "sb_espai", "sb_sortida", "sb_linia"]:
             if key in st.session_state:
@@ -1498,9 +1499,31 @@ try:
                 opcions.append(f"{codi} · {nom}")
             return opcions
 
-        est_options  = build_estacions_agrupades()
-        lin_options  = build_linies_agrupades()
-        ruta_options = build_rutes_llista()
+        # ── Millors rutes: categories destacades, ordenades per nom ──
+        CATEGORIES_MILLORS_RUTES = {
+            "boscos", "bosc", "castell visitable", "mon ibèric", "món ibèric",
+            "litoral", "camí equipat", "cami equipat", "vf"
+        }
+
+        def build_millors_rutes():
+            opcions = ["⭐ Millors rutes"]
+            if not cols.get("cats") or not cols.get("ruta"): return opcions
+            rutes_dest = []
+            for _, r in df.iterrows():
+                cats_str = str(r[cols["cats"]]).strip().lower() if pd.notna(r[cols["cats"]]) else ""
+                cats = [c.strip() for c in re.split(r";|,", cats_str) if c.strip()]
+                if any(c in CATEGORIES_MILLORS_RUTES for c in cats):
+                    nom = str(r[cols["ruta"]]).strip() if pd.notna(r[cols["ruta"]]) else ""
+                    if nom and nom.lower() not in ("nan", ""):
+                        rutes_dest.append(nom)
+            for nom in sorted(set(rutes_dest)):
+                opcions.append(nom)
+            return opcions
+
+        est_options    = build_estacions_agrupades()
+        lin_options    = build_linies_agrupades()
+        ruta_options   = build_rutes_llista()
+        millors_options = build_millors_rutes()
 
         st.markdown("""<style>
 div[data-testid="stSelectbox"] > div > div {
@@ -1520,6 +1543,8 @@ div[data-testid="stSelectbox"] label {
 
         if "filtre_reset_counter" not in st.session_state:
             st.session_state.filtre_reset_counter = 0
+        if "filtre_btn_millors" not in st.session_state:
+            st.session_state.filtre_btn_millors = None
 
         _reset_sfx = st.session_state.filtre_reset_counter
 
@@ -1550,6 +1575,15 @@ div[data-testid="stSelectbox"] label {
                 key=f"sel_ruta_btn_{_reset_sfx}", label_visibility="collapsed")
             st.session_state.filtre_btn_ruta = sel_ruta_btn if sel_ruta_btn != "📋 Llistat de rutes" else None
 
+        col_f4, = st.columns([1])
+        with col_f4:
+            sel_millors_btn = st.selectbox("Millors rutes", millors_options,
+                index=0 if not st.session_state.filtre_btn_millors else
+                      millors_options.index(st.session_state.filtre_btn_millors)
+                      if st.session_state.filtre_btn_millors in millors_options else 0,
+                key=f"sel_millors_btn_{_reset_sfx}", label_visibility="collapsed")
+            st.session_state.filtre_btn_millors = sel_millors_btn if sel_millors_btn != "⭐ Millors rutes" else None
+
         if st.session_state.filtre_btn_estacio:
             # Estació de sortida: només cerca a la columna sortida
             f = f[
@@ -1571,6 +1605,9 @@ div[data-testid="stSelectbox"] label {
             f = f[f[cols["id"]].astype(str).str.replace(".0","",regex=False).str.lstrip("0").apply(
                 lambda x: (x or "0") == _codi_sel
             )]
+        if st.session_state.filtre_btn_millors and cols.get("ruta"):
+            _nom_sel = st.session_state.filtre_btn_millors
+            f = f[f[cols["ruta"]].astype(str).str.strip() == _nom_sel]
 
         st.write(f"**Resultats: {len(f)} rutes**")
 
