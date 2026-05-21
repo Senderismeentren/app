@@ -1,5 +1,5 @@
 # ============================================================
-# SENDERISME EN TREN — v97
+# SENDERISME EN TREN — v16
 # ============================================================
 
 import streamlit as st
@@ -1117,16 +1117,6 @@ def render_ruta_completa(row, cols, context="llista", te_fotos=False):
         f"</div></details></div>"
     )
     st.markdown(card_html, unsafe_allow_html=True)
-
-    _url_ruta = f"?ruta={ruta_id:03d}" if ruta_id else ""
-    st.markdown(
-        f"<div style='text-align:right;margin:-6px 0 4px;'>"
-        f"<span onclick=\"navigator.clipboard.writeText(window.location.origin+window.location.pathname+'{_url_ruta}');"
-        f"this.textContent='✓ Copiat!';setTimeout(()=>this.textContent='🔗 Compartir',2000);\""
-        f" style='font-size:11px;color:#aaa;cursor:pointer;padding:2px 6px;border-radius:4px;"
-        f"border:0.5px solid #e0e0e0;background:#fafafa;'>🔗 Compartir</span></div>",
-        unsafe_allow_html=True
-    )
 
     with st.expander("🗺️ Mapa del recorregut", key=f"mapa_{context}_{ruta_id}"):
         with st.spinner("Carregant mapa..."):
