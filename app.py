@@ -654,18 +654,27 @@ def perfil_elevacio_svg(ruta_id, dif_color):
 
 @st.cache_data(ttl=300)
 def obtenir_fotos_ruta(ruta_id):
-    """Comprova quantes fotos existeixen a GitHub per a una ruta i retorna les URLs vàlides."""
+    """Comprova fotos .jpg i .png. Para quan troba 2 numeros consecutius buits."""
     urls = []
+    buides = 0
     for n in range(1, MAX_FOTOS_RUTA + 1):
-        url = BASE_FOTO_URL.format(id=int(ruta_id), n=n)
-        try:
-            resp = requests.head(url, timeout=5)
-            if resp.status_code == 200:
-                urls.append(url)
-            else:
-                break  # Si no existeix foto-n, no en busquem més
-        except Exception:
-            break
+        trobada = False
+        for ext in ("jpg", "png"):
+            url = BASE_FOTO_URL.format(id=int(ruta_id), n=n).replace(".jpg", f".{ext}")
+            try:
+                resp = requests.head(url, timeout=5)
+                if resp.status_code == 200:
+                    urls.append(url)
+                    trobada = True
+                    break
+            except Exception:
+                pass
+        if trobada:
+            buides = 0
+        else:
+            buides += 1
+            if buides >= 2:
+                break
     return urls
 
 def fotos_bloc_html(ruta_id, titol_seccio, cap_seccio, cos_seccio, box_seccio):
@@ -1010,49 +1019,50 @@ def render_ruta_completa(row, cols, context="llista"):
     desc_ruta_val = str(row[cols["desc_ruta"]]).strip() if cols.get("desc_ruta") and pd.notna(row[cols["desc_ruta"]]) and str(row[cols["desc_ruta"]]).strip() not in ("nan","") else ""
 
     perfil_bloc = ""
-    if svg_perfil_html:
-        perfil_bloc = (
-            f"<div style='margin-top:10px;border:1px solid #e0e0e0;border-radius:8px;overflow:hidden;'>"
-            f"<div style='background:#f5f5f5;padding:8px 12px;border-bottom:1px solid #e0e0e0;'>"
-            f"<span style='font-size:13px;font-weight:700;color:#444;text-transform:uppercase;letter-spacing:0.5px;'>⛰️ Perfil de la ruta</span>"
-            f"</div>"
-            f"<div style='padding:10px 12px;'>"
-            + svg_perfil_html + alt_info_html + barra_dif +
-            f"</div></div>"
-        )
 
-    TITOL_SECCIO = "font-size:13px;font-weight:700;color:#444;text-transform:uppercase;letter-spacing:0.5px;"
-    CAP_SECCIO   = "background:#f5f5f5;padding:8px 12px;border-bottom:1px solid #e0e0e0;"
+    TITOL_SECCIO = "font-size:13px;font-weight:700;color:#444;text-transform:uppercase;letter-spacing:0.5px;cursor:pointer;"
+    CAP_SECCIO   = "background:#f5f5f5;padding:8px 12px;list-style:none;border-bottom:1px solid #e0e0e0;display:flex;align-items:center;justify-content:space-between;"
     COS_SECCIO   = "padding:10px 12px;"
     BOX_SECCIO   = "margin-top:10px;border:1px solid #e0e0e0;border-radius:8px;overflow:hidden;"
+
+    def seccio_plegable(titol, contingut, obert=True):
+        open_attr = "open" if obert else ""
+        return (
+            f"<details {open_attr} style='{BOX_SECCIO}'>"
+            f"<summary style='{CAP_SECCIO}'>"
+            f"<span style='{TITOL_SECCIO}'>{titol}</span>"
+            f"<span style='font-size:11px;color:#aaa;'>▲▼</span>"
+            f"</summary>"
+            f"<div style='{COS_SECCIO}'>{contingut}</div>"
+            f"</details>"
+        )
+
+    if svg_perfil_html:
+        perfil_bloc = seccio_plegable(
+            "⛰️ Perfil de la ruta",
+            svg_perfil_html + alt_info_html + barra_dif,
+            obert=True
+        )
 
     # Descripció de la ruta (columna Descripció_ruta) — just a sobre de les estacions
     desc_ruta_html = ""
     if desc_ruta_val:
-        desc_ruta_html = (
-            f"<div style='{BOX_SECCIO}'>"
-            f"<div style='{CAP_SECCIO}'><span style='{TITOL_SECCIO}'>📋 Descripció de la ruta</span></div>"
-            f"<div style='{COS_SECCIO}font-size:14px;color:#444;line-height:1.6;'>{desc_ruta_val}</div>"
-            f"</div>"
+        desc_ruta_html = seccio_plegable(
+            "📋 Descripció de la ruta",
+            f"<div style='font-size:14px;color:#444;line-height:1.6;'>{desc_ruta_val}</div>",
+            obert=True
         )
 
     detalls_html = (
-        # 1. Descripció de la ruta (primera)
+        # 1. Descripció de la ruta
         desc_ruta_html +
 
         # 2. Dades
-        f"<div style='{BOX_SECCIO}'>"
-        f"<div style='{CAP_SECCIO}'><span style='{TITOL_SECCIO}'>📊 Dades</span></div>"
-        f"<div style='{COS_SECCIO}'>"
-        + estacions_html
-        + graella +
-        f"</div></div>" +
+        seccio_plegable("📊 Dades", estacions_html + graella, obert=True) +
 
         # 3. Punts d'interès
-        (f"<div style='{BOX_SECCIO}'>"
-         f"<div style='{CAP_SECCIO}'><span style='{TITOL_SECCIO}'>📍 Punts d'interès</span></div>"
-         f"<div style='{COS_SECCIO}'>{punts_html_content}</div>"
-         f"</div>" if punts_html_content else "") +
+        (seccio_plegable("📍 Punts d'interès", punts_html_content, obert=True)
+         if punts_html_content else "") +
 
         # 4. Perfil
         perfil_bloc +
@@ -1282,7 +1292,9 @@ try:
     opcions_linies = []
     for op, lins in grups_linies.items():
         opcions_linies.append(f"── {op} ──")
-        opcions_linies.extend(lins)
+        for l in lins:
+            dest = RECORREGUTS_LINIA.get(l, "")
+            opcions_linies.append(f"{l}  {dest}" if dest else l)
 
     sel_linia_raw = st.sidebar.multiselect(
         "🚆 Línia de tren",
@@ -1290,7 +1302,7 @@ try:
         format_func=lambda x: x,
         key="sb_linia"
     )
-    sel_linia = [l for l in sel_linia_raw if not l.startswith("──")]
+    sel_linia = [l.split("  ")[0].strip() for l in sel_linia_raw if not l.startswith("──")]
 
     sel_op  = st.sidebar.multiselect("🏢 Operador", get_unique(cols["op_s"], cols.get("op_a")), key="sb_op")
     sel_dif = st.sidebar.multiselect("🧗 Dificultat", ["Molt Fàcil", "Fàcil", "Moderada", "Exigent", "Molt exigent"], key="sb_dif")
@@ -1440,7 +1452,7 @@ try:
                 f_cim = f.iloc[0:0]
             st.write(f"**{len(f_cim)} rutes visiten aquest cim**")
             for _, row_c in f_cim.iterrows():
-                render_caixa_ruta(row_c, cols)
+                render_ruta_completa(row_c, cols)
         else:
             if cols.get("cims_noms") and cols.get("comarca"):
                 cim_comarques = {}
