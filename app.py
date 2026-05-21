@@ -431,7 +431,7 @@ SHEET_NAME       = "Rutes"
 COLOR_BLAU       = "#007bff"
 COLOR_VERD       = "#2d9e6b"
 
-@st.cache_data(ttl=300)
+@st.cache_data(ttl=600)
 def carregar_dades():
     scopes = ["https://www.googleapis.com/auth/spreadsheets",
               "https://www.googleapis.com/auth/drive"]
@@ -844,7 +844,7 @@ def render_caixa_ruta(row, cols):
         f"<div style='background:{dif_color}18;padding:10px 12px;display:flex;align-items:center;gap:10px;'>"
         f"<div style='width:26px;height:26px;border-radius:50%;background:{dif_color};color:white;"
         f"font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;'>{ruta_id}</div>"
-        f"<div style='flex:1;font-size:14px;font-weight:700;color:#111;'>{nom_ruta}</div>"
+        f"<div style='flex:1;font-size:14px;font-weight:700;color:#111;'>{nom_ruta}{'  📷' if te_fotos else ''}</div>"
         f"<span style='font-size:10px;font-weight:700;background:{dif_color};color:white;"
         f"padding:2px 9px;border-radius:20px;flex-shrink:0;text-transform:uppercase;letter-spacing:0.5px;'>{dif_raw}</span>"
         f"</div>"
@@ -863,7 +863,7 @@ def render_caixa_ruta(row, cols):
 
 
 
-def render_ruta_completa(row, cols, context="llista"):
+def render_ruta_completa(row, cols, context="llista", te_fotos=False):
     ruta_id      = int(row[cols["id"]]) if pd.notna(row[cols["id"]]) else None
     nom_ruta     = row[cols["ruta"]]
     desc         = str(row[cols["desc"]]).strip() if cols["desc"] and pd.notna(row[cols["desc"]]) else ""
@@ -1037,7 +1037,7 @@ def render_ruta_completa(row, cols, context="llista"):
         perfil_bloc = seccio_plegable(
             "⛰️ Perfil de la ruta",
             svg_perfil_html + alt_info_html + barra_dif,
-            obert=True
+            obert=False
         )
 
     # Descripció de la ruta (columna Descripció_ruta) — just a sobre de les estacions
@@ -1057,14 +1057,14 @@ def render_ruta_completa(row, cols, context="llista"):
         seccio_plegable("📊 Dades", estacions_html + graella, obert=True) +
 
         # 3. Punts d'interès
-        (seccio_plegable("📍 Punts d'interès", punts_html_content, obert=True)
+        (seccio_plegable("📍 Punts d'interès", punts_html_content, obert=False)
          if punts_html_content else "") +
 
         # 4. Perfil
         perfil_bloc +
 
         # 5. Fotos
-        (seccio_plegable("📷 Fotos de la ruta", fotos_contingut_html(ruta_id), obert=True)
+        (seccio_plegable("📷 Fotos de la ruta", fotos_contingut_html(ruta_id), obert=False)
          if fotos_contingut_html(ruta_id) else "")
     )
 
@@ -1087,7 +1087,7 @@ def render_ruta_completa(row, cols, context="llista"):
         f"<div style='background:{dif_color}18;padding:10px 12px;display:flex;align-items:center;gap:10px;'>"
         f"<div style='width:26px;height:26px;border-radius:50%;background:{dif_color};color:white;"
         f"font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;'>{ruta_id}</div>"
-        f"<div style='flex:1;font-size:14px;font-weight:700;color:#111;'>{nom_ruta}</div>"
+        f"<div style='flex:1;font-size:14px;font-weight:700;color:#111;'>{nom_ruta}{'  📷' if te_fotos else ''}</div>"
         f"<span style='font-size:10px;font-weight:700;background:{dif_color};color:white;"
         f"padding:2px 9px;border-radius:20px;flex-shrink:0;text-transform:uppercase;letter-spacing:0.5px;'>{dif_raw}</span>"
         f"</div>"
@@ -1111,6 +1111,9 @@ def render_ruta_completa(row, cols, context="llista"):
         f"box-shadow:0 2px 6px #7D8B9955;min-width:130px;cursor:pointer;'>"
         f"Veure detalls</div>"
         + wikiloc_btn +
+        f"<div onclick=\"navigator.clipboard.writeText(window.location.origin+window.location.pathname+'?ruta={ruta_id:03d}');this.textContent='✓ Copiat!';setTimeout(()=>this.textContent='🔗 Compartir',2000);event.stopPropagation();\" "
+        f"style='background:#f0f0f0;color:#555;border-radius:8px;padding:7px 14px;font-size:12px;"
+        f"font-weight:600;cursor:pointer;border:1px solid #ddd;'>🔗 Compartir</div>"
         f"</div></summary>"
         f"<div style='padding:4px 12px 16px;'>"
         + detalls_html +
@@ -1372,7 +1375,14 @@ try:
     if sel_100cims and cols["cims"]:
         f = f[f[cols["cims"]].astype(str).str.strip().str.lower() == "si"]
     if cerca:
-        f = f[f[cols["ruta"]].str.contains(cerca, case=False, na=False)]
+        _camps_cerca = [cols["ruta"]]
+        if cols.get("desc_ruta"): _camps_cerca.append(cols["desc_ruta"])
+        if cols.get("elements"):  _camps_cerca.append(cols["elements"])
+        _mask_cerca = pd.Series(False, index=f.index)
+        for _c in _camps_cerca:
+            if _c and _c in f.columns:
+                _mask_cerca |= f[_c].astype(str).str.contains(cerca, case=False, na=False)
+        f = f[_mask_cerca]
     if sel_sortida:
         f = f[f[cols["sortida"]].astype(str).apply(lambda x: any(s in x for s in sel_sortida))]
     if sel_linia:
@@ -1680,9 +1690,52 @@ div[data-testid="stSelectbox"] label {
                 _nom_sel = _etiqueta
             f = f[f[cols["ruta"]].astype(str).str.strip() == _nom_sel]
 
-        st.write(f"**Resultats: {len(f)} rutes**")
+        # ── Ordenació ──────────────────────────────────────────────────
+        _opcions_ordre = {
+            "Núm. ruta (defecte)": (cols["id"],    True,  False),
+            "Nom (A → Z)":         (cols["ruta"],  True,  False),
+            "Distància ↑":         (cols["km"],    True,  True),
+            "Distància ↓":         (cols["km"],    False, True),
+            "Desnivell ↑":         (cols["desn"],  True,  True),
+            "Desnivell ↓":         (cols["desn"],  False, True),
+        }
+        _ordre_sel = st.selectbox("Ordenar per", list(_opcions_ordre.keys()),
+            key="sb_ordre", label_visibility="collapsed")
+        _col_ord, _asc, _numeric = _opcions_ordre[_ordre_sel]
+        if _col_ord and _col_ord in f.columns:
+            if _numeric:
+                f = f.copy()
+                f[_col_ord] = pd.to_numeric(f[_col_ord].astype(str).str.replace(",","."), errors="coerce").fillna(0)
+            f = f.sort_values(by=_col_ord, ascending=_asc)
+
+        # ── URL directa per ruta (?ruta=005) ──────────────────────────
+        _ruta_param = st.query_params.get("ruta", "")
+        if _ruta_param:
+            _ruta_num = _ruta_param.lstrip("0") or "0"
+            f_param = f[f[cols["id"]].astype(str).str.replace(".0","",regex=False).str.lstrip("0").apply(
+                lambda x: (x or "0") == _ruta_num
+            )]
+            if not f_param.empty:
+                f = f_param
+
+        n_fotos_per_ruta = {}
+        for _rid in f[cols["id"]].dropna().unique():
+            try:
+                _rid_int = int(float(_rid))
+                n_fotos_per_ruta[_rid_int] = len(obtenir_fotos_ruta(_rid_int))
+            except Exception:
+                pass
+
+        col_res, col_ord = st.columns([3, 2])
+        with col_res:
+            st.markdown(f"**{len(f)} rutes**", unsafe_allow_html=True)
 
         for _, row in f.iterrows():
-            render_ruta_completa(row, cols)
+            try:
+                _rid_int = int(float(str(row[cols["id"]])))
+            except Exception:
+                _rid_int = None
+            _te_fotos = _rid_int and n_fotos_per_ruta.get(_rid_int, 0) > 0
+            render_ruta_completa(row, cols, te_fotos=_te_fotos)
 except Exception as e:
     st.error(f"S'ha produït un error: {e}")
