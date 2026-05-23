@@ -705,38 +705,17 @@ def fotos_contingut_html(ruta_id):
 
 
 def barra_mini_dif(dif_raw, dif_color):
-    """Barra degradada amb marcador posicional per a la capçalera de targeta."""
-    claus     = ["molt facil", "facil", "moderada", "dificil", "molt dificil"]
-    noms      = ["Molt fàcil", "Fàcil", "Moderada", "Difícil", "Molt difícil"]
-    posicions = [2, 25, 50, 75, 98]
-
-    def norm(s):
-        return (s.lower().strip()
-                 .replace("à","a").replace("á","a")
-                 .replace("è","e").replace("é","e")
-                 .replace("í","i").replace("ï","i")
-                 .replace("ò","o").replace("ó","o")
-                 .replace("ú","u").replace("ü","u")
-                 .replace("ç","c"))
-
-    idx = next((i for i, c in enumerate(claus) if c == norm(dif_raw)), -1)
-    if idx == -1:
-        return f"<div style='font-size:11px;color:{dif_color};font-weight:600;margin-top:6px;'>{dif_raw}</div>"
-
-    pct = posicions[idx]
-    nom = noms[idx]
-
+    """Píndola de text amb punt de color per a la capçalera de targeta."""
+    if not dif_raw or dif_raw.lower() in ("nan", ""):
+        return ""
+    # Color de text: versió fosca del color de dificultat (usem el mateix amb opacitat)
     return (
-        f"<div style='position:relative;margin:6px 4px 22px;'>"
-        f"<div style='height:7px;border-radius:4px;"
-        f"background:linear-gradient(to right,#2ECC71,#3498DB,#E67E22,#E74C3C,#2C3E50);'></div>"
-        f"<div style='position:absolute;left:{pct}%;top:50%;"
-        f"transform:translate(-50%,-50%);"
-        f"width:15px;height:15px;border-radius:50%;background:white;"
-        f"border:3px solid {dif_color};'></div>"
-        f"<div style='position:absolute;left:{pct}%;top:14px;"
-        f"transform:translateX(-50%);font-size:11px;font-weight:600;"
-        f"color:{dif_color};white-space:nowrap;'>{nom}</div>"
+        f"<div style='display:inline-flex;align-items:center;gap:6px;"
+        f"background:{dif_color}1A;border:1px solid {dif_color}55;"
+        f"border-radius:20px;padding:3px 10px;margin-top:6px;'>"
+        f"<span style='width:8px;height:8px;border-radius:50%;"
+        f"background:{dif_color};flex-shrink:0;display:inline-block;'></span>"
+        f"<span style='font-size:12px;font-weight:600;color:{dif_color};'>{dif_raw}</span>"
         f"</div>"
     )
 
