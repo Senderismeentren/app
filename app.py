@@ -1,5 +1,5 @@
 # ============================================================
-# SENDERISME EN TREN — v99
+# SENDERISME EN TREN — v100
 # ============================================================
 
 import streamlit as st
@@ -1251,10 +1251,13 @@ try:
             for col_est, col_op in [(cols["sortida"], cols["op_s"]), (cols["arribada"], cols["op_a"])]:
                 if not col_est or not col_op: continue
                 est = str(r[col_est]).strip() if pd.notna(r[col_est]) else ""
-                op  = str(r[col_op]).strip().split(";")[0].strip().title() if pd.notna(r[col_op]) else "Altres"
                 if not est or est.lower() in ("nan",""):  continue
-                if op.lower() in ("nan","","none"): op = "Altres"
-                grups.setdefault(op, set()).add(est)
+                ops_raw = str(r[col_op]).strip() if pd.notna(r[col_op]) else ""
+                ops = [o.strip().title() for o in ops_raw.split(";") if o.strip() and o.strip().lower() not in ("nan","","none")]
+                if not ops:
+                    ops = ["Altres"]
+                for op in ops:
+                    grups.setdefault(op, set()).add(est)
         return {op: sorted(ests) for op, ests in sorted(grups.items())}
 
     def linies_per_operador():
@@ -1263,10 +1266,14 @@ try:
             for col_lin, col_op in [(cols["linia_s"], cols["op_s"]), (cols["linia_a"], cols["op_a"])]:
                 if not col_lin or not col_op: continue
                 lins = [l.strip() for l in str(r[col_lin]).split(";") if l.strip() and l.strip().lower() not in ("nan","")]
-                op   = str(r[col_op]).strip().split(";")[0].strip().title() if pd.notna(r[col_op]) else "Altres"
-                if op.lower() in ("nan","","none"): op = "Altres"
-                for l in lins:
-                    grups.setdefault(op, set()).add(l)
+                ops_raw = str(r[col_op]).strip() if pd.notna(r[col_op]) else ""
+                # Suport per a múltiples operadors separats per ;
+                ops = [o.strip().title() for o in ops_raw.split(";") if o.strip() and o.strip().lower() not in ("nan","","none")]
+                if not ops:
+                    ops = ["Altres"]
+                for op in ops:
+                    for l in lins:
+                        grups.setdefault(op, set()).add(l)
         return {op: sorted(lins) for op, lins in sorted(grups.items())}
 
     grups_estacions = estacions_per_operador()
@@ -1418,7 +1425,7 @@ try:
         st.stop()
 
     # --- PESTANYES (les natives queden amagades pel CSS, però cal declarar-les) ---
-    tab_llista, tab_mapa, tab_cims = st.tabs(["🥾 Rutes", "🗺️ Mapa", "🏔️ 100 Cims"])
+    tab_llista, tab_mapa, tab_cims, tab_millors = st.tabs(["🥾 Rutes", "🗺️ Mapa", "🏔️ 100 Cims", "⭐ Millors"])
 
     with tab_mapa:
         mostrar_mapa_general(f, cols)
@@ -1505,6 +1512,60 @@ try:
             else:
                 st.info("No hi ha dades de cims disponibles.")
 
+    with tab_millors:
+        if not cols.get("millors") or not cols.get("ruta") or not cols.get("id"):
+            st.info("No hi ha dades de millors rutes disponibles.")
+        else:
+            per_cat_m = {}
+            for _, r_m in df.iterrows():
+                cat_m = str(r_m[cols["millors"]]).strip() if pd.notna(r_m[cols["millors"]]) else ""
+                if not cat_m or cat_m.lower() in ("nan", ""): continue
+                nom_m = str(r_m[cols["ruta"]]).strip() if pd.notna(r_m[cols["ruta"]]) else ""
+                if not nom_m or nom_m.lower() in ("nan", ""): continue
+                num_m = str(r_m[cols["id"]]).strip() if pd.notna(r_m[cols["id"]]) else ""
+                try:
+                    codi_m = f"ST{int(float(num_m)):03d}"
+                except Exception:
+                    codi_m = f"ST{num_m}"
+                entrada = (codi_m, nom_m, r_m)
+                per_cat_m.setdefault(cat_m, [])
+                if not any(e[0] == codi_m for e in per_cat_m[cat_m]):
+                    per_cat_m[cat_m].append(entrada)
+
+            n_total_millors = sum(len(v) for v in per_cat_m.values())
+            st.markdown(
+                f"<div style='font-size:22px;font-weight:700;color:#111;margin-bottom:16px;'>"
+                f"{n_total_millors} rutes destacades</div>",
+                unsafe_allow_html=True
+            )
+
+            if "filtre_millors_ruta" not in st.session_state:
+                st.session_state.filtre_millors_ruta = None
+
+            if st.session_state.filtre_millors_ruta:
+                codi_sel_m, nom_sel_m = st.session_state.filtre_millors_ruta
+                st.markdown(f"### ⭐ {codi_sel_m} · {nom_sel_m}")
+                if st.button("← Tornar a la llista de millors rutes", key="btn_tornar_millors"):
+                    st.session_state.filtre_millors_ruta = None
+                    st.rerun()
+                f_millors = df[
+                    df[cols["ruta"]].astype(str).str.strip() == nom_sel_m
+                ]
+                for _, row_mm in f_millors.iterrows():
+                    render_ruta_completa(row_mm, cols, context="millors")
+            else:
+                for cat_m in sorted(per_cat_m.keys()):
+                    rutes_cat_m = sorted(per_cat_m[cat_m], key=lambda x: x[0])
+                    st.markdown(
+                        f"<div style='font-size:12px;font-weight:700;text-transform:uppercase;"
+                        f"letter-spacing:0.5px;color:#aaa;margin:16px 0 6px;'>{cat_m}</div>",
+                        unsafe_allow_html=True
+                    )
+                    for codi_m, nom_m, _ in rutes_cat_m:
+                        if st.button(f"⭐ {codi_m} · {nom_m}", key=f"millors_{codi_m}"):
+                            st.session_state.filtre_millors_ruta = (codi_m, nom_m)
+                            st.rerun()
+
     with tab_llista:
         if "filtre_btn_estacio" not in st.session_state:
             st.session_state.filtre_btn_estacio = None
@@ -1521,10 +1582,13 @@ try:
                                         (cols.get("arribada"), cols.get("op_a"))]:
                     if not col_est or not col_op: continue
                     est = str(r[col_est]).strip() if pd.notna(r[col_est]) else ""
-                    op  = str(r[col_op]).strip().split(";")[0].strip().title() if pd.notna(r[col_op]) else "Altres"
                     if not est or est.lower() in ("nan","","none"): continue
-                    if op.lower() in ("nan","","none"): op = "Altres"
-                    grups.setdefault(op, set()).add(est)
+                    ops_raw = str(r[col_op]).strip() if pd.notna(r[col_op]) else ""
+                    ops = [o.strip().title() for o in ops_raw.split(";") if o.strip() and o.strip().lower() not in ("nan","","none")]
+                    if not ops:
+                        ops = ["Altres"]
+                    for op in ops:
+                        grups.setdefault(op, set()).add(est)
             opcions = ["🚉 Estació"]
             for op in sorted(grups.keys()):
                 opcions.append(f"── {op} ──")
@@ -1540,10 +1604,13 @@ try:
                     if not col_lin or not col_op: continue
                     lins = [l.strip() for l in str(r[col_lin]).split(";")
                             if l.strip() and l.strip().lower() not in ("nan","")]
-                    op   = str(r[col_op]).strip().split(";")[0].strip().title() if pd.notna(r[col_op]) else "Altres"
-                    if op.lower() in ("nan","","none"): op = "Altres"
-                    for l in lins:
-                        grups.setdefault(op, set()).add(l)
+                    ops_raw = str(r[col_op]).strip() if pd.notna(r[col_op]) else ""
+                    ops = [o.strip().title() for o in ops_raw.split(";") if o.strip() and o.strip().lower() not in ("nan","","none")]
+                    if not ops:
+                        ops = ["Altres"]
+                    for op in ops:
+                        for l in lins:
+                            grups.setdefault(op, set()).add(l)
             opcions = ["🚆 Línia"]
             for op in sorted(grups.keys()):
                 opcions.append(f"── {op} ──")
@@ -1648,15 +1715,6 @@ div[data-testid="stSelectbox"] label {
                 key=f"sel_ruta_btn_{_reset_sfx}", label_visibility="collapsed")
             st.session_state.filtre_btn_ruta = sel_ruta_btn if sel_ruta_btn != "📋 Llistat de rutes" else None
 
-        col_f4, = st.columns([1])
-        with col_f4:
-            sel_millors_btn = st.selectbox("Millors rutes", millors_options,
-                index=0 if not st.session_state.filtre_btn_millors else
-                      millors_options.index(st.session_state.filtre_btn_millors)
-                      if st.session_state.filtre_btn_millors in millors_options else 0,
-                key=f"sel_millors_btn_{_reset_sfx}", label_visibility="collapsed")
-            st.session_state.filtre_btn_millors = sel_millors_btn if sel_millors_btn != "⭐ Millors rutes" and not sel_millors_btn.startswith("──") else None
-
         if st.session_state.filtre_btn_estacio:
             # Estació de sortida: només cerca a la columna sortida
             f = f[
@@ -1678,14 +1736,6 @@ div[data-testid="stSelectbox"] label {
             f = f[f[cols["id"]].astype(str).str.replace(".0","",regex=False).str.lstrip("0").apply(
                 lambda x: (x or "0") == _codi_sel
             )]
-        if st.session_state.filtre_btn_millors and cols.get("ruta") and not st.session_state.filtre_btn_millors.startswith("──"):
-            # Format: "Ruta ST001. Nom de la ruta" → extraiem el nom real
-            _etiqueta = st.session_state.filtre_btn_millors
-            if ". " in _etiqueta:
-                _nom_sel = _etiqueta.split(". ", 1)[1].strip()
-            else:
-                _nom_sel = _etiqueta
-            f = f[f[cols["ruta"]].astype(str).str.strip() == _nom_sel]
 
         # ── Ordenació ──────────────────────────────────────────────────
         _opcions_ordre = {
@@ -1716,12 +1766,15 @@ div[data-testid="stSelectbox"] label {
                 f = f_param
 
         n_fotos_per_ruta = {}
-        for _rid in f[cols["id"]].dropna().unique():
-            try:
-                _rid_int = int(float(_rid))
-                n_fotos_per_ruta[_rid_int] = len(obtenir_fotos_ruta(_rid_int))
-            except Exception:
-                pass
+        _spinner_placeholder = st.empty()
+        with _spinner_placeholder:
+            for _rid in f[cols["id"]].dropna().unique():
+                try:
+                    _rid_int = int(float(_rid))
+                    n_fotos_per_ruta[_rid_int] = len(obtenir_fotos_ruta(_rid_int))
+                except Exception:
+                    pass
+        _spinner_placeholder.empty()
 
         col_res, col_ord = st.columns([3, 2])
         with col_res:
