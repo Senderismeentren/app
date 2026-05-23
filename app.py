@@ -417,11 +417,11 @@ CATEGORIES_ICONES = {
 }
 
 DIFICULTAT_COLOR = {
-    "molt fàcil":   "#85C1E9", "molt facil":   "#85C1E9",
-    "fàcil":        "#2E8B57", "facil":        "#2E8B57",
-    "moderada":     "#FF8C00",
+    "molt fàcil":   "#2ECC71", "molt facil":   "#2ECC71",
+    "fàcil":        "#3498DB", "facil":        "#3498DB",
+    "moderada":     "#E67E22",
     "exigent":      "#E74C3C",
-    "molt exigent": "#222222",
+    "molt exigent": "#2C3E50",
 }
 
 BASE_LOGO_LINIA = "https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/Logo-{linia}.svg"
@@ -704,6 +704,48 @@ def fotos_contingut_html(ruta_id):
     )
 
 
+def barra_mini_dif(dif_raw, dif_color):
+    """Barra de 5 segments mini que substitueix el badge de text a la capçalera de targeta."""
+    nivells = [
+        ("Molt fàcil", "#2ECC71"),
+        ("Fàcil",      "#3498DB"),
+        ("Moderada",   "#E67E22"),
+        ("Difícil",    "#E74C3C"),
+        ("Molt difícil","#2C3E50"),
+    ]
+    claus = ["molt facil","facil","moderada","dificil","molt dificil"]
+
+    def norm(s):
+        return (s.lower()
+                 .replace("à","a").replace("á","a")
+                 .replace("è","e").replace("é","e")
+                 .replace("í","i").replace("ï","i")
+                 .replace("ò","o").replace("ó","o")
+                 .replace("ú","u").replace("ü","u")
+                 .replace("ç","c"))
+
+    pos = next((i for i, c in enumerate(claus) if c == norm(dif_raw)), -1)
+    segs = ""
+    for i, (nom, color) in enumerate(nivells):
+        actiu = (i == pos)
+        opacity = "1" if actiu else "0.2"
+        radius = "4px 0 0 4px" if i == 0 else ("0 4px 4px 0" if i == 4 else "0")
+        label_w = "font-weight:700;" if actiu else ""
+        segs += (
+            f"<div style='flex:1;'>"
+            f"<div style='height:6px;background:{color};opacity:{opacity};"
+            f"border-radius:{radius};'></div>"
+            f"<div style='font-size:11px;color:#555;text-align:center;"
+            f"margin-top:2px;{label_w}'>{nom if actiu else ''}</div>"
+            f"</div>"
+        )
+    return (
+        f"<div style='display:flex;gap:2px;margin-top:6px;align-items:flex-end;'>"
+        f"{segs}"
+        f"</div>"
+    )
+
+
 def color_folium_per_operador(op_str):
     """Retorna el color hex segons l'operador principal de l'estació."""
     if not op_str or str(op_str).strip().lower() in ("nan", ""):
@@ -844,20 +886,21 @@ def render_caixa_ruta(row, cols):
     st.markdown(
         f"<div style='margin-top:12px;border:1px solid {dif_color}44;border-left:5px solid {dif_color};"
         f"border-radius:8px;overflow:visible;background:white;'>"
-        f"<div style='background:{dif_color}18;padding:10px 12px;display:flex;align-items:center;gap:10px;'>"
+        f"<div style='background:{dif_color}18;padding:10px 12px 8px;'>"
+        f"<div style='display:flex;align-items:center;gap:10px;'>"
         f"<div style='width:26px;height:26px;border-radius:50%;background:{dif_color};color:white;"
         f"font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;'>{ruta_id}</div>"
-        f"<div style='flex:1;font-size:14px;font-weight:700;color:#111;'>{nom_ruta}{'  <span style=\"font-size:17px;\">📷</span>' if te_fotos else ''}</div>"
-        f"<span style='font-size:10px;font-weight:700;background:{dif_color};color:white;"
-        f"padding:2px 9px;border-radius:20px;flex-shrink:0;text-transform:uppercase;letter-spacing:0.5px;'>{dif_raw}</span>"
+        f"<div style='flex:1;font-size:15px;font-weight:700;color:#111;line-height:1.3;'>{nom_ruta}{'  <span style=\"font-size:17px;\">📷</span>' if te_fotos else ''}</div>"
+        f"</div>"
+        f"{barra_mini_dif(dif_raw, dif_color)}"
         f"</div>"
         f"<div style='padding:6px 12px 4px;display:flex;gap:20px;flex-wrap:wrap;'>"
-        f"<div><div style='font-size:9px;color:#999;text-transform:uppercase;letter-spacing:0.4px;'>Distància</div>"
+        f"<div><div style='font-size:11px;color:#999;text-transform:uppercase;letter-spacing:0.4px;'>Distància</div>"
         f"<div style='font-size:14px;font-weight:700;color:#111;'>{km_val} km</div></div>"
-        f"<div><div style='font-size:9px;color:#999;text-transform:uppercase;letter-spacing:0.4px;'>Desnivell</div>"
-        f"<div style='font-size:14px;font-weight:700;color:#111;'>{desn_txt}</div></div>"
-        f"<div><div style='font-size:9px;color:#999;text-transform:uppercase;letter-spacing:0.4px;'>Temps</div>"
-        f"<div style='font-size:14px;font-weight:700;color:#111;'>{temps_fmt}</div></div>"
+        f"<div><div style='font-size:11px;color:#999;text-transform:uppercase;letter-spacing:0.4px;'>Desnivell</div>"
+        f"<div style='font-size:15px;font-weight:700;color:#111;'>{desn_txt}</div></div>"
+        f"<div><div style='font-size:11px;color:#999;text-transform:uppercase;letter-spacing:0.4px;'>Temps</div>"
+        f"<div style='font-size:15px;font-weight:700;color:#111;'>{temps_fmt}</div></div>"
         f"</div>"
         + etiquetes_html +
         f"</div>",
@@ -968,7 +1011,7 @@ def render_ruta_completa(row, cols, context="llista", te_fotos=False):
     def cel_detall(icon, label, val1, val2=None):
         if not val1:
             return ""
-        v2 = f"<div style='font-size:12px;color:#666;margin-top:1px;'>{val2}</div>" if val2 else ""
+        v2 = f"<div style='font-size:11px;color:#666;margin-top:1px;'>{val2}</div>" if val2 else ""
         return (
             f"<div style='display:flex;gap:8px;align-items:flex-start;padding:8px 0;'>"
             f"<span style='font-size:16px;color:#aaa;flex-shrink:0;width:20px;margin-top:2px;'>{icon}</span>"
@@ -1009,9 +1052,9 @@ def render_ruta_completa(row, cols, context="llista", te_fotos=False):
         svg_p, alt_min_p, alt_max_p = perfil_elevacio_svg(ruta_id, dif_color)
         if svg_p:
             svg_perfil_html = svg_p
-            alt_info_html = f"<div style='font-size:10px;color:#888;text-align:center;margin-top:4px;'>Altitud mín: <b>{int(alt_min_p)} m</b> · Altitud màx: <b>{int(alt_max_p)} m</b></div>"
+            alt_info_html = f"<div style='font-size:11px;color:#888;text-align:center;margin-top:4px;'>Altitud mín: <b>{int(alt_min_p)} m</b> · Altitud màx: <b>{int(alt_max_p)} m</b></div>"
 
-    nivells_dif = [("Molt fàcil","#2196A6"),("Fàcil","#1D9E75"),("Moderada","#EF9F27"),("Difícil","#E24B4A"),("Molt difícil","#9B1B1B")]
+    nivells_dif = [("Molt fàcil","#2ECC71"),("Fàcil","#3498DB"),("Moderada","#E67E22"),("Difícil","#E74C3C"),("Molt difícil","#2C3E50")]
     claus_norm_dif = ["molt facil","facil","moderada","dificil","molt dificil"]
     def normalitza_d(s):
         return s.lower().replace("í","i").replace("à","a").replace("è","e").replace("ó","o").replace("ú","u").strip()
@@ -1021,8 +1064,8 @@ def render_ruta_completa(row, cols, context="llista", te_fotos=False):
         actiu=(i==pos_dif); opacity="1" if actiu else "0.22"
         radius="6px 0 0 6px" if i==0 else ("0 6px 6px 0" if i==4 else "0")
         dot=f'<div style="width:11px;height:11px;border-radius:50%;background:{color_niv};border:2px solid #111;position:absolute;top:-6px;left:50%;transform:translateX(-50%);box-shadow:0 1px 3px rgba(0,0,0,0.3);"></div>' if actiu else ""
-        segs_dif+=f'<div style="flex:1;position:relative;">{dot}<div style="height:8px;background:{color_niv};opacity:{opacity};border-radius:{radius};"></div><div style="font-size:8px;color:#555;text-align:center;margin-top:3px;font-weight:{"700" if actiu else "400"};">{nom_niv}</div></div>'
-    barra_dif = f'<div style="margin:10px 0 4px;"><div style="font-size:10px;color:#aaa;margin-bottom:10px;text-transform:uppercase;letter-spacing:0.4px;">Dificultat</div><div style="display:flex;gap:2px;">{segs_dif}</div></div>'
+        segs_dif+=f'<div style="flex:1;position:relative;">{dot}<div style="height:8px;background:{color_niv};opacity:{opacity};border-radius:{radius};"></div><div style="font-size:11px;color:#555;text-align:center;margin-top:3px;font-weight:{"700" if actiu else "400"};">{nom_niv}</div></div>'
+    barra_dif = f'<div style="margin:10px 0 4px;"><div style="font-size:11px;color:#aaa;margin-bottom:10px;text-transform:uppercase;letter-spacing:0.4px;">Dificultat</div><div style="display:flex;gap:2px;">{segs_dif}</div></div>'
 
     elements_str = row[cols["elements"]] if cols["elements"] and pd.notna(row[cols["elements"]]) else ""
     cats_str     = row[cols["cats"]]     if cols["cats"]     and pd.notna(row[cols["cats"]])     else ""
@@ -1090,6 +1133,21 @@ def render_ruta_completa(row, cols, context="llista", te_fotos=False):
 
     etiquetes_html = f"<div style='padding:2px 12px 8px;'>{etiquetes}</div>" if etiquetes else ""
 
+    # Foto de portada (primera foto disponible) per a la targeta
+    foto_portada_html = ""
+    if ruta_id and te_fotos:
+        urls_fotos = obtenir_fotos_ruta(ruta_id)
+        if urls_fotos:
+            foto_portada_html = (
+                f"<a href='{urls_fotos[0]}' target='_blank' style='"
+                f"display:block;width:90px;flex-shrink:0;"
+                f"overflow:hidden;border-radius:0 0 8px 0;'>"
+                f"<img src='{urls_fotos[0]}' style='width:90px;height:90px;"
+                f"object-fit:cover;display:block;' loading='lazy' "
+                f"onerror=\"this.parentElement.style.display='none'\">"
+                f"</a>"
+            )
+
     # Botó Wikiloc (si hi ha URL)
     wikiloc_btn = ""
     if wiki_url and wiki_url != "nan":
@@ -1104,20 +1162,24 @@ def render_ruta_completa(row, cols, context="llista", te_fotos=False):
     card_html = (
         f"<div style='margin-top:12px;border:1px solid {dif_color}44;border-left:5px solid {dif_color};"
         f"border-radius:8px;overflow:visible;background:white;'>"
-        f"<div style='background:{dif_color}18;padding:10px 12px;display:flex;align-items:center;gap:10px;'>"
+        f"<div style='background:{dif_color}18;padding:10px 12px 8px;'>"
+        f"<div style='display:flex;align-items:center;gap:10px;'>"
         f"<div style='width:26px;height:26px;border-radius:50%;background:{dif_color};color:white;"
         f"font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;'>{ruta_id}</div>"
-        f"<div style='flex:1;font-size:14px;font-weight:700;color:#111;'>{nom_ruta}{'  <span style=\"font-size:17px;\">📷</span>' if te_fotos else ''}</div>"
-        f"<span style='font-size:10px;font-weight:700;background:{dif_color};color:white;"
-        f"padding:2px 9px;border-radius:20px;flex-shrink:0;text-transform:uppercase;letter-spacing:0.5px;'>{dif_raw}</span>"
+        f"<div style='flex:1;font-size:15px;font-weight:700;color:#111;line-height:1.3;'>{nom_ruta}{'  <span style=\"font-size:17px;\">📷</span>' if te_fotos else ''}</div>"
         f"</div>"
-        f"<div style='padding:6px 12px 4px;display:flex;gap:20px;flex-wrap:wrap;'>"
-        f"<div><div style='font-size:9px;color:#999;text-transform:uppercase;letter-spacing:0.4px;'>Distància</div>"
-        f"<div style='font-size:14px;font-weight:700;color:#111;'>{row[cols['km']]} km</div></div>"
-        f"<div><div style='font-size:9px;color:#999;text-transform:uppercase;letter-spacing:0.4px;'>Desnivell</div>"
-        f"<div style='font-size:14px;font-weight:700;color:#111;'>{desn_txt}</div></div>"
-        f"<div><div style='font-size:9px;color:#999;text-transform:uppercase;letter-spacing:0.4px;'>Temps</div>"
-        f"<div style='font-size:14px;font-weight:700;color:#111;'>{temps_fmt}</div></div>"
+        f"{barra_mini_dif(dif_raw, dif_color)}"
+        f"</div>"
+        f"<div style='display:flex;gap:0;'>"
+        f"<div style='flex:1;padding:6px 12px 4px;display:flex;gap:20px;flex-wrap:wrap;align-items:center;'>"
+        f"<div><div style='font-size:11px;color:#999;text-transform:uppercase;letter-spacing:0.4px;'>Distància</div>"
+        f"<div style='font-size:15px;font-weight:700;color:#111;'>{row[cols['km']]} km</div></div>"
+        f"<div><div style='font-size:11px;color:#999;text-transform:uppercase;letter-spacing:0.4px;'>Desnivell</div>"
+        f"<div style='font-size:15px;font-weight:700;color:#111;'>{desn_txt}</div></div>"
+        f"<div><div style='font-size:11px;color:#999;text-transform:uppercase;letter-spacing:0.4px;'>Temps</div>"
+        f"<div style='font-size:15px;font-weight:700;color:#111;'>{temps_fmt}</div></div>"
+        f"</div>"
+        f"{foto_portada_html}"
         f"</div>"
         + etiquetes_html +
         f"<details id='det_{ruta_id}' style='border-top:1px solid #eee;'>"
