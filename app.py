@@ -1,5 +1,5 @@
 # ============================================================
-# SENDERISME EN TREN — v100
+# SENDERISME EN TREN — v16
 # ============================================================
 
 import streamlit as st
@@ -286,6 +286,9 @@ def horaris_html_bloc(estacio, linia_str, op_str, dif_color, id_estacio_str, tip
     elif "cremallera" in op_lower:
         url_horaris = "https://www.valldenuria.cat/ca/cremallera"
         nom_op = "Cremallera de Núria"
+    elif "alta velocitat" in op_lower:
+        url_horaris = "https://www.renfe.com/es/ca/viajar/informacion-util/horarios"
+        nom_op = "Alta Velocitat"
     else:
         url_horaris = f"https://rodalies.gencat.cat/ca/inici/horaris/?origen={estacio.replace(' ', '+')}"
         nom_op = "Rodalies"
@@ -314,7 +317,7 @@ def horaris_html_bloc(estacio, linia_str, op_str, dif_color, id_estacio_str, tip
                         "hora":  t.get("scheduledTime", t.get("time", t.get("hora", "—"))),
                         "retard": t.get("delay", t.get("retard", 0)),
                     })
-        elif any(k in op_lower for k in ("rodalies", "renfe", "tren dels llacs", "alta velocitat", "adif")) or op_lower == "":
+        elif any(k in op_lower for k in ("rodalies", "renfe", "tren dels llacs", "adif")) or op_lower == "":
             raw = obtenir_horaris_rodalies(id_est)
             if raw:
                 files_data = []
@@ -960,6 +963,7 @@ def render_ruta_completa(row, cols, context="llista", te_fotos=False):
     terreny_val  = get_val("terreny")
     epoca_val    = get_val("epoca")
     tipus_val    = tipus.capitalize() if tipus else None
+    advertiments_val = get_val("advertiments")
 
     def cel_detall(icon, label, val1, val2=None):
         if not val1:
@@ -977,10 +981,26 @@ def render_ruta_completa(row, cols, context="llista", te_fotos=False):
     c2 = cel_detall("📅", "Època recomanada", epoca_val)
     c3 = cel_detall("🔄", "Tipus de ruta", tipus_val)
     c4 = cel_detall("🧗", "Dificultat", dif_raw)
+
+    seguretat_html = ""
+    if advertiments_val:
+        seguretat_html = (
+            f"<div style='display:flex;gap:8px;align-items:flex-start;padding:8px 0;"
+            f"border-top:1px solid #eee;margin-top:4px;'>"
+            f"<span style='font-size:16px;color:#aaa;flex-shrink:0;width:20px;margin-top:2px;'>⚠️</span>"
+            f"<div><div style='font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:#bbb;font-weight:600;'>Seguretat</div>"
+            f"<div style='font-size:13px;font-weight:600;color:#222;margin-top:1px;'>{advertiments_val}</div></div>"
+            f"</div>"
+        )
+
     graella = (
         f"<div style='display:grid;grid-template-columns:1fr 1fr;gap:0 16px;"
         f"border-top:1px solid #eee;margin-top:8px;'>"
         f"{c1}{c2}{c3}{c4}</div>"
+        + (
+            f"<div>{seguretat_html}</div>"
+            if seguretat_html else ""
+        )
     )
 
     svg_perfil_html = ""
@@ -1193,6 +1213,7 @@ try:
         "comentaris":  None,
         "desc":        buscar_col(["descripcio_ruta"]),
         "millors":     buscar_col(["millors_rutes"]),
+        "advertiments": buscar_col(["advertiments"]),
     }
 
     df = df_raw.dropna(subset=[cols["ruta"]]).copy()
@@ -1688,26 +1709,41 @@ div[data-testid="stSelectbox"] label {
 
         _reset_sfx = st.session_state.filtre_reset_counter
 
-        col_f1, col_f2, col_f3 = st.columns([1, 1, 1])
-        with col_f1:
-            sel_est_btn = st.selectbox("Estació", est_options,
-                index=0 if not st.session_state.filtre_btn_estacio else
-                      est_options.index(st.session_state.filtre_btn_estacio)
-                      if st.session_state.filtre_btn_estacio in est_options else 0,
-                key=f"sel_est_btn_{_reset_sfx}", label_visibility="collapsed")
-            st.session_state.filtre_btn_estacio = sel_est_btn if sel_est_btn != "🚉 Estació" and not sel_est_btn.startswith("──") else None
+        # ── Selector de mode: Estació o Línia ──────────────────────────
+        if "mode_filtre_tren" not in st.session_state:
+            st.session_state.mode_filtre_tren = "🚉 Estació"
 
-        with col_f2:
-            sel_lin_btn = st.selectbox("Línia", lin_options,
-                index=0,
-                key=f"sel_lin_btn_{_reset_sfx}", label_visibility="collapsed")
-            # Guardem el codi de línia real (sense el recorregut que va darrere dels dos espais)
-            if sel_lin_btn and sel_lin_btn != "🚆 Línia" and not sel_lin_btn.startswith("──"):
-                st.session_state.filtre_btn_linia = sel_lin_btn.split("  ")[0].strip()
-            else:
+        col_radio, col_sel, col_ruta = st.columns([1, 2, 2])
+        with col_radio:
+            mode_tren = st.radio(
+                "Mode", ["🚉 Estació", "🚆 Línia"],
+                index=0 if st.session_state.mode_filtre_tren == "🚉 Estació" else 1,
+                key=f"radio_mode_tren_{_reset_sfx}",
+                label_visibility="collapsed",
+                horizontal=True
+            )
+            st.session_state.mode_filtre_tren = mode_tren
+
+        with col_sel:
+            if st.session_state.mode_filtre_tren == "🚉 Estació":
+                sel_est_btn = st.selectbox("Estació", est_options,
+                    index=0 if not st.session_state.filtre_btn_estacio else
+                          est_options.index(st.session_state.filtre_btn_estacio)
+                          if st.session_state.filtre_btn_estacio in est_options else 0,
+                    key=f"sel_est_btn_{_reset_sfx}", label_visibility="collapsed")
+                st.session_state.filtre_btn_estacio = sel_est_btn if sel_est_btn != "🚉 Estació" and not sel_est_btn.startswith("──") else None
                 st.session_state.filtre_btn_linia = None
+            else:
+                sel_lin_btn = st.selectbox("Línia", lin_options,
+                    index=0,
+                    key=f"sel_lin_btn_{_reset_sfx}", label_visibility="collapsed")
+                if sel_lin_btn and sel_lin_btn != "🚆 Línia" and not sel_lin_btn.startswith("──"):
+                    st.session_state.filtre_btn_linia = sel_lin_btn.split("  ")[0].strip()
+                else:
+                    st.session_state.filtre_btn_linia = None
+                st.session_state.filtre_btn_estacio = None
 
-        with col_f3:
+        with col_ruta:
             sel_ruta_btn = st.selectbox("Llistat de rutes", ruta_options,
                 index=0 if not st.session_state.filtre_btn_ruta else
                       ruta_options.index(st.session_state.filtre_btn_ruta)
