@@ -705,18 +705,13 @@ def fotos_contingut_html(ruta_id):
 
 
 def barra_mini_dif(dif_raw, dif_color):
-    """Barra de 5 segments mini que substitueix el badge de text a la capçalera de targeta."""
-    nivells = [
-        ("Molt fàcil", "#2ECC71"),
-        ("Fàcil",      "#3498DB"),
-        ("Moderada",   "#E67E22"),
-        ("Difícil",    "#E74C3C"),
-        ("Molt difícil","#2C3E50"),
-    ]
-    claus = ["molt facil","facil","moderada","dificil","molt dificil"]
+    """Barra degradada amb marcador posicional per a la capçalera de targeta."""
+    claus     = ["molt facil", "facil", "moderada", "dificil", "molt dificil"]
+    noms      = ["Molt fàcil", "Fàcil", "Moderada", "Difícil", "Molt difícil"]
+    posicions = [2, 25, 50, 75, 98]
 
     def norm(s):
-        return (s.lower()
+        return (s.lower().strip()
                  .replace("à","a").replace("á","a")
                  .replace("è","e").replace("é","e")
                  .replace("í","i").replace("ï","i")
@@ -724,24 +719,24 @@ def barra_mini_dif(dif_raw, dif_color):
                  .replace("ú","u").replace("ü","u")
                  .replace("ç","c"))
 
-    pos = next((i for i, c in enumerate(claus) if c == norm(dif_raw)), -1)
-    segs = ""
-    for i, (nom, color) in enumerate(nivells):
-        actiu = (i == pos)
-        opacity = "1" if actiu else "0.2"
-        radius = "4px 0 0 4px" if i == 0 else ("0 4px 4px 0" if i == 4 else "0")
-        label_w = "font-weight:700;" if actiu else ""
-        segs += (
-            f"<div style='flex:1;'>"
-            f"<div style='height:6px;background:{color};opacity:{opacity};"
-            f"border-radius:{radius};'></div>"
-            f"<div style='font-size:11px;color:#555;text-align:center;"
-            f"margin-top:2px;{label_w}'>{nom if actiu else ''}</div>"
-            f"</div>"
-        )
+    idx = next((i for i, c in enumerate(claus) if c == norm(dif_raw)), -1)
+    if idx == -1:
+        return f"<div style='font-size:11px;color:{dif_color};font-weight:600;margin-top:6px;'>{dif_raw}</div>"
+
+    pct = posicions[idx]
+    nom = noms[idx]
+
     return (
-        f"<div style='display:flex;gap:2px;margin-top:6px;align-items:flex-end;'>"
-        f"{segs}"
+        f"<div style='position:relative;margin:6px 4px 22px;'>"
+        f"<div style='height:7px;border-radius:4px;"
+        f"background:linear-gradient(to right,#2ECC71,#3498DB,#E67E22,#E74C3C,#2C3E50);'></div>"
+        f"<div style='position:absolute;left:{pct}%;top:50%;"
+        f"transform:translate(-50%,-50%);"
+        f"width:15px;height:15px;border-radius:50%;background:white;"
+        f"border:3px solid {dif_color};'></div>"
+        f"<div style='position:absolute;left:{pct}%;top:14px;"
+        f"transform:translateX(-50%);font-size:11px;font-weight:600;"
+        f"color:{dif_color};white-space:nowrap;'>{nom}</div>"
         f"</div>"
     )
 
