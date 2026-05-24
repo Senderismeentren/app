@@ -1018,7 +1018,7 @@ def render_ruta_completa(row, cols, context="llista", te_fotos=False):
             # "GR-5": "https://senders.feec.cat/fem-muntanya/senders/sender/gr-5-sender-dels-miradors/",
             # "El Cinquè Llac": "https://www.elcinquellac.com/",
             # "Refugis del Torb": "https://www.apasdisard.com/refugis-del-torb/",
-            # "Volta a peu del Ripollès": "https://ripollesturisme.cat/que-fer-al-ripolles/senderisme-pel-ripolles/la-volta-a-peu-al-ripolles/",
+            # "La volta a peu al Ripollès": "https://ripollesturisme.cat/que-fer-al-ripolles/senderisme-pel-ripolles/la-volta-a-peu-al-ripolles/",
         }
         FEEC_BASE = "https://senders.feec.cat/"
 
