@@ -999,6 +999,33 @@ def render_ruta_completa(row, cols, context="llista", te_fotos=False):
     c3 = cel_detall("🔄", "Tipus de ruta", tipus_val)
     c4 = cel_detall("🧗", "Dificultat", dif_raw)
 
+    # Senders: separats per ";" i ordenats GR > PR > SL > altres
+    senders_html = ""
+    if terreny_val:
+        def _ordre_sender(s):
+            su = s.strip().upper()
+            if su.startswith("GR"): return (0, su)
+            if su.startswith("PR"): return (1, su)
+            if su.startswith("SL"): return (2, su)
+            return (3, su)
+        senders_llista = [s.strip() for s in terreny_val.split(";") if s.strip()]
+        senders_llista = sorted(senders_llista, key=_ordre_sender)
+        pills = "".join(
+            f"<span style='display:inline-block;background:#f0f0f0;border-radius:4px;"
+            f"padding:2px 8px;margin:2px 4px 2px 0;font-size:12px;font-weight:600;"
+            f"color:#444;'>{s}</span>"
+            for s in senders_llista
+        )
+        senders_html = (
+            f"<div style='display:flex;gap:8px;align-items:flex-start;padding:8px 0;"
+            f"border-top:1px solid #eee;margin-top:4px;'>"
+            f"<span style='font-size:16px;color:#aaa;flex-shrink:0;width:20px;margin-top:2px;'>🥾</span>"
+            f"<div><div style='font-size:11px;text-transform:uppercase;letter-spacing:0.5px;"
+            f"color:#bbb;font-weight:600;'>Senders</div>"
+            f"<div style='margin-top:4px;'>{pills}</div></div>"
+            f"</div>"
+        )
+
     seguretat_html = ""
     if advertiments_val:
         seguretat_html = (
@@ -1014,10 +1041,8 @@ def render_ruta_completa(row, cols, context="llista", te_fotos=False):
         f"<div style='display:grid;grid-template-columns:1fr 1fr;gap:0 16px;"
         f"border-top:1px solid #eee;margin-top:8px;'>"
         f"{c1}{c2}{c3}{c4}</div>"
-        + (
-            f"<div>{seguretat_html}</div>"
-            if seguretat_html else ""
-        )
+        + (f"<div>{senders_html}</div>" if senders_html else "")
+        + (f"<div>{seguretat_html}</div>" if seguretat_html else "")
     )
 
     svg_perfil_html = ""
