@@ -1,5 +1,5 @@
 # ============================================================
-# SENDERISME EN TREN — v16
+# SENDERISME EN TREN — v103
 # ============================================================
 
 import streamlit as st
@@ -1010,23 +1010,40 @@ def render_ruta_completa(row, cols, context="llista", te_fotos=False):
             return (3, su)
         senders_llista = [s.strip() for s in terreny_val.split(";") if s.strip()]
         senders_llista = sorted(senders_llista, key=_ordre_sender)
+        # Diccionari d'URLs per a senders amb pàgina pròpia coneguda.
+        # Afegeix aquí les URLs de les travesses i senders locals.
+        SENDER_URLS = {
+            # Travesses i senders locals — afegeix les URLs reals aquí:
+            # "Refugis del Torb": "https://www.exemple.cat/refugis-del-torb",
+            # "Volta a peu del Ripollès": "https://www.exemple.cat/volta-ripolles",
+        }
+        FEEC_BASE = "https://senders.feec.cat/"
+
         def _url_sender(s):
             su = s.strip().upper()
-            # GR, PR, SL → cercador FEEC
+            # Primer: URL explícita al diccionari
+            if s.strip() in SENDER_URLS:
+                return SENDER_URLS[s.strip()]
+            # GR, PR, SL → pàgina principal FEEC (no hi ha URL directa per sender)
             if su.startswith("GR") or su.startswith("PR") or su.startswith("SL"):
-                codi = s.strip().replace(" ", "+")
-                return f"https://senders.feec.cat/?cerca={codi}"
-            # Altres: cerca a Google com a fallback útil
-            return f"https://www.google.com/search?q={s.strip().replace(' ', '+')}"
+                return FEEC_BASE
+            # Altres sense URL coneguda → cap link
+            return None
 
         pills = "".join(
-            f"<a href='{_url_sender(s)}' target='_blank' "
-            f"style='display:inline-block;background:#f0f0f0;border-radius:4px;"
-            f"padding:2px 8px;margin:2px 4px 2px 0;font-size:12px;font-weight:600;"
-            f"color:#444;text-decoration:none;'"
-            f" onmouseover=\"this.style.background='#e0e0e0'\""
-            f" onmouseout=\"this.style.background='#f0f0f0\'\">\n"
-            f"{s}</a>"
+            (
+                f"<a href='{url}' target='_blank' "
+                f"style='display:inline-block;background:#f0f0f0;border-radius:4px;"
+                f"padding:2px 8px;margin:2px 4px 2px 0;font-size:12px;font-weight:600;"
+                f"color:#444;text-decoration:none;'"
+                f" onmouseover=\"this.style.background='#e0e0e0'\""
+                f" onmouseout=\"this.style.background='#f0f0f0\'\">\n"
+                f"{s}</a>"
+                if (url := _url_sender(s)) else
+                f"<span style='display:inline-block;background:#f0f0f0;border-radius:4px;"
+                f"padding:2px 8px;margin:2px 4px 2px 0;font-size:12px;font-weight:600;"
+                f"color:#444;'>{s}</span>"
+            )
             for s in senders_llista
         )
         senders_html = (
@@ -1197,8 +1214,8 @@ def render_ruta_completa(row, cols, context="llista", te_fotos=False):
         f"<details id='det_{ruta_id}' style='border-top:1px solid #eee;'>"
         f"<summary style='list-style:none;padding:0;cursor:pointer;display:block;' "
         f"onclick=\"this.parentElement.open ? "
-        f"this.querySelector('.det-btn').textContent='Tancar ruta' : "
-        f"this.querySelector('.det-btn').textContent='Veure ruta'\">"
+        f"this.querySelector('.det-btn').textContent='Veure ruta' : "
+        f"this.querySelector('.det-btn').textContent='Tancar ruta'\">"
         f"<div style='display:flex;justify-content:center;gap:10px;margin:10px 0 12px;flex-wrap:wrap;'>"
         f"<div class='det-btn' style='background:#7D8B99;color:white;border-radius:8px;"
         f"padding:7px 18px;text-align:center;font-size:12px;font-weight:700;letter-spacing:0.3px;"
