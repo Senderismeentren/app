@@ -11,6 +11,7 @@ from streamlit_folium import st_folium
 import gpxpy
 import gspread
 from google.oauth2.service_account import Credentials
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # 1. CONFIGURACIÓ DE LA PÀGINA
 st.set_page_config(
@@ -459,7 +460,7 @@ SHEET_NAME       = "Rutes"
 COLOR_BLAU       = "#007bff"
 COLOR_VERD       = "#2d9e6b"
 
-@st.cache_data(ttl=600)
+@st.cache_data(ttl=1800)
 def carregar_dades():
     scopes = ["https://www.googleapis.com/auth/spreadsheets",
               "https://www.googleapis.com/auth/drive"]
@@ -680,7 +681,7 @@ def perfil_elevacio_svg(ruta_id, dif_color):
         return None, None, None
 
 
-@st.cache_data(ttl=300)
+@st.cache_data(ttl=3600)
 def obtenir_fotos_ruta(ruta_id):
     """Comprova fotos .jpg i .png. Para quan troba 2 numeros consecutius buits."""
     urls = []
@@ -1912,15 +1913,24 @@ div[data-testid="stSelectbox"] label {
                 f = f_param
 
         n_fotos_per_ruta = {}
-        _spinner_placeholder = st.empty()
-        with _spinner_placeholder:
-            for _rid in f[cols["id"]].dropna().unique():
+        rids = []
+        for _rid in f[cols["id"]].dropna().unique():
+            try:
+                rids.append(int(float(_rid)))
+            except Exception:
+                pass
+
+        def _fetch_n_fotos(rid):
+            return rid, len(obtenir_fotos_ruta(rid))
+
+        with ThreadPoolExecutor(max_workers=10) as executor:
+            futures = {executor.submit(_fetch_n_fotos, rid): rid for rid in rids}
+            for future in as_completed(futures):
                 try:
-                    _rid_int = int(float(_rid))
-                    n_fotos_per_ruta[_rid_int] = len(obtenir_fotos_ruta(_rid_int))
+                    rid, n = future.result()
+                    n_fotos_per_ruta[rid] = n
                 except Exception:
                     pass
-        _spinner_placeholder.empty()
 
         col_res, col_ord = st.columns([3, 2])
         with col_res:
