@@ -424,6 +424,29 @@ DIFICULTAT_COLOR = {
     "molt exigent": "#2C3E50",
 }
 
+# URLs de senders amb pàgina pròpia.
+# La cerca és insensible a majúscules/minúscules i espais extra.
+SENDER_URLS_RAW = {
+    "GR-5":                       "https://senders.feec.cat/fem-muntanya/senders/sender/gr-5-sender-dels-miradors/",
+    "Travessa 3 refugis":          "https://www.t3r.cat/",
+    "El Cinquè Llac":              "https://www.elcinquellac.com/",
+    "Refugis del Torb":            "https://www.apasdisard.com/refugis-del-torb/",
+    "La volta a peu al Ripollès":  "https://ripollesturisme.cat/que-fer-al-ripolles/senderisme-pel-ripolles/la-volta-a-peu-al-ripolles/",
+}
+SENDER_URLS = {k.strip().lower(): v for k, v in SENDER_URLS_RAW.items()}
+
+# URLs de senders amb pàgina pròpia.
+# Afegeix aquí qualsevol sender (GR, PR, SL o travessa).
+# La cerca és insensible a majúscules/minúscules i espais extra.
+SENDER_URLS_RAW = {
+    "GR-5":                      "https://senders.feec.cat/fem-muntanya/senders/sender/gr-5-sender-dels-miradors/",
+    "Travessa 3 refugis":         "https://www.t3r.cat/",
+    "El Cinquè Llac":             "https://www.elcinquellac.com/",
+    "Refugis del Torb":           "https://www.apasdisard.com/refugis-del-torb/",
+    "La volta a peu al Ripollès": "https://ripollesturisme.cat/que-fer-al-ripolles/senderisme-pel-ripolles/la-volta-a-peu-al-ripolles/",
+}
+SENDER_URLS = {k.strip().lower(): v for k, v in SENDER_URLS_RAW.items()}
+
 BASE_LOGO_LINIA = "https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/Logo-{linia}.svg"
 BASE_GPX_URL    = "https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/gpx/ruta-{id:03d}.gpx"
 BASE_FOTO_URL   = "https://raw.githubusercontent.com/Senderismeentren/imatges/main/ruta-{id:03d}/foto{n}.jpg"
@@ -1010,24 +1033,15 @@ def render_ruta_completa(row, cols, context="llista", te_fotos=False):
             return (3, su)
         senders_llista = [s.strip() for s in terreny_val.split(";") if s.strip()]
         senders_llista = sorted(senders_llista, key=_ordre_sender)
-        # Diccionari d'URLs per a senders amb pàgina pròpia coneguda.
-        # Afegeix aquí les URLs de les travesses i senders locals.
-        SENDER_URLS = {
-            # Travesses i senders locals — afegeix les URLs reals aquí:
-            # "Travessa 3 refugis": "https://www.t3r.cat/",
-            # "GR-5": "https://senders.feec.cat/fem-muntanya/senders/sender/gr-5-sender-dels-miradors/",
-            # "El Cinquè Llac": "https://www.elcinquellac.com/",
-            # "Refugis del Torb": "https://www.apasdisard.com/refugis-del-torb/",
-            # "La volta a peu al Ripollès": "https://ripollesturisme.cat/que-fer-al-ripolles/senderisme-pel-ripolles/la-volta-a-peu-al-ripolles/",
-        }
         FEEC_BASE = "https://senders.feec.cat/"
 
         def _url_sender(s):
             su = s.strip().upper()
-            # Primer: URL explícita al diccionari
-            if s.strip() in SENDER_URLS:
-                return SENDER_URLS[s.strip()]
-            # GR, PR, SL → pàgina principal FEEC (no hi ha URL directa per sender)
+            # Cerca normalitzada al diccionari global (insensible a maj/min i espais)
+            clau = s.strip().lower()
+            if clau in SENDER_URLS:
+                return SENDER_URLS[clau]
+            # GR, PR, SL sense URL específica → pàgina principal FEEC
             if su.startswith("GR") or su.startswith("PR") or su.startswith("SL"):
                 return FEEC_BASE
             # Altres sense URL coneguda → cap link
