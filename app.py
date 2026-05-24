@@ -1014,8 +1014,11 @@ def render_ruta_completa(row, cols, context="llista", te_fotos=False):
         # Afegeix aquí les URLs de les travesses i senders locals.
         SENDER_URLS = {
             # Travesses i senders locals — afegeix les URLs reals aquí:
-            # "Refugis del Torb": "https://www.exemple.cat/refugis-del-torb",
-            # "Volta a peu del Ripollès": "https://www.exemple.cat/volta-ripolles",
+            # "Travessa 3 refugis": "https://www.t3r.cat/",
+            # "GR-5": "https://senders.feec.cat/fem-muntanya/senders/sender/gr-5-sender-dels-miradors/",
+            # "El Cinquè Llac": "https://www.elcinquellac.com/",
+            # "Refugis del Torb": "https://www.apasdisard.com/refugis-del-torb/",
+            # "Volta a peu del Ripollès": "https://ripollesturisme.cat/que-fer-al-ripolles/senderisme-pel-ripolles/la-volta-a-peu-al-ripolles/",
         }
         FEEC_BASE = "https://senders.feec.cat/"
 
