@@ -1010,10 +1010,23 @@ def render_ruta_completa(row, cols, context="llista", te_fotos=False):
             return (3, su)
         senders_llista = [s.strip() for s in terreny_val.split(";") if s.strip()]
         senders_llista = sorted(senders_llista, key=_ordre_sender)
+        def _url_sender(s):
+            su = s.strip().upper()
+            # GR, PR, SL → cercador FEEC
+            if su.startswith("GR") or su.startswith("PR") or su.startswith("SL"):
+                codi = s.strip().replace(" ", "+")
+                return f"https://senders.feec.cat/?cerca={codi}"
+            # Altres: cerca a Google com a fallback útil
+            return f"https://www.google.com/search?q={s.strip().replace(' ', '+')}"
+
         pills = "".join(
-            f"<span style='display:inline-block;background:#f0f0f0;border-radius:4px;"
+            f"<a href='{_url_sender(s)}' target='_blank' "
+            f"style='display:inline-block;background:#f0f0f0;border-radius:4px;"
             f"padding:2px 8px;margin:2px 4px 2px 0;font-size:12px;font-weight:600;"
-            f"color:#444;'>{s}</span>"
+            f"color:#444;text-decoration:none;'"
+            f" onmouseover=\"this.style.background='#e0e0e0'\""
+            f" onmouseout=\"this.style.background='#f0f0f0\'\">\n"
+            f"{s}</a>"
             for s in senders_llista
         )
         senders_html = (
@@ -1185,12 +1198,12 @@ def render_ruta_completa(row, cols, context="llista", te_fotos=False):
         f"<summary style='list-style:none;padding:0;cursor:pointer;display:block;' "
         f"onclick=\"this.parentElement.open ? "
         f"this.querySelector('.det-btn').textContent='Tancar ruta' : "
-        f"this.querySelector('.det-btn').textContent='Veure detalls'\">"
+        f"this.querySelector('.det-btn').textContent='Veure ruta'\">"
         f"<div style='display:flex;justify-content:center;gap:10px;margin:10px 0 12px;flex-wrap:wrap;'>"
         f"<div class='det-btn' style='background:#7D8B99;color:white;border-radius:8px;"
         f"padding:7px 18px;text-align:center;font-size:12px;font-weight:700;letter-spacing:0.3px;"
         f"box-shadow:0 2px 6px #7D8B9955;min-width:130px;cursor:pointer;'>"
-        f"Veure detalls</div>"
+        f"Veure ruta</div>"
         + wikiloc_btn +
         f"</div></summary>"
         f"<div style='padding:4px 12px 16px;'>"
