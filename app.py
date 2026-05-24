@@ -428,7 +428,9 @@ DIFICULTAT_COLOR = {
 # La cerca és insensible a majúscules/minúscules i espais extra.
 SENDER_URLS_RAW = {
     "GR-5":                       "https://senders.feec.cat/fem-muntanya/senders/sender/gr-5-sender-dels-miradors/",
+    "GR-92":                       "https://senders.feec.cat/fem-muntanya/senders/sender/gr-92-sender-de-la-mediterranea/",
     "Travessa 3 refugis":          "https://www.t3r.cat/",
+    "Camí de Sant Jaume":          "https://camidesantjaume.com/",
     "El Cinquè Llac":              "https://www.elcinquellac.com/",
     "Refugis del Torb":            "https://www.apasdisard.com/refugis-del-torb/",
     "La volta a peu al Ripollès":  "https://ripollesturisme.cat/que-fer-al-ripolles/senderisme-pel-ripolles/la-volta-a-peu-al-ripolles/",
