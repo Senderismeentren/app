@@ -1936,6 +1936,46 @@ div[data-testid="stSelectbox"] label {
         with col_res:
             st.markdown(f"**{len(f)} rutes**", unsafe_allow_html=True)
 
+        # ── Píndoles de filtres actius + botó netejar ──────────────────
+        _filtres_actius = []
+        if st.session_state.get("filtre_btn_estacio"):
+            _filtres_actius.append(("🚉", st.session_state.filtre_btn_estacio, "estacio"))
+        if st.session_state.get("filtre_btn_linia"):
+            _filtres_actius.append(("🚆", st.session_state.filtre_btn_linia, "linia"))
+        if st.session_state.get("filtre_btn_ruta"):
+            _nom_ruta = st.session_state.filtre_btn_ruta.split(" · ")[1] if " · " in st.session_state.filtre_btn_ruta else st.session_state.filtre_btn_ruta
+            _filtres_actius.append(("📋", _nom_ruta, "ruta"))
+
+        # Filtres del sidebar
+        for _clau, _icon, _label in [
+            ("filtre_dificultat",  "🧗", "Dificultat"),
+            ("filtre_comarca",     "📍", "Comarca"),
+            ("filtre_espai",       "🌿", "Espai natural"),
+            ("filtre_100cims",     "🏔️", "100 Cims"),
+        ]:
+            _val = st.session_state.get(_clau)
+            if _val and _val not in ("Totes", "Tots", "Totes les comarques", "Tots els espais", "No filtrar", ""):
+                _filtres_actius.append((_icon, str(_val), _clau))
+
+        if _filtres_actius:
+            _pills_html = "<div style='display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 4px;align-items:center;'>"
+            for _icon, _nom, _ in _filtres_actius:
+                _pills_html += (
+                    f"<span style='display:inline-flex;align-items:center;gap:4px;"
+                    f"background:#f0f4ff;border:1px solid #c0cfe8;border-radius:20px;"
+                    f"padding:3px 10px;font-size:12px;font-weight:500;color:#334;'>"
+                    f"{_icon} {_nom}</span>"
+                )
+            _pills_html += "</div>"
+            st.markdown(_pills_html, unsafe_allow_html=True)
+
+            if st.button("✕ Netejar filtres", key="btn_netejar_filtres_main", type="secondary"):
+                for _clau in ["filtre_btn_estacio", "filtre_btn_linia", "filtre_btn_ruta",
+                               "filtre_dificultat", "filtre_comarca", "filtre_espai", "filtre_100cims"]:
+                    st.session_state[_clau] = None
+                st.session_state.filtre_reset_counter = st.session_state.get("filtre_reset_counter", 0) + 1
+                st.rerun()
+
         for _, row in f.iterrows():
             try:
                 _rid_int = int(float(str(row[cols["id"]])))
