@@ -1557,7 +1557,7 @@ try:
         st.stop()
 
     # --- PESTANYES (les natives queden amagades pel CSS, però cal declarar-les) ---
-    tab_llista, tab_mapa, tab_cims, tab_millors = st.tabs(["🥾 Rutes", "🗺️ Mapa", "🏔️ 100 Cims", "⭐ Millors"])
+    tab_llista, tab_mapa, tab_cims, tab_millors, tab_index = st.tabs(["🥾 Rutes", "🗺️ Mapa", "🏔️ 100 Cims", "⭐ Millors", "📋 Índex"])
 
     with tab_mapa:
         mostrar_mapa_general(f, cols)
@@ -1824,7 +1824,7 @@ div[data-testid="stSelectbox"] label {
         if "mode_filtre_tren" not in st.session_state:
             st.session_state.mode_filtre_tren = "🚉 Estació"
 
-        col_radio, col_sel, col_ruta = st.columns([1, 2, 2])
+        col_radio, col_sel = st.columns([1, 3])
         with col_radio:
             mode_tren = st.radio(
                 "Mode", ["🚉 Estació", "🚆 Línia"],
@@ -1854,13 +1854,6 @@ div[data-testid="stSelectbox"] label {
                     st.session_state.filtre_btn_linia = None
                 st.session_state.filtre_btn_estacio = None
 
-        with col_ruta:
-            sel_ruta_btn = st.selectbox("Llistat de rutes", ruta_options,
-                index=0 if not st.session_state.filtre_btn_ruta else
-                      ruta_options.index(st.session_state.filtre_btn_ruta)
-                      if st.session_state.filtre_btn_ruta in ruta_options else 0,
-                key=f"sel_ruta_btn_{_reset_sfx}", label_visibility="collapsed")
-            st.session_state.filtre_btn_ruta = sel_ruta_btn if sel_ruta_btn != "📋 Llistat de rutes" else None
 
         if st.session_state.filtre_btn_estacio:
             # Estació de sortida: només cerca a la columna sortida
@@ -1877,12 +1870,6 @@ div[data-testid="stSelectbox"] label {
                 lambda x: _lin in [l.strip() for l in x.split(";")]
             ) if cols.get("linia_a") else pd.Series([False] * len(f), index=f.index)
             f = f[mask_s | mask_a]
-        if st.session_state.filtre_btn_ruta and cols.get("id") and cols.get("ruta"):
-            # Extraiem el número de la selecció "ST001 · Nom ruta"
-            _codi_sel = st.session_state.filtre_btn_ruta.split(" · ")[0].replace("ST","").lstrip("0") or "0"
-            f = f[f[cols["id"]].astype(str).str.replace(".0","",regex=False).str.lstrip("0").apply(
-                lambda x: (x or "0") == _codi_sel
-            )]
 
         # ── Ordenació ──────────────────────────────────────────────────
         _opcions_ordre = {
@@ -1983,5 +1970,43 @@ div[data-testid="stSelectbox"] label {
                 _rid_int = None
             _te_fotos = _rid_int and n_fotos_per_ruta.get(_rid_int, 0) > 0
             render_ruta_completa(row, cols, te_fotos=_te_fotos)
+
+    with tab_index:
+        if not cols.get("id") or not cols.get("ruta"):
+            st.info("No hi ha dades de rutes disponibles.")
+        else:
+            rutes_idx = df[[cols["id"], cols["ruta"]]].dropna(subset=[cols["id"]])
+            rutes_idx = rutes_idx.sort_values(by=cols["id"])
+            n_total_idx = len(rutes_idx)
+            st.markdown(
+                f"<div style='font-size:22px;font-weight:700;color:#111;margin-bottom:16px;'>"
+                f"{n_total_idx} rutes</div>",
+                unsafe_allow_html=True
+            )
+            if "filtre_index_ruta" not in st.session_state:
+                st.session_state.filtre_index_ruta = None
+
+            if st.session_state.filtre_index_ruta:
+                codi_sel_i, nom_sel_i = st.session_state.filtre_index_ruta
+                st.markdown(f"### 📋 {codi_sel_i} · {nom_sel_i}")
+                if st.button("← Tornar a l'índex", key="btn_tornar_index"):
+                    st.session_state.filtre_index_ruta = None
+                    st.rerun()
+                f_idx = df[df[cols["ruta"]].astype(str).str.strip() == nom_sel_i]
+                for _, row_i in f_idx.iterrows():
+                    render_ruta_completa(row_i, cols, context="index")
+            else:
+                for _, r_i in rutes_idx.iterrows():
+                    num_i = str(r_i[cols["id"]]).strip()
+                    nom_i = str(r_i[cols["ruta"]]).strip() if pd.notna(r_i[cols["ruta"]]) else ""
+                    if not nom_i or nom_i.lower() in ("nan", ""): continue
+                    try:
+                        codi_i = f"ST{int(float(num_i)):03d}"
+                    except Exception:
+                        codi_i = f"ST{num_i}"
+                    if st.button(f"{codi_i} · {nom_i}", key=f"index_{codi_i}"):
+                        st.session_state.filtre_index_ruta = (codi_i, nom_i)
+                        st.rerun()
+
 except Exception as e:
     st.error(f"S'ha produït un error: {e}")
