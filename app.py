@@ -1717,9 +1717,10 @@ div[data-testid="stSelectbox"] label {
 
 
         if st.session_state.filtre_btn_estacio:
-            # Estació de sortida: només cerca a la columna sortida
+            _est = st.session_state.filtre_btn_estacio
             f = f[
-                f[cols["sortida"]].astype(str).str.strip() == st.session_state.filtre_btn_estacio
+                (f[cols["sortida"]].astype(str).str.strip() == _est) |
+                (f[cols["arribada"]].astype(str).str.strip() == _est)
             ]
         if st.session_state.filtre_btn_linia:
             _lin = st.session_state.filtre_btn_linia
