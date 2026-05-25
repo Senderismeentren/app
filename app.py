@@ -1,5 +1,5 @@
 # ============================================================
-# SENDERISME EN TREN — v103
+# SENDERISME EN TREN — v105
 # ============================================================
 
 import streamlit as st
@@ -728,6 +728,43 @@ def fotos_contingut_html(ruta_id):
         f"</div>"
         f"<p style='font-size:11px;color:#aaa;margin:6px 0 0;text-align:right;'>Clica per veure a mida completa</p>"
     )
+
+
+@st.cache_data(ttl=1800)
+def build_millors_agrupat(_df, col_millors, col_ruta, col_id):
+    """Retorna dict {categoria: [(codi, nom), ...]} per a la pestanya Millors."""
+    per_cat = {}
+    for _, r in _df.iterrows():
+        cat = str(r[col_millors]).strip() if pd.notna(r[col_millors]) else ""
+        if not cat or cat.lower() in ("nan", ""): continue
+        nom = str(r[col_ruta]).strip() if pd.notna(r[col_ruta]) else ""
+        if not nom or nom.lower() in ("nan", ""): continue
+        num = str(r[col_id]).strip() if pd.notna(r[col_id]) else ""
+        try:
+            codi = f"ST{int(float(num)):03d}"
+        except Exception:
+            codi = f"ST{num}"
+        per_cat.setdefault(cat, [])
+        if not any(e[0] == codi for e in per_cat[cat]):
+            per_cat[cat].append((codi, nom))
+    return {cat: sorted(v) for cat, v in sorted(per_cat.items())}
+
+
+@st.cache_data(ttl=1800)
+def build_index_llista(_df, col_id, col_ruta):
+    """Retorna llista [(codi, nom), ...] ordenada per número per a la pestanya Índex."""
+    rutes = []
+    df_s = _df[[col_id, col_ruta]].dropna(subset=[col_id]).sort_values(by=col_id)
+    for _, r in df_s.iterrows():
+        num = str(r[col_id]).strip()
+        nom = str(r[col_ruta]).strip() if pd.notna(r[col_ruta]) else ""
+        if not nom or nom.lower() in ("nan", ""): continue
+        try:
+            codi = f"ST{int(float(num)):03d}"
+        except Exception:
+            codi = f"ST{num}"
+        rutes.append((codi, nom))
+    return rutes
 
 
 def barra_mini_dif(dif_raw, dif_color):
@@ -1935,29 +1972,14 @@ div[data-testid="stSelectbox"] label {
             if not cols.get("millors") or not cols.get("ruta") or not cols.get("id"):
                 st.info("No hi ha dades de millors rutes disponibles.")
             else:
-                per_cat_m = {}
-                for _, r_m in df.iterrows():
-                    cat_m = str(r_m[cols["millors"]]).strip() if pd.notna(r_m[cols["millors"]]) else ""
-                    if not cat_m or cat_m.lower() in ("nan", ""): continue
-                    nom_m = str(r_m[cols["ruta"]]).strip() if pd.notna(r_m[cols["ruta"]]) else ""
-                    if not nom_m or nom_m.lower() in ("nan", ""): continue
-                    num_m = str(r_m[cols["id"]]).strip() if pd.notna(r_m[cols["id"]]) else ""
-                    try:
-                        codi_m = f"ST{int(float(num_m)):03d}"
-                    except Exception:
-                        codi_m = f"ST{num_m}"
-                    entrada = (codi_m, nom_m, r_m)
-                    per_cat_m.setdefault(cat_m, [])
-                    if not any(e[0] == codi_m for e in per_cat_m[cat_m]):
-                        per_cat_m[cat_m].append(entrada)
-    
+                per_cat_m = build_millors_agrupat(df, cols["millors"], cols["ruta"], cols["id"])
                 n_total_millors = sum(len(v) for v in per_cat_m.values())
                 st.markdown(
                     f"<div style='font-size:22px;font-weight:700;color:#111;margin-bottom:16px;'>"
                     f"{n_total_millors} rutes destacades</div>",
                     unsafe_allow_html=True
                 )
-    
+
                 if "filtre_millors_ruta" not in st.session_state:
                     st.session_state.filtre_millors_ruta = None
     
@@ -1980,17 +2002,16 @@ div[data-testid="stSelectbox"] label {
                             f"letter-spacing:0.5px;color:#aaa;margin:16px 0 6px;'>{cat_m}</div>",
                             unsafe_allow_html=True
                         )
-                        for codi_m, nom_m, _ in rutes_cat_m:
+                        for codi_m, nom_m in rutes_cat_m:
                             if st.button(f"⭐ {codi_m} · {nom_m}", key=f"millors_{codi_m}"):
                                 st.session_state.filtre_millors_ruta = (codi_m, nom_m)
                                 st.rerun()
-    
+
         elif mode_desc == "📋 Índex":
             if not cols.get("id") or not cols.get("ruta"):
                 st.info("No hi ha dades de rutes disponibles.")
             else:
-                rutes_idx = df[[cols["id"], cols["ruta"]]].dropna(subset=[cols["id"]])
-                rutes_idx = rutes_idx.sort_values(by=cols["id"])
+                rutes_idx = build_index_llista(df, cols["id"], cols["ruta"])
                 n_total_idx = len(rutes_idx)
                 st.markdown(
                     f"<div style='font-size:22px;font-weight:700;color:#111;margin-bottom:16px;'>"
@@ -1999,7 +2020,7 @@ div[data-testid="stSelectbox"] label {
                 )
                 if "filtre_index_ruta" not in st.session_state:
                     st.session_state.filtre_index_ruta = None
-    
+
                 if st.session_state.filtre_index_ruta:
                     codi_sel_i, nom_sel_i = st.session_state.filtre_index_ruta
                     st.markdown(f"### 📋 {codi_sel_i} · {nom_sel_i}")
@@ -2010,17 +2031,10 @@ div[data-testid="stSelectbox"] label {
                     for _, row_i in f_idx.iterrows():
                         render_ruta_completa(row_i, cols, context="index")
                 else:
-                    for _, r_i in rutes_idx.iterrows():
-                        num_i = str(r_i[cols["id"]]).strip()
-                        nom_i = str(r_i[cols["ruta"]]).strip() if pd.notna(r_i[cols["ruta"]]) else ""
-                        if not nom_i or nom_i.lower() in ("nan", ""): continue
-                        try:
-                            codi_i = f"ST{int(float(num_i)):03d}"
-                        except Exception:
-                            codi_i = f"ST{num_i}"
+                    for codi_i, nom_i in rutes_idx:
                         if st.button(f"{codi_i} · {nom_i}", key=f"index_{codi_i}"):
                             st.session_state.filtre_index_ruta = (codi_i, nom_i)
                             st.rerun()
-    
+
 except Exception as e:
     st.error(f"S'ha produït un error: {e}")
