@@ -1245,16 +1245,7 @@ def render_ruta_completa(row, cols, context="llista", te_fotos=False):
             f"Wikiloc</a>"
         )
 
-    # ── Clau de session_state per saber si els detalls estan oberts ──
-    _det_key = f"det_obert_{context}_{ruta_id}"
-    if _det_key not in st.session_state:
-        st.session_state[_det_key] = False
-    _mapa_key = f"mapa_obert_{context}_{ruta_id}"
-    if _mapa_key not in st.session_state:
-        st.session_state[_mapa_key] = False
-
-    # ── Targeta resumida (sempre) ──────────────────────────────────
-    resum_html = (
+    card_html = (
         f"<div style='margin-top:12px;border:1px solid {dif_color}44;border-left:5px solid {dif_color};"
         f"border-radius:8px;overflow:visible;background:white;'>"
         f"<div style='background:{dif_color}18;padding:10px 12px 8px;'>"
@@ -1277,38 +1268,25 @@ def render_ruta_completa(row, cols, context="llista", te_fotos=False):
         f"{foto_portada_html}"
         f"</div>"
         + etiquetes_html +
-        f"</div>"
+        f"<details id='det_{ruta_id}' style='border-top:1px solid #eee;'>"
+        f"<summary style='list-style:none;padding:0;cursor:pointer;display:block;' "
+        f"onclick=\"this.parentElement.open ? "
+        f"this.querySelector('.det-btn').textContent='Veure ruta' : "
+        f"this.querySelector('.det-btn').textContent='Tancar ruta'\">"
+        f"<div style='display:flex;justify-content:center;gap:10px;margin:10px 0 12px;flex-wrap:wrap;'>"
+        f"<div class='det-btn' style='background:#7D8B99;color:white;border-radius:8px;"
+        f"padding:7px 18px;text-align:center;font-size:12px;font-weight:700;letter-spacing:0.3px;"
+        f"box-shadow:0 2px 6px #7D8B9955;min-width:130px;cursor:pointer;'>"
+        f"Veure ruta</div>"
+        + wikiloc_btn +
+        f"</div></summary>"
+        f"<div style='padding:4px 12px 16px;'>"
+        + detalls_html +
+        f"</div></details></div>"
     )
-    st.markdown(resum_html, unsafe_allow_html=True)
+    st.markdown(card_html, unsafe_allow_html=True)
 
-    # ── Botons Veure ruta / Mapa ───────────────────────────────────
-    _bc1, _bc2, _bc3 = st.columns([2, 1, 1])
-    with _bc1:
-        _btn_label = "▲ Tancar ruta" if st.session_state[_det_key] else "▼ Veure ruta"
-        if st.button(_btn_label, key=f"btn_det_{context}_{ruta_id}", use_container_width=True):
-            st.session_state[_det_key] = not st.session_state[_det_key]
-            st.rerun()
-    with _bc2:
-        if wikiloc_btn:
-            st.markdown(wikiloc_btn, unsafe_allow_html=True)
-    with _bc3:
-        _mapa_label = "✕ Mapa" if st.session_state[_mapa_key] else "🗺️ Mapa"
-        if st.button(_mapa_label, key=f"btn_mapa_{context}_{ruta_id}", use_container_width=True):
-            st.session_state[_mapa_key] = not st.session_state[_mapa_key]
-            st.rerun()
-
-    # ── Detalls (només si estan oberts) ───────────────────────────
-    if st.session_state[_det_key]:
-        st.markdown(
-            f"<div style='padding:4px 12px 16px;border:1px solid {dif_color}22;"
-            f"border-top:none;border-radius:0 0 8px 8px;background:white;'>"
-            + detalls_html +
-            f"</div>",
-            unsafe_allow_html=True
-        )
-
-    # ── Mapa (només si està obert) ─────────────────────────────────
-    if st.session_state[_mapa_key]:
+    with st.expander("🗺️ Mapa del recorregut", key=f"mapa_{context}_{ruta_id}"):
         with st.spinner("Carregant mapa..."):
             if ruta_id:
                 if not mostrar_mapa_gpx(ruta_id, lat_s, lng_s, lat_a, lng_a, context=context):
