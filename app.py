@@ -1245,7 +1245,16 @@ def render_ruta_completa(row, cols, context="llista", te_fotos=False):
             f"Wikiloc</a>"
         )
 
-    card_html = (
+    # ── Clau de session_state per saber si els detalls estan oberts ──
+    _det_key = f"det_obert_{context}_{ruta_id}"
+    if _det_key not in st.session_state:
+        st.session_state[_det_key] = False
+    _mapa_key = f"mapa_obert_{context}_{ruta_id}"
+    if _mapa_key not in st.session_state:
+        st.session_state[_mapa_key] = False
+
+    # ── Targeta resumida (sempre) ──────────────────────────────────
+    resum_html = (
         f"<div style='margin-top:12px;border:1px solid {dif_color}44;border-left:5px solid {dif_color};"
         f"border-radius:8px;overflow:visible;background:white;'>"
         f"<div style='background:{dif_color}18;padding:10px 12px 8px;'>"
@@ -1268,30 +1277,123 @@ def render_ruta_completa(row, cols, context="llista", te_fotos=False):
         f"{foto_portada_html}"
         f"</div>"
         + etiquetes_html +
-        f"<details id='det_{ruta_id}' style='border-top:1px solid #eee;'>"
-        f"<summary style='list-style:none;padding:0;cursor:pointer;display:block;' "
-        f"onclick=\"this.parentElement.open ? "
-        f"this.querySelector('.det-btn').textContent='Veure ruta' : "
-        f"this.querySelector('.det-btn').textContent='Tancar ruta'\">"
-        f"<div style='display:flex;justify-content:center;gap:10px;margin:10px 0 12px;flex-wrap:wrap;'>"
-        f"<div class='det-btn' style='background:#7D8B99;color:white;border-radius:8px;"
-        f"padding:7px 18px;text-align:center;font-size:12px;font-weight:700;letter-spacing:0.3px;"
-        f"box-shadow:0 2px 6px #7D8B9955;min-width:130px;cursor:pointer;'>"
-        f"Veure ruta</div>"
-        + wikiloc_btn +
-        f"</div></summary>"
-        f"<div style='padding:4px 12px 16px;'>"
-        + detalls_html +
-        f"</div></details></div>"
+        f"</div>"
     )
-    st.markdown(card_html, unsafe_allow_html=True)
+    st.markdown(resum_html, unsafe_allow_html=True)
 
-    with st.expander("🗺️ Mapa del recorregut", key=f"mapa_{context}_{ruta_id}"):
+    # ── Botons Veure ruta / Mapa ───────────────────────────────────
+    _bc1, _bc2, _bc3 = st.columns([2, 1, 1])
+    with _bc1:
+        _btn_label = "▲ Tancar ruta" if st.session_state[_det_key] else "▼ Veure ruta"
+        if st.button(_btn_label, key=f"btn_det_{context}_{ruta_id}", use_container_width=True):
+            st.session_state[_det_key] = not st.session_state[_det_key]
+            st.rerun()
+    with _bc2:
+        if wikiloc_btn:
+            st.markdown(wikiloc_btn, unsafe_allow_html=True)
+    with _bc3:
+        _mapa_label = "✕ Mapa" if st.session_state[_mapa_key] else "🗺️ Mapa"
+        if st.button(_mapa_label, key=f"btn_mapa_{context}_{ruta_id}", use_container_width=True):
+            st.session_state[_mapa_key] = not st.session_state[_mapa_key]
+            st.rerun()
+
+    # ── Detalls (només si estan oberts) ───────────────────────────
+    if st.session_state[_det_key]:
+        st.markdown(
+            f"<div style='padding:4px 12px 16px;border:1px solid {dif_color}22;"
+            f"border-top:none;border-radius:0 0 8px 8px;background:white;'>"
+            + detalls_html +
+            f"</div>",
+            unsafe_allow_html=True
+        )
+
+    # ── Mapa (només si està obert) ─────────────────────────────────
+    if st.session_state[_mapa_key]:
         with st.spinner("Carregant mapa..."):
             if ruta_id:
                 if not mostrar_mapa_gpx(ruta_id, lat_s, lng_s, lat_a, lng_a, context=context):
                     st.info("Mapa no disponible per aquesta ruta.")
 
+
+def generar_card_html(row, cols, te_fotos=False):
+    """Retorna l'HTML d'una targeta de ruta sense cridar cap component Streamlit."""
+    ruta_id  = int(row[cols["id"]]) if pd.notna(row[cols["id"]]) else ""
+    nom_ruta = row[cols["ruta"]] if cols.get("ruta") else ""
+    dif_raw  = str(row[cols["dif"]]).strip() if cols.get("dif") and pd.notna(row[cols["dif"]]) else ""
+    dif_color = DIFICULTAT_COLOR.get(dif_raw.lower(), "#888888")
+
+    desn_p = row[cols["desn"]]   if cols.get("desn")   and pd.notna(row[cols["desn"]])   else 0
+    desn_n = row[cols["baixada"]] if cols.get("baixada") and pd.notna(row[cols["baixada"]]) else 0
+    tipus  = str(row[cols["tipus"]]).strip().lower() if cols.get("tipus") and pd.notna(row[cols["tipus"]]) else ""
+    km_val = row[cols["km"]] if cols.get("km") and pd.notna(row[cols["km"]]) else "—"
+
+    if "circular" in tipus:
+        desn_txt = f"+/- {int(desn_p)} m"
+    else:
+        desn_txt = f"+{int(desn_p)} m / -{int(desn_n)} m"
+
+    temps_fmt = "—"
+    if cols.get("temps") and pd.notna(row[cols["temps"]]):
+        try:
+            hd = float(str(row[cols["temps"]]).replace(",", "."))
+            h, mn = int(hd), round((hd - int(hd)) * 60)
+            temps_fmt = f"{h}h{mn:02d}min" if h > 0 and mn > 0 else (f"{h}h" if h > 0 else f"{mn}min")
+        except: pass
+
+    comarca_val = str(row[cols["comarca"]]) if cols.get("comarca") and pd.notna(row[cols["comarca"]]) else ""
+    espai_val   = str(row[cols["espai"]])   if cols.get("espai")   and pd.notna(row[cols["espai"]])   else ""
+    cims_val    = str(row[cols["cims"]]).strip().lower() if cols.get("cims") and pd.notna(row[cols["cims"]]) else ""
+    wiki_url    = str(row[cols["wiki"]])    if cols.get("wiki")    and pd.notna(row[cols["wiki"]])    else ""
+
+    etiquetes = ""
+    if comarca_val and comarca_val != "nan":
+        etiquetes += f'<span style="font-size:11px;padding:2px 7px;border-radius:20px;background:#f0f2f6;color:#555;border:0.5px solid #ddd;margin-right:4px;">{comarca_val}</span>'
+    if espai_val and espai_val != "nan":
+        etiquetes += f'<span style="font-size:11px;padding:2px 7px;border-radius:20px;background:#f0f2f6;color:#555;border:0.5px solid #ddd;margin-right:4px;">{espai_val}</span>'
+    if cims_val == "si":
+        etiquetes += '<span style="font-size:11px;padding:2px 7px;border-radius:20px;background:#E1F5EE;color:#0F6E56;border:0.5px solid #9FE1CB;margin-right:4px;">100 Cims</span>'
+    if wiki_url and wiki_url != "nan":
+        etiquetes += f'<a href="{wiki_url}" target="_blank" style="font-size:11px;padding:2px 7px;border-radius:20px;background:#EAF3DE;color:#3B6D11;border:0.5px solid #C0DD97;text-decoration:none;margin-right:4px;">Wikiloc</a>'
+    etiquetes_html = f"<div style='padding:2px 12px 8px;'>{etiquetes}</div>" if etiquetes else ""
+
+    foto_html = ""
+    if te_fotos and ruta_id:
+        urls = obtenir_fotos_ruta(ruta_id)
+        if urls:
+            foto_html = (
+                f"<a href='{urls[0]}' target='_blank' style='display:block;width:90px;flex-shrink:0;"
+                f"overflow:hidden;border-radius:0 0 8px 0;'>"
+                f"<img src='{urls[0]}' style='width:90px;height:90px;object-fit:cover;display:block;'"
+                f" loading='lazy' onerror=\"this.parentElement.style.display='none'\"></a>"
+            )
+
+    return (
+        f"<div style='margin-top:12px;border:1px solid {dif_color}44;border-left:5px solid {dif_color};"
+        f"border-radius:8px;overflow:visible;background:white;'>"
+        f"<div style='background:{dif_color}18;padding:10px 12px 8px;'>"
+        f"<div style='display:flex;align-items:center;gap:10px;'>"
+        f"<div style='width:26px;height:26px;border-radius:50%;background:{dif_color};color:white;"
+        f"font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;"
+        f"flex-shrink:0;'>{ruta_id}</div>"
+        f"<div style='flex:1;font-size:15px;font-weight:700;color:#111;line-height:1.3;'>"
+        f"{nom_ruta}{'  <span style=\"font-size:17px;\">📷</span>' if te_fotos else ''}</div>"
+        f"</div>"
+        f"{barra_mini_dif(dif_raw, dif_color)}"
+        f"</div>"
+        f"<div style='display:flex;gap:0;'>"
+        f"<div style='flex:1;padding:6px 12px 4px;display:flex;gap:20px;flex-wrap:wrap;align-items:center;'>"
+        f"<div><div style='font-size:11px;color:#999;text-transform:uppercase;letter-spacing:0.4px;'>Distància</div>"
+        f"<div style='font-size:15px;font-weight:700;color:#111;'>{km_val} km</div></div>"
+        f"<div><div style='font-size:11px;color:#999;text-transform:uppercase;letter-spacing:0.4px;'>Desnivell</div>"
+        f"<div style='font-size:15px;font-weight:700;color:#111;'>{desn_txt}</div></div>"
+        f"<div><div style='font-size:11px;color:#999;text-transform:uppercase;letter-spacing:0.4px;'>Temps</div>"
+        f"<div style='font-size:15px;font-weight:700;color:#111;'>{temps_fmt}</div></div>"
+        f"</div>"
+        f"{foto_html}"
+        f"</div>"
+        + etiquetes_html +
+        f"</div>"
+    )
 
 
 try:
@@ -1798,9 +1900,24 @@ div[data-testid="stSelectbox"] label {
             if not f_param.empty:
                 f = f_param
 
+        RUTES_PER_PAGINA = 15
+        n_total = len(f)
+        n_pagines = max(1, -(-n_total // RUTES_PER_PAGINA))
+
+        if "pagina_rutes" not in st.session_state:
+            st.session_state.pagina_rutes = 0
+        if st.session_state.pagina_rutes >= n_pagines:
+            st.session_state.pagina_rutes = 0
+
+        pagina = st.session_state.pagina_rutes
+        inici = pagina * RUTES_PER_PAGINA
+        fi_pag = min(inici + RUTES_PER_PAGINA, n_total)
+        f_pagina = f.iloc[inici:fi_pag]
+
+        # Fotos només per a les rutes de la pàgina actual
         n_fotos_per_ruta = {}
         rids = []
-        for _rid in f[cols["id"]].dropna().unique():
+        for _rid in f_pagina[cols["id"]].dropna().unique():
             try:
                 rids.append(int(float(_rid)))
             except Exception:
@@ -1820,7 +1937,7 @@ div[data-testid="stSelectbox"] label {
 
         col_res, col_ord = st.columns([3, 2])
         with col_res:
-            st.markdown(f"**{len(f)} rutes**", unsafe_allow_html=True)
+            st.markdown(f"**{n_total} rutes**", unsafe_allow_html=True)
 
         # ── Píndoles de filtres actius + botó netejar ──────────────────
         _filtres_actius = []
@@ -1832,7 +1949,6 @@ div[data-testid="stSelectbox"] label {
             _nom_ruta = st.session_state.filtre_btn_ruta.split(" · ")[1] if " · " in st.session_state.filtre_btn_ruta else st.session_state.filtre_btn_ruta
             _filtres_actius.append(("📋", _nom_ruta, "ruta"))
 
-        # Filtres del sidebar
         for _clau, _icon, _label in [
             ("filtre_dificultat",  "🧗", "Dificultat"),
             ("filtre_comarca",     "📍", "Comarca"),
@@ -1860,15 +1976,67 @@ div[data-testid="stSelectbox"] label {
                                "filtre_dificultat", "filtre_comarca", "filtre_espai", "filtre_100cims"]:
                     st.session_state[_clau] = None
                 st.session_state.filtre_reset_counter = st.session_state.get("filtre_reset_counter", 0) + 1
+                st.session_state.pagina_rutes = 0
                 st.rerun()
 
-        for _, row in f.iterrows():
+        # ── Renderitzar rutes de la pàgina actual (un sol st.markdown) ──
+        blocs_html = []
+        rutes_amb_mapa = []
+        for _, row in f_pagina.iterrows():
             try:
                 _rid_int = int(float(str(row[cols["id"]])))
             except Exception:
                 _rid_int = None
             _te_fotos = _rid_int and n_fotos_per_ruta.get(_rid_int, 0) > 0
-            render_ruta_completa(row, cols, te_fotos=_te_fotos)
+            blocs_html.append(generar_card_html(row, cols, te_fotos=_te_fotos))
+            rutes_amb_mapa.append((_rid_int, row))
+
+        if blocs_html:
+            st.markdown("".join(blocs_html), unsafe_allow_html=True)
+
+        # Botons de mapa individuals (components Streamlit fora del bloc HTML)
+        for _rid_int, row in rutes_amb_mapa:
+            _nom = str(row[cols["ruta"]]) if cols.get("ruta") else str(_rid_int)
+            _key = f"mapa_btn_{_rid_int}"
+            _key_show = f"mapa_show_{_rid_int}"
+            if _key_show not in st.session_state:
+                st.session_state[_key_show] = False
+            col_m1, col_m2 = st.columns([3, 1])
+            with col_m2:
+                if st.button("🗺️ Mapa" if not st.session_state[_key_show] else "✕ Tancar mapa",
+                             key=_key, use_container_width=True):
+                    st.session_state[_key_show] = not st.session_state[_key_show]
+                    st.rerun()
+            if st.session_state[_key_show]:
+                lat_s = row[cols["lat_s"]] if cols.get("lat_s") and pd.notna(row[cols["lat_s"]]) else None
+                lng_s = row[cols["lng_s"]] if cols.get("lng_s") and pd.notna(row[cols["lng_s"]]) else None
+                lat_a = row[cols["lat_a"]] if cols.get("lat_a") and pd.notna(row[cols["lat_a"]]) else None
+                lng_a = row[cols["lng_a"]] if cols.get("lng_a") and pd.notna(row[cols["lng_a"]]) else None
+                with st.spinner("Carregant mapa..."):
+                    if _rid_int:
+                        if not mostrar_mapa_gpx(_rid_int, lat_s, lng_s, lat_a, lng_a):
+                            st.info("Mapa no disponible per aquesta ruta.")
+
+        # ── Navegació de pàgines ───────────────────────────────────────
+        if n_pagines > 1:
+            st.markdown("<div style='height:16px;'></div>", unsafe_allow_html=True)
+            cols_pag = st.columns([1, 2, 1])
+            with cols_pag[0]:
+                if pagina > 0:
+                    if st.button("← Anterior", key="btn_pag_anterior"):
+                        st.session_state.pagina_rutes -= 1
+                        st.rerun()
+            with cols_pag[1]:
+                st.markdown(
+                    f"<div style='text-align:center;font-size:13px;color:#888;padding-top:6px;'>"
+                    f"Pàgina {pagina+1} de {n_pagines} · rutes {inici+1}–{fi_pag}</div>",
+                    unsafe_allow_html=True
+                )
+            with cols_pag[2]:
+                if pagina < n_pagines - 1:
+                    if st.button("Següent →", key="btn_pag_seguent"):
+                        st.session_state.pagina_rutes += 1
+                        st.rerun()
 
     with tab_mapa:
         mostrar_mapa_general(f, cols)
