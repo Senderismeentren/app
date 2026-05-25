@@ -1,5 +1,5 @@
 # ============================================================
-# SENDERISME EN TREN — v105
+# SENDERISME EN TREN — v103
 # ============================================================
 
 import streamlit as st
@@ -1798,9 +1798,24 @@ div[data-testid="stSelectbox"] label {
             if not f_param.empty:
                 f = f_param
 
+        RUTES_PER_PAGINA = 15
+        n_total = len(f)
+        n_pagines = max(1, -(-n_total // RUTES_PER_PAGINA))
+
+        if "pagina_rutes" not in st.session_state:
+            st.session_state.pagina_rutes = 0
+        if st.session_state.pagina_rutes >= n_pagines:
+            st.session_state.pagina_rutes = 0
+
+        pagina = st.session_state.pagina_rutes
+        inici = pagina * RUTES_PER_PAGINA
+        fi_pag = min(inici + RUTES_PER_PAGINA, n_total)
+        f_pagina = f.iloc[inici:fi_pag]
+
+        # Fotos només per a les rutes de la pàgina actual
         n_fotos_per_ruta = {}
         rids = []
-        for _rid in f[cols["id"]].dropna().unique():
+        for _rid in f_pagina[cols["id"]].dropna().unique():
             try:
                 rids.append(int(float(_rid)))
             except Exception:
@@ -1820,7 +1835,7 @@ div[data-testid="stSelectbox"] label {
 
         col_res, col_ord = st.columns([3, 2])
         with col_res:
-            st.markdown(f"**{len(f)} rutes**", unsafe_allow_html=True)
+            st.markdown(f"**{n_total} rutes**", unsafe_allow_html=True)
 
         # ── Píndoles de filtres actius + botó netejar ──────────────────
         _filtres_actius = []
@@ -1832,7 +1847,6 @@ div[data-testid="stSelectbox"] label {
             _nom_ruta = st.session_state.filtre_btn_ruta.split(" · ")[1] if " · " in st.session_state.filtre_btn_ruta else st.session_state.filtre_btn_ruta
             _filtres_actius.append(("📋", _nom_ruta, "ruta"))
 
-        # Filtres del sidebar
         for _clau, _icon, _label in [
             ("filtre_dificultat",  "🧗", "Dificultat"),
             ("filtre_comarca",     "📍", "Comarca"),
@@ -1860,15 +1874,38 @@ div[data-testid="stSelectbox"] label {
                                "filtre_dificultat", "filtre_comarca", "filtre_espai", "filtre_100cims"]:
                     st.session_state[_clau] = None
                 st.session_state.filtre_reset_counter = st.session_state.get("filtre_reset_counter", 0) + 1
+                st.session_state.pagina_rutes = 0
                 st.rerun()
 
-        for _, row in f.iterrows():
+        # ── Renderitzar rutes de la pàgina actual ──────────────────────
+        for _, row in f_pagina.iterrows():
             try:
                 _rid_int = int(float(str(row[cols["id"]])))
             except Exception:
                 _rid_int = None
             _te_fotos = _rid_int and n_fotos_per_ruta.get(_rid_int, 0) > 0
             render_ruta_completa(row, cols, te_fotos=_te_fotos)
+
+        # ── Navegació de pàgines ───────────────────────────────────────
+        if n_pagines > 1:
+            st.markdown("<div style='height:16px;'></div>", unsafe_allow_html=True)
+            cols_pag = st.columns([1, 2, 1])
+            with cols_pag[0]:
+                if pagina > 0:
+                    if st.button("← Anterior", key="btn_pag_anterior"):
+                        st.session_state.pagina_rutes -= 1
+                        st.rerun()
+            with cols_pag[1]:
+                st.markdown(
+                    f"<div style='text-align:center;font-size:13px;color:#888;padding-top:6px;'>"
+                    f"Pàgina {pagina+1} de {n_pagines} · rutes {inici+1}–{fi_pag}</div>",
+                    unsafe_allow_html=True
+                )
+            with cols_pag[2]:
+                if pagina < n_pagines - 1:
+                    if st.button("Següent →", key="btn_pag_seguent"):
+                        st.session_state.pagina_rutes += 1
+                        st.rerun()
 
     with tab_mapa:
         mostrar_mapa_general(f, cols)
