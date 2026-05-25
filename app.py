@@ -1,5 +1,5 @@
 # ============================================================
-# SENDERISME EN TREN — v16
+# SENDERISME EN TREN — v103
 # ============================================================
 
 import streamlit as st
@@ -11,6 +11,7 @@ from streamlit_folium import st_folium
 import gpxpy
 import gspread
 from google.oauth2.service_account import Credentials
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # 1. CONFIGURACIÓ DE LA PÀGINA
 st.set_page_config(
@@ -424,6 +425,31 @@ DIFICULTAT_COLOR = {
     "molt exigent": "#2C3E50",
 }
 
+# URLs de senders amb pàgina pròpia.
+# La cerca és insensible a majúscules/minúscules i espais extra.
+SENDER_URLS_RAW = {
+    "GR-5":                       "https://senders.feec.cat/fem-muntanya/senders/sender/gr-5-sender-dels-miradors/",
+    "GR-92":                       "https://senders.feec.cat/fem-muntanya/senders/sender/gr-92-sender-de-la-mediterranea/",
+    "Travessa 3 refugis":          "https://www.t3r.cat/",
+    "Camí de Sant Jaume":          "https://camidesantjaume.com/",
+    "El Cinquè Llac":              "https://www.elcinquellac.com/",
+    "Refugis del Torb":            "https://www.apasdisard.com/refugis-del-torb/",
+    "La volta a peu al Ripollès":  "https://ripollesturisme.cat/que-fer-al-ripolles/senderisme-pel-ripolles/la-volta-a-peu-al-ripolles/",
+}
+SENDER_URLS = {k.strip().lower(): v for k, v in SENDER_URLS_RAW.items()}
+
+# URLs de senders amb pàgina pròpia.
+# Afegeix aquí qualsevol sender (GR, PR, SL o travessa).
+# La cerca és insensible a majúscules/minúscules i espais extra.
+SENDER_URLS_RAW = {
+    "GR-5":                      "https://senders.feec.cat/fem-muntanya/senders/sender/gr-5-sender-dels-miradors/",
+    "Travessa 3 refugis":         "https://www.t3r.cat/",
+    "El Cinquè Llac":             "https://www.elcinquellac.com/",
+    "Refugis del Torb":           "https://www.apasdisard.com/refugis-del-torb/",
+    "La volta a peu al Ripollès": "https://ripollesturisme.cat/que-fer-al-ripolles/senderisme-pel-ripolles/la-volta-a-peu-al-ripolles/",
+}
+SENDER_URLS = {k.strip().lower(): v for k, v in SENDER_URLS_RAW.items()}
+
 BASE_LOGO_LINIA = "https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/Logo-{linia}.svg"
 BASE_GPX_URL    = "https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/gpx/ruta-{id:03d}.gpx"
 BASE_FOTO_URL   = "https://raw.githubusercontent.com/Senderismeentren/imatges/main/ruta-{id:03d}/foto{n}.jpg"
@@ -434,7 +460,7 @@ SHEET_NAME       = "Rutes"
 COLOR_BLAU       = "#007bff"
 COLOR_VERD       = "#2d9e6b"
 
-@st.cache_data(ttl=600)
+@st.cache_data(ttl=1800)
 def carregar_dades():
     scopes = ["https://www.googleapis.com/auth/spreadsheets",
               "https://www.googleapis.com/auth/drive"]
@@ -655,7 +681,7 @@ def perfil_elevacio_svg(ruta_id, dif_color):
         return None, None, None
 
 
-@st.cache_data(ttl=300)
+@st.cache_data(ttl=3600)
 def obtenir_fotos_ruta(ruta_id):
     """Comprova fotos .jpg i .png. Para quan troba 2 numeros consecutius buits."""
     urls = []
@@ -1010,10 +1036,34 @@ def render_ruta_completa(row, cols, context="llista", te_fotos=False):
             return (3, su)
         senders_llista = [s.strip() for s in terreny_val.split(";") if s.strip()]
         senders_llista = sorted(senders_llista, key=_ordre_sender)
+        FEEC_BASE = "https://senders.feec.cat/"
+
+        def _url_sender(s):
+            su = s.strip().upper()
+            # Cerca normalitzada al diccionari global (insensible a maj/min i espais)
+            clau = s.strip().lower()
+            if clau in SENDER_URLS:
+                return SENDER_URLS[clau]
+            # GR, PR, SL sense URL específica → pàgina principal FEEC
+            if su.startswith("GR") or su.startswith("PR") or su.startswith("SL"):
+                return FEEC_BASE
+            # Altres sense URL coneguda → cap link
+            return None
+
         pills = "".join(
-            f"<span style='display:inline-block;background:#f0f0f0;border-radius:4px;"
-            f"padding:2px 8px;margin:2px 4px 2px 0;font-size:12px;font-weight:600;"
-            f"color:#444;'>{s}</span>"
+            (
+                f"<a href='{url}' target='_blank' "
+                f"style='display:inline-block;background:#f0f0f0;border-radius:4px;"
+                f"padding:2px 8px;margin:2px 4px 2px 0;font-size:12px;font-weight:600;"
+                f"color:#444;text-decoration:none;'"
+                f" onmouseover=\"this.style.background='#e0e0e0'\""
+                f" onmouseout=\"this.style.background='#f0f0f0\'\">\n"
+                f"{s}</a>"
+                if (url := _url_sender(s)) else
+                f"<span style='display:inline-block;background:#f0f0f0;border-radius:4px;"
+                f"padding:2px 8px;margin:2px 4px 2px 0;font-size:12px;font-weight:600;"
+                f"color:#444;'>{s}</span>"
+            )
             for s in senders_llista
         )
         senders_html = (
@@ -1184,13 +1234,13 @@ def render_ruta_completa(row, cols, context="llista", te_fotos=False):
         f"<details id='det_{ruta_id}' style='border-top:1px solid #eee;'>"
         f"<summary style='list-style:none;padding:0;cursor:pointer;display:block;' "
         f"onclick=\"this.parentElement.open ? "
-        f"this.querySelector('.det-btn').textContent='Tancar ruta' : "
-        f"this.querySelector('.det-btn').textContent='Veure detalls'\">"
+        f"this.querySelector('.det-btn').textContent='Veure ruta' : "
+        f"this.querySelector('.det-btn').textContent='Tancar ruta'\">"
         f"<div style='display:flex;justify-content:center;gap:10px;margin:10px 0 12px;flex-wrap:wrap;'>"
         f"<div class='det-btn' style='background:#7D8B99;color:white;border-radius:8px;"
         f"padding:7px 18px;text-align:center;font-size:12px;font-weight:700;letter-spacing:0.3px;"
         f"box-shadow:0 2px 6px #7D8B9955;min-width:130px;cursor:pointer;'>"
-        f"Veure detalls</div>"
+        f"Veure ruta</div>"
         + wikiloc_btn +
         f"</div></summary>"
         f"<div style='padding:4px 12px 16px;'>"
@@ -1507,146 +1557,7 @@ try:
         st.stop()
 
     # --- PESTANYES (les natives queden amagades pel CSS, però cal declarar-les) ---
-    tab_llista, tab_mapa, tab_cims, tab_millors = st.tabs(["🥾 Rutes", "🗺️ Mapa", "🏔️ 100 Cims", "⭐ Millors"])
-
-    with tab_mapa:
-        mostrar_mapa_general(f, cols)
-        if st.session_state.get("filtre_estacio"):
-            col_info, col_btn = st.columns([3, 1])
-            with col_info:
-                st.info(f"🚉 Estació: **{st.session_state.filtre_estacio}**")
-            with col_btn:
-                if st.button("✖ Treure filtre", key="btn_treure_mapa"):
-                    st.session_state.filtre_estacio = None
-                    st.session_state.map_reset_counter += 1
-                    st.rerun()
-            f_mapa = f[
-                (f[cols["sortida"]].astype(str).str.strip() == st.session_state.filtre_estacio) |
-                (f[cols["arribada"]].astype(str).str.strip() == st.session_state.filtre_estacio)
-            ]
-            st.write(f"**{len(f_mapa)} rutes amb {st.session_state.filtre_estacio}**")
-            for _, row_m in f_mapa.iterrows():
-                render_ruta_completa(row_m, cols, context="mapa")
-
-    with tab_cims:
-        if "filtre_cim" not in st.session_state:
-            st.session_state.filtre_cim = None
-
-        if st.session_state.filtre_cim:
-            st.markdown(f"### 🏔️ {st.session_state.filtre_cim}")
-            if st.button("← Tornar a la llista de cims"):
-                st.session_state.filtre_cim = None
-                st.rerun()
-            # FIX 1: usar f (ja filtrat pel sidebar) en lloc de df
-            if cols.get("cims_noms"):
-                f_cim = f[f[cols["cims_noms"]].astype(str).str.contains(
-                    st.session_state.filtre_cim, case=False, na=False, regex=False
-                )]
-            else:
-                f_cim = f.iloc[0:0]
-            st.write(f"**{len(f_cim)} rutes visiten aquest cim**")
-            for _, row_c in f_cim.iterrows():
-                render_ruta_completa(row_c, cols, context="cims")
-        else:
-            if cols.get("cims_noms") and cols.get("comarca"):
-                cim_comarques = {}
-                for _, row_ci in df.iterrows():
-                    val_cims = str(row_ci[cols["cims_noms"]]) if pd.notna(row_ci[cols["cims_noms"]]) else ""
-                    comarca_ci = str(row_ci[cols["comarca"]]).strip() if pd.notna(row_ci[cols["comarca"]]) else ""
-                    for c in val_cims.split(","):
-                        c = c.strip()
-                        if c and c.lower() not in ("nan", "no", ""):
-                            if c not in cim_comarques:
-                                cim_comarques[c] = set()
-                            if comarca_ci and comarca_ci.lower() not in ("nan", ""):
-                                cim_comarques[c].add(comarca_ci)
-
-                comarca_cims = {}
-                for cim, comarques in cim_comarques.items():
-                    comarca_key = ", ".join(sorted(comarques)) if comarques else "Sense comarca"
-                    if comarca_key not in comarca_cims:
-                        comarca_cims[comarca_key] = []
-                    comarca_cims[comarca_key].append(cim)
-
-                total_cims = len(cim_comarques)
-                n_rutes_cims = len(df[df[cols["cims"]].astype(str).str.strip().str.lower() == "si"]) if cols.get("cims") else 0
-                st.markdown(
-                    f"<div style='font-size:22px;font-weight:700;color:#111;margin-bottom:16px;'>"
-                    f"{n_rutes_cims} rutes a 100 Cims</div>",
-                    unsafe_allow_html=True
-                )
-
-                for comarca_key in sorted(comarca_cims.keys()):
-                    cims_llista = sorted(comarca_cims[comarca_key])
-                    st.markdown(
-                        f"<div style='font-size:12px;font-weight:700;text-transform:uppercase;"
-                        f"letter-spacing:0.5px;color:#aaa;margin:16px 0 6px;'>{comarca_key}</div>",
-                        unsafe_allow_html=True
-                    )
-                    for nom_cim in cims_llista:
-                        n_rutes_cim = df[cols["cims_noms"]].astype(str).str.contains(
-                            nom_cim, case=False, na=False, regex=False
-                        ).sum()
-                        paraula = "ruta" if n_rutes_cim == 1 else "rutes"
-                        if st.button(f"🏔️ {nom_cim}  ·  {n_rutes_cim} {paraula}", key=f"cim_{nom_cim}"):
-                            st.session_state.filtre_cim = nom_cim
-                            st.rerun()
-            else:
-                st.info("No hi ha dades de cims disponibles.")
-
-    with tab_millors:
-        if not cols.get("millors") or not cols.get("ruta") or not cols.get("id"):
-            st.info("No hi ha dades de millors rutes disponibles.")
-        else:
-            per_cat_m = {}
-            for _, r_m in df.iterrows():
-                cat_m = str(r_m[cols["millors"]]).strip() if pd.notna(r_m[cols["millors"]]) else ""
-                if not cat_m or cat_m.lower() in ("nan", ""): continue
-                nom_m = str(r_m[cols["ruta"]]).strip() if pd.notna(r_m[cols["ruta"]]) else ""
-                if not nom_m or nom_m.lower() in ("nan", ""): continue
-                num_m = str(r_m[cols["id"]]).strip() if pd.notna(r_m[cols["id"]]) else ""
-                try:
-                    codi_m = f"ST{int(float(num_m)):03d}"
-                except Exception:
-                    codi_m = f"ST{num_m}"
-                entrada = (codi_m, nom_m, r_m)
-                per_cat_m.setdefault(cat_m, [])
-                if not any(e[0] == codi_m for e in per_cat_m[cat_m]):
-                    per_cat_m[cat_m].append(entrada)
-
-            n_total_millors = sum(len(v) for v in per_cat_m.values())
-            st.markdown(
-                f"<div style='font-size:22px;font-weight:700;color:#111;margin-bottom:16px;'>"
-                f"{n_total_millors} rutes destacades</div>",
-                unsafe_allow_html=True
-            )
-
-            if "filtre_millors_ruta" not in st.session_state:
-                st.session_state.filtre_millors_ruta = None
-
-            if st.session_state.filtre_millors_ruta:
-                codi_sel_m, nom_sel_m = st.session_state.filtre_millors_ruta
-                st.markdown(f"### ⭐ {codi_sel_m} · {nom_sel_m}")
-                if st.button("← Tornar a la llista de millors rutes", key="btn_tornar_millors"):
-                    st.session_state.filtre_millors_ruta = None
-                    st.rerun()
-                f_millors = df[
-                    df[cols["ruta"]].astype(str).str.strip() == nom_sel_m
-                ]
-                for _, row_mm in f_millors.iterrows():
-                    render_ruta_completa(row_mm, cols, context="millors")
-            else:
-                for cat_m in sorted(per_cat_m.keys()):
-                    rutes_cat_m = sorted(per_cat_m[cat_m], key=lambda x: x[0])
-                    st.markdown(
-                        f"<div style='font-size:12px;font-weight:700;text-transform:uppercase;"
-                        f"letter-spacing:0.5px;color:#aaa;margin:16px 0 6px;'>{cat_m}</div>",
-                        unsafe_allow_html=True
-                    )
-                    for codi_m, nom_m, _ in rutes_cat_m:
-                        if st.button(f"⭐ {codi_m} · {nom_m}", key=f"millors_{codi_m}"):
-                            st.session_state.filtre_millors_ruta = (codi_m, nom_m)
-                            st.rerun()
+    tab_llista, tab_mapa, tab_descobreix = st.tabs(["🥾 Rutes", "🗺️ Mapa", "🔍 Descobreix"])
 
     with tab_llista:
         if "filtre_btn_estacio" not in st.session_state:
@@ -1774,7 +1685,7 @@ div[data-testid="stSelectbox"] label {
         if "mode_filtre_tren" not in st.session_state:
             st.session_state.mode_filtre_tren = "🚉 Estació"
 
-        col_radio, col_sel, col_ruta = st.columns([1, 2, 2])
+        col_radio, col_sel = st.columns([1, 3])
         with col_radio:
             mode_tren = st.radio(
                 "Mode", ["🚉 Estació", "🚆 Línia"],
@@ -1804,13 +1715,6 @@ div[data-testid="stSelectbox"] label {
                     st.session_state.filtre_btn_linia = None
                 st.session_state.filtre_btn_estacio = None
 
-        with col_ruta:
-            sel_ruta_btn = st.selectbox("Llistat de rutes", ruta_options,
-                index=0 if not st.session_state.filtre_btn_ruta else
-                      ruta_options.index(st.session_state.filtre_btn_ruta)
-                      if st.session_state.filtre_btn_ruta in ruta_options else 0,
-                key=f"sel_ruta_btn_{_reset_sfx}", label_visibility="collapsed")
-            st.session_state.filtre_btn_ruta = sel_ruta_btn if sel_ruta_btn != "📋 Llistat de rutes" else None
 
         if st.session_state.filtre_btn_estacio:
             # Estació de sortida: només cerca a la columna sortida
@@ -1827,12 +1731,6 @@ div[data-testid="stSelectbox"] label {
                 lambda x: _lin in [l.strip() for l in x.split(";")]
             ) if cols.get("linia_a") else pd.Series([False] * len(f), index=f.index)
             f = f[mask_s | mask_a]
-        if st.session_state.filtre_btn_ruta and cols.get("id") and cols.get("ruta"):
-            # Extraiem el número de la selecció "ST001 · Nom ruta"
-            _codi_sel = st.session_state.filtre_btn_ruta.split(" · ")[0].replace("ST","").lstrip("0") or "0"
-            f = f[f[cols["id"]].astype(str).str.replace(".0","",regex=False).str.lstrip("0").apply(
-                lambda x: (x or "0") == _codi_sel
-            )]
 
         # ── Ordenació ──────────────────────────────────────────────────
         _opcions_ordre = {
@@ -1863,19 +1761,68 @@ div[data-testid="stSelectbox"] label {
                 f = f_param
 
         n_fotos_per_ruta = {}
-        _spinner_placeholder = st.empty()
-        with _spinner_placeholder:
-            for _rid in f[cols["id"]].dropna().unique():
+        rids = []
+        for _rid in f[cols["id"]].dropna().unique():
+            try:
+                rids.append(int(float(_rid)))
+            except Exception:
+                pass
+
+        def _fetch_n_fotos(rid):
+            return rid, len(obtenir_fotos_ruta(rid))
+
+        with ThreadPoolExecutor(max_workers=10) as executor:
+            futures = {executor.submit(_fetch_n_fotos, rid): rid for rid in rids}
+            for future in as_completed(futures):
                 try:
-                    _rid_int = int(float(_rid))
-                    n_fotos_per_ruta[_rid_int] = len(obtenir_fotos_ruta(_rid_int))
+                    rid, n = future.result()
+                    n_fotos_per_ruta[rid] = n
                 except Exception:
                     pass
-        _spinner_placeholder.empty()
 
         col_res, col_ord = st.columns([3, 2])
         with col_res:
             st.markdown(f"**{len(f)} rutes**", unsafe_allow_html=True)
+
+        # ── Píndoles de filtres actius + botó netejar ──────────────────
+        _filtres_actius = []
+        if st.session_state.get("filtre_btn_estacio"):
+            _filtres_actius.append(("🚉", st.session_state.filtre_btn_estacio, "estacio"))
+        if st.session_state.get("filtre_btn_linia"):
+            _filtres_actius.append(("🚆", st.session_state.filtre_btn_linia, "linia"))
+        if st.session_state.get("filtre_btn_ruta"):
+            _nom_ruta = st.session_state.filtre_btn_ruta.split(" · ")[1] if " · " in st.session_state.filtre_btn_ruta else st.session_state.filtre_btn_ruta
+            _filtres_actius.append(("📋", _nom_ruta, "ruta"))
+
+        # Filtres del sidebar
+        for _clau, _icon, _label in [
+            ("filtre_dificultat",  "🧗", "Dificultat"),
+            ("filtre_comarca",     "📍", "Comarca"),
+            ("filtre_espai",       "🌿", "Espai natural"),
+            ("filtre_100cims",     "🏔️", "100 Cims"),
+        ]:
+            _val = st.session_state.get(_clau)
+            if _val and _val not in ("Totes", "Tots", "Totes les comarques", "Tots els espais", "No filtrar", ""):
+                _filtres_actius.append((_icon, str(_val), _clau))
+
+        if _filtres_actius:
+            _pills_html = "<div style='display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 4px;align-items:center;'>"
+            for _icon, _nom, _ in _filtres_actius:
+                _pills_html += (
+                    f"<span style='display:inline-flex;align-items:center;gap:4px;"
+                    f"background:#f0f4ff;border:1px solid #c0cfe8;border-radius:20px;"
+                    f"padding:3px 10px;font-size:12px;font-weight:500;color:#334;'>"
+                    f"{_icon} {_nom}</span>"
+                )
+            _pills_html += "</div>"
+            st.markdown(_pills_html, unsafe_allow_html=True)
+
+            if st.button("✕ Netejar filtres", key="btn_netejar_filtres_main", type="secondary"):
+                for _clau in ["filtre_btn_estacio", "filtre_btn_linia", "filtre_btn_ruta",
+                               "filtre_dificultat", "filtre_comarca", "filtre_espai", "filtre_100cims"]:
+                    st.session_state[_clau] = None
+                st.session_state.filtre_reset_counter = st.session_state.get("filtre_reset_counter", 0) + 1
+                st.rerun()
 
         for _, row in f.iterrows():
             try:
@@ -1884,5 +1831,195 @@ div[data-testid="stSelectbox"] label {
                 _rid_int = None
             _te_fotos = _rid_int and n_fotos_per_ruta.get(_rid_int, 0) > 0
             render_ruta_completa(row, cols, te_fotos=_te_fotos)
+
+    with tab_mapa:
+        mostrar_mapa_general(f, cols)
+        if st.session_state.get("filtre_estacio"):
+            col_info, col_btn = st.columns([3, 1])
+            with col_info:
+                st.info(f"🚉 Estació: **{st.session_state.filtre_estacio}**")
+            with col_btn:
+                if st.button("✖ Treure filtre", key="btn_treure_mapa"):
+                    st.session_state.filtre_estacio = None
+                    st.session_state.map_reset_counter += 1
+                    st.rerun()
+            f_mapa = f[
+                (f[cols["sortida"]].astype(str).str.strip() == st.session_state.filtre_estacio) |
+                (f[cols["arribada"]].astype(str).str.strip() == st.session_state.filtre_estacio)
+            ]
+            st.write(f"**{len(f_mapa)} rutes amb {st.session_state.filtre_estacio}**")
+            for _, row_m in f_mapa.iterrows():
+                render_ruta_completa(row_m, cols, context="mapa")
+
+    with tab_descobreix:
+        if "mode_descobreix" not in st.session_state:
+            st.session_state.mode_descobreix = "🏔️ 100 Cims"
+        mode_desc = st.radio(
+            "Descobreix",
+            ["🏔️ 100 Cims", "⭐ Millors", "📋 Índex"],
+            index=["🏔️ 100 Cims", "⭐ Millors", "📋 Índex"].index(st.session_state.mode_descobreix),
+            horizontal=True,
+            label_visibility="collapsed",
+            key="radio_descobreix"
+        )
+        st.session_state.mode_descobreix = mode_desc
+
+        if mode_desc == "🏔️ 100 Cims":
+            if "filtre_cim" not in st.session_state:
+                st.session_state.filtre_cim = None
+    
+            if st.session_state.filtre_cim:
+                st.markdown(f"### 🏔️ {st.session_state.filtre_cim}")
+                if st.button("← Tornar a la llista de cims"):
+                    st.session_state.filtre_cim = None
+                    st.rerun()
+                # FIX 1: usar f (ja filtrat pel sidebar) en lloc de df
+                if cols.get("cims_noms"):
+                    f_cim = f[f[cols["cims_noms"]].astype(str).str.contains(
+                        st.session_state.filtre_cim, case=False, na=False, regex=False
+                    )]
+                else:
+                    f_cim = f.iloc[0:0]
+                st.write(f"**{len(f_cim)} rutes visiten aquest cim**")
+                for _, row_c in f_cim.iterrows():
+                    render_ruta_completa(row_c, cols, context="cims")
+            else:
+                if cols.get("cims_noms") and cols.get("comarca"):
+                    cim_comarques = {}
+                    for _, row_ci in df.iterrows():
+                        val_cims = str(row_ci[cols["cims_noms"]]) if pd.notna(row_ci[cols["cims_noms"]]) else ""
+                        comarca_ci = str(row_ci[cols["comarca"]]).strip() if pd.notna(row_ci[cols["comarca"]]) else ""
+                        for c in val_cims.split(","):
+                            c = c.strip()
+                            if c and c.lower() not in ("nan", "no", ""):
+                                if c not in cim_comarques:
+                                    cim_comarques[c] = set()
+                                if comarca_ci and comarca_ci.lower() not in ("nan", ""):
+                                    cim_comarques[c].add(comarca_ci)
+    
+                    comarca_cims = {}
+                    for cim, comarques in cim_comarques.items():
+                        comarca_key = ", ".join(sorted(comarques)) if comarques else "Sense comarca"
+                        if comarca_key not in comarca_cims:
+                            comarca_cims[comarca_key] = []
+                        comarca_cims[comarca_key].append(cim)
+    
+                    total_cims = len(cim_comarques)
+                    n_rutes_cims = len(df[df[cols["cims"]].astype(str).str.strip().str.lower() == "si"]) if cols.get("cims") else 0
+                    st.markdown(
+                        f"<div style='font-size:22px;font-weight:700;color:#111;margin-bottom:16px;'>"
+                        f"{n_rutes_cims} rutes a 100 Cims</div>",
+                        unsafe_allow_html=True
+                    )
+    
+                    for comarca_key in sorted(comarca_cims.keys()):
+                        cims_llista = sorted(comarca_cims[comarca_key])
+                        st.markdown(
+                            f"<div style='font-size:12px;font-weight:700;text-transform:uppercase;"
+                            f"letter-spacing:0.5px;color:#aaa;margin:16px 0 6px;'>{comarca_key}</div>",
+                            unsafe_allow_html=True
+                        )
+                        for nom_cim in cims_llista:
+                            n_rutes_cim = df[cols["cims_noms"]].astype(str).str.contains(
+                                nom_cim, case=False, na=False, regex=False
+                            ).sum()
+                            paraula = "ruta" if n_rutes_cim == 1 else "rutes"
+                            if st.button(f"🏔️ {nom_cim}  ·  {n_rutes_cim} {paraula}", key=f"cim_{nom_cim}"):
+                                st.session_state.filtre_cim = nom_cim
+                                st.rerun()
+                else:
+                    st.info("No hi ha dades de cims disponibles.")
+    
+        elif mode_desc == "⭐ Millors":
+            if not cols.get("millors") or not cols.get("ruta") or not cols.get("id"):
+                st.info("No hi ha dades de millors rutes disponibles.")
+            else:
+                per_cat_m = {}
+                for _, r_m in df.iterrows():
+                    cat_m = str(r_m[cols["millors"]]).strip() if pd.notna(r_m[cols["millors"]]) else ""
+                    if not cat_m or cat_m.lower() in ("nan", ""): continue
+                    nom_m = str(r_m[cols["ruta"]]).strip() if pd.notna(r_m[cols["ruta"]]) else ""
+                    if not nom_m or nom_m.lower() in ("nan", ""): continue
+                    num_m = str(r_m[cols["id"]]).strip() if pd.notna(r_m[cols["id"]]) else ""
+                    try:
+                        codi_m = f"ST{int(float(num_m)):03d}"
+                    except Exception:
+                        codi_m = f"ST{num_m}"
+                    entrada = (codi_m, nom_m, r_m)
+                    per_cat_m.setdefault(cat_m, [])
+                    if not any(e[0] == codi_m for e in per_cat_m[cat_m]):
+                        per_cat_m[cat_m].append(entrada)
+    
+                n_total_millors = sum(len(v) for v in per_cat_m.values())
+                st.markdown(
+                    f"<div style='font-size:22px;font-weight:700;color:#111;margin-bottom:16px;'>"
+                    f"{n_total_millors} rutes destacades</div>",
+                    unsafe_allow_html=True
+                )
+    
+                if "filtre_millors_ruta" not in st.session_state:
+                    st.session_state.filtre_millors_ruta = None
+    
+                if st.session_state.filtre_millors_ruta:
+                    codi_sel_m, nom_sel_m = st.session_state.filtre_millors_ruta
+                    st.markdown(f"### ⭐ {codi_sel_m} · {nom_sel_m}")
+                    if st.button("← Tornar a la llista de millors rutes", key="btn_tornar_millors"):
+                        st.session_state.filtre_millors_ruta = None
+                        st.rerun()
+                    f_millors = df[
+                        df[cols["ruta"]].astype(str).str.strip() == nom_sel_m
+                    ]
+                    for _, row_mm in f_millors.iterrows():
+                        render_ruta_completa(row_mm, cols, context="millors")
+                else:
+                    for cat_m in sorted(per_cat_m.keys()):
+                        rutes_cat_m = sorted(per_cat_m[cat_m], key=lambda x: x[0])
+                        st.markdown(
+                            f"<div style='font-size:12px;font-weight:700;text-transform:uppercase;"
+                            f"letter-spacing:0.5px;color:#aaa;margin:16px 0 6px;'>{cat_m}</div>",
+                            unsafe_allow_html=True
+                        )
+                        for codi_m, nom_m, _ in rutes_cat_m:
+                            if st.button(f"⭐ {codi_m} · {nom_m}", key=f"millors_{codi_m}"):
+                                st.session_state.filtre_millors_ruta = (codi_m, nom_m)
+                                st.rerun()
+    
+        elif mode_desc == "📋 Índex":
+            if not cols.get("id") or not cols.get("ruta"):
+                st.info("No hi ha dades de rutes disponibles.")
+            else:
+                rutes_idx = df[[cols["id"], cols["ruta"]]].dropna(subset=[cols["id"]])
+                rutes_idx = rutes_idx.sort_values(by=cols["id"])
+                n_total_idx = len(rutes_idx)
+                st.markdown(
+                    f"<div style='font-size:22px;font-weight:700;color:#111;margin-bottom:16px;'>"
+                    f"{n_total_idx} rutes</div>",
+                    unsafe_allow_html=True
+                )
+                if "filtre_index_ruta" not in st.session_state:
+                    st.session_state.filtre_index_ruta = None
+    
+                if st.session_state.filtre_index_ruta:
+                    codi_sel_i, nom_sel_i = st.session_state.filtre_index_ruta
+                    st.markdown(f"### 📋 {codi_sel_i} · {nom_sel_i}")
+                    if st.button("← Tornar a l'índex", key="btn_tornar_index"):
+                        st.session_state.filtre_index_ruta = None
+                        st.rerun()
+                    f_idx = df[df[cols["ruta"]].astype(str).str.strip() == nom_sel_i]
+                    for _, row_i in f_idx.iterrows():
+                        render_ruta_completa(row_i, cols, context="index")
+                else:
+                    for _, r_i in rutes_idx.iterrows():
+                        num_i = str(r_i[cols["id"]]).strip()
+                        nom_i = str(r_i[cols["ruta"]]).strip() if pd.notna(r_i[cols["ruta"]]) else ""
+                        if not nom_i or nom_i.lower() in ("nan", ""): continue
+                        try:
+                            codi_i = f"ST{int(float(num_i)):03d}"
+                        except Exception:
+                            codi_i = f"ST{num_i}"
+                        if st.button(f"{codi_i} · {nom_i}", key=f"index_{codi_i}"):
+                            st.session_state.filtre_index_ruta = (codi_i, nom_i)
+                            st.rerun()
+    
 except Exception as e:
     st.error(f"S'ha produït un error: {e}")
