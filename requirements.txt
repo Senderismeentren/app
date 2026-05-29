@@ -1,9 +1,9 @@
-streamlit
+flask
 pandas
 openpyxl
 folium
-streamlit-folium
 gpxpy
 requests
 gspread
 google-auth
+gunicorn
