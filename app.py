@@ -67,7 +67,24 @@ def carregar_dades():
 
     try:
         if GOOGLE_CREDS and SHEET_ID:
-            creds_dict = json.loads(GOOGLE_CREDS)
+            # Suporta tant JSON pur com format TOML de Streamlit
+            raw = GOOGLE_CREDS.strip()
+            if raw.startswith("{"):
+                # Format JSON directe
+                creds_dict = json.loads(raw)
+            else:
+                # Format TOML de Streamlit: extreure clau=valor
+                import re
+                creds_dict = {}
+                for line in raw.splitlines():
+                    line = line.strip()
+                    if not line or line.startswith("["):
+                        continue
+                    m = re.match(r'^(\w+)\s*=\s*"(.*)"$', line)
+                    if m:
+                        key, val = m.group(1), m.group(2)
+                        # Restaurar salts de línia de la private_key
+                        creds_dict[key] = val.replace("\\n", "\n")
             creds = Credentials.from_service_account_info(
                 creds_dict,
                 scopes=["https://spreadsheets.google.com/feeds",
