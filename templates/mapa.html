@@ -296,7 +296,7 @@ async function carregarLiniesGPX() {
         parseFloat(p.getAttribute('lat')),
         parseFloat(p.getAttribute('lon'))
       ]);
-      L.polyline(latlngs, {color, weight: 3, opacity: 0.6, dashArray: '6,3'})
+      L.polyline(latlngs, {color, weight: 5, opacity: 0.75, dashArray: '8,4'})
         .addTo(capes.linies)
         .bindTooltip(nom.replace('-', ' ').toUpperCase(), {sticky: true});
     } catch(e) { /* línia no disponible */ }
