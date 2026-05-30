@@ -425,7 +425,7 @@ def millors_rutes_pagina():
         cat = r["millors"]
         if not cat: continue
         grups.setdefault(cat, []).append(r)
-    return render_template("colleccions.html", grups=grups)
+    return render_template("millors_rutes.html", grups=grups)
 
 
 # ── APIs JSON ────────────────────────────────────────────────────────
@@ -482,29 +482,34 @@ def api_horaris(id_estacio):
 
     try:
         # ── FGC ──────────────────────────────────────────────────────
-        # IDs FGC comencen per lletra (ex: "BC", "SB", "PG"...)
+        # IDs FGC comencen per lletra (ex: "BC", "SB", "VL"...)
         if not id_estacio.isdigit():
+            from datetime import datetime
+            hora_actual = datetime.now().strftime("%H:%M:%S")
             url = (
                 f"https://dadesobertes.fgc.cat/api/explore/v2.1/catalog/datasets/"
                 f"viajes-de-hoy/records?"
-                f"where=stop_id='{id_estacio}'"
-                f"&order_by=arrival_time ASC"
+                f"where=stop_id like '{id_estacio}%25'"
+                f" and departure_time >= '{hora_actual}'"
+                f"&order_by=departure_time ASC"
                 f"&limit=6"
+                f"&select=departure_time,route_short_name,trip_headsign"
             )
             resp = requests.get(url, timeout=5)
             data = resp.json()
             horaris = []
             for rec in data.get("results", []):
-                hora = rec.get("arrival_time", "")[:5]
+                hora = rec.get("departure_time", "")[:5]
                 linia = rec.get("route_short_name", "")
                 dest = rec.get("trip_headsign", "")
-                horaris.append({
-                    "hora": hora,
-                    "linia": linia,
-                    "destinacio": dest,
-                    "retard": 0,
-                    "ara": False
-                })
+                if hora and linia:
+                    horaris.append({
+                        "hora": hora,
+                        "linia": linia,
+                        "destinacio": dest,
+                        "retard": 0,
+                        "ara": False
+                    })
             return jsonify({"horaris": horaris, "operador": "FGC"})
 
         # ── RODALIES ─────────────────────────────────────────────────
@@ -546,7 +551,7 @@ def pagina_no_trobada(e):
 @app.context_processor
 def globals_plantilles():
     return {
-        "nom_app": "Senderisme en Tren",
+        "nom_app": "Senderisme en tren",
         "seccions": [
             {"id": "rutes",      "nom": "Rutes",        "icon": "🥾", "url": "/rutes"},
             {"id": "mapa",       "nom": "Mapa",         "icon": "🗺️", "url": "/mapa"},
