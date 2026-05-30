@@ -416,8 +416,8 @@ def mapa_pagina():
     )
 
 
-@app.route("/colleccions")
-def colleccions_pagina():
+@app.route("/millors_rutes")
+def millors_rutes_pagina():
     rutes = get_rutes()
     # Agrupar per categoria Millors_rutes
     grups = {}
@@ -476,10 +476,64 @@ def api_estacio(nom_estacio):
 
 @app.route("/api/horaris/<id_estacio>")
 def api_horaris(id_estacio):
-    """Horaris en temps real de Rodalies/FGC (quan els IDs estiguin disponibles)."""
-    # TODO: integrar API de Rodalies quan els IDs estiguin omplerts
-    # URL exemple Rodalies: https://www.renfe.com/es/es/cercanias/cercanias-barcelona/api/estacion/{id}
-    return jsonify({"estat": "pendent", "missatge": "Horaris en temps real disponibles aviat"})
+    """Horaris en temps real. Detecta operador pel prefix de l'ID."""
+    from datetime import datetime
+    ara = datetime.now()
+
+    try:
+        # ── FGC ──────────────────────────────────────────────────────
+        # IDs FGC comencen per lletra (ex: "BC", "SB", "PG"...)
+        if not id_estacio.isdigit():
+            url = (
+                f"https://dadesobertes.fgc.cat/api/explore/v2.1/catalog/datasets/"
+                f"viajes-de-hoy/records?"
+                f"where=stop_id='{id_estacio}'"
+                f"&order_by=arrival_time ASC"
+                f"&limit=6"
+            )
+            resp = requests.get(url, timeout=5)
+            data = resp.json()
+            horaris = []
+            for rec in data.get("results", []):
+                hora = rec.get("arrival_time", "")[:5]
+                linia = rec.get("route_short_name", "")
+                dest = rec.get("trip_headsign", "")
+                horaris.append({
+                    "hora": hora,
+                    "linia": linia,
+                    "destinacio": dest,
+                    "retard": 0,
+                    "ara": False
+                })
+            return jsonify({"horaris": horaris, "operador": "FGC"})
+
+        # ── RODALIES ─────────────────────────────────────────────────
+        # IDs Rodalies són numèrics
+        url = (
+            f"https://rodalies.gencat.cat/es/horaris/salida.json"
+            f"?estacioOrigen={id_estacio}"
+            f"&hora={ara.strftime('%H')}"
+            f"&minuts={ara.strftime('%M')}"
+        )
+        resp = requests.get(url, timeout=5)
+        data = resp.json()
+        horaris = []
+        for t in data.get("trens", [])[:6]:
+            hora = t.get("hora", "")
+            linia = t.get("linia", "")
+            dest = t.get("destinacio", "")
+            retard = int(t.get("retard", 0))
+            horaris.append({
+                "hora": hora,
+                "linia": linia,
+                "destinacio": dest,
+                "retard": retard,
+                "ara": False
+            })
+        return jsonify({"horaris": horaris, "operador": "Rodalies"})
+
+    except Exception as e:
+        return jsonify({"horaris": [], "error": str(e)})
 
 
 # ── ERROR HANDLERS ───────────────────────────────────────────────────
@@ -496,7 +550,7 @@ def globals_plantilles():
         "seccions": [
             {"id": "rutes",      "nom": "Rutes",        "icon": "🥾", "url": "/rutes"},
             {"id": "mapa",       "nom": "Mapa",         "icon": "🗺️", "url": "/mapa"},
-            {"id": "colleccions","nom": "Col·leccions",  "icon": "⭐", "url": "/colleccions"},
+            {"id": "colleccions","nom": "Millors rutes",  "icon": "⭐", "url": "/millors_rutes"},
             {"id": "articles",   "nom": "Articles",     "icon": "📖", "url": "/articles"},
         ]
     }
