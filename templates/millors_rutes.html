@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+
+{% block titol %}Col·leccions{% endblock %}
+
+{% block estils_extra %}
+<style>
+.col-page { min-height: calc(100vh - var(--nav-h)); }
+
+/* ── CAPÇALERA ── */
+.col-header {
+  background: linear-gradient(135deg, var(--blau-fosc), var(--blau));
+  padding: 48px 24px 40px; color: white; text-align: center;
+}
+.col-header h1 { font-size: 28px; font-weight: 900; margin-bottom: 8px; }
+.col-header p { color: rgba(255,255,255,0.65); font-size: 15px; }
+
+/* ── GRUP ── */
+.col-grup { max-width: 1000px; margin: 0 auto; padding: 40px 20px; }
+.col-grup-cap {
+  display: flex; align-items: flex-start; gap: 16px;
+  margin-bottom: 20px; padding-bottom: 16px;
+  border-bottom: 2px solid #eee;
+}
+.col-grup-icon { font-size: 36px; flex-shrink: 0; }
+.col-grup-titol { font-size: 22px; font-weight: 800; color: #111; margin-bottom: 4px; }
+.col-grup-desc { font-size: 14px; color: #888; line-height: 1.6; }
+.col-grup-n { font-size: 12px; color: #bbb; font-weight: 600; margin-top: 4px; }
+
+/* ── RUTES ── */
+.col-rutes { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+.col-rcard {
+  background: white; border-radius: 10px; border: 1px solid #eee;
+  border-left: 4px solid transparent; overflow: hidden;
+  transition: all 0.2s; text-decoration: none; display: block; color: inherit;
+}
+.col-rcard:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.1); transform: translateY(-2px); }
+.col-rcard-cap { padding: 10px 12px 8px; }
+.col-rcard-fila { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 6px; }
+.col-rcard-num {
+  width: 24px; height: 24px; border-radius: 50%; color: white;
+  font-size: 11px; font-weight: 700; display: flex; align-items: center;
+  justify-content: center; flex-shrink: 0;
+}
+.col-rcard-nom { flex: 1; font-size: 13px; font-weight: 700; color: #111; line-height: 1.3; }
+.col-rcard-dades { display: flex; gap: 12px; padding: 6px 12px 10px; border-top: 1px solid #f5f5f5; font-size: 12px; color: #888; }
+
+/* ── BUIT ── */
+.col-buit { text-align: center; padding: 60px 20px; color: #bbb; }
+.col-buit .icon { font-size: 40px; margin-bottom: 10px; }
+
+/* ── SEPARADOR ── */
+.col-separador { border: none; border-top: 1px solid #eee; margin: 0; }
+
+@media (max-width: 768px) {
+  .col-rutes { grid-template-columns: 1fr; }
+  .col-grup { padding: 28px 14px; }
+  .col-header { padding: 32px 16px 28px; }
+}
+</style>
+{% endblock %}
+
+{% block contingut %}
+<div class="col-page">
+
+  <div class="col-header">
+    <h1>⭐ Millors rutes</h1>
+    <p>Rutes agrupades per experiències, destinacions i temàtiques especials</p>
+  </div>
+
+  {% if grups %}
+    {% for nom_cat, rutes in grups.items() %}
+    <div class="col-grup">
+      <div class="col-grup-cap">
+        <div class="col-grup-icon">
+          {% if 'montserrat' in nom_cat.lower() %}⛰️
+          {% elif 'núria' in nom_cat.lower() or 'nuria' in nom_cat.lower() %}🏔️
+          {% elif 'costa' in nom_cat.lower() or 'litoral' in nom_cat.lower() %}🌊
+          {% elif 'pirineu' in nom_cat.lower() %}🎿
+          {% elif 'ibèr' in nom_cat.lower() %}⚔️
+          {% elif 'patrimoni' in nom_cat.lower() %}🏰
+          {% else %}⭐{% endif %}
+        </div>
+        <div>
+          <div class="col-grup-titol">{{ nom_cat }}</div>
+          <div class="col-grup-n">{{ rutes|length }} ruta{% if rutes|length != 1 %}s{% endif %}</div>
+        </div>
+      </div>
+
+      <div class="col-rutes">
+        {% for r in rutes %}
+        <a class="col-rcard" href="/ruta/{{ r.id }}"
+           style="border-left-color:{{ r.color_dif }};">
+          <div class="col-rcard-cap" style="background:{{ r.color_dif }}08;">
+            <div class="col-rcard-fila">
+              <div class="col-rcard-num" style="background:{{ r.color_dif }};">{{ r.id }}</div>
+              <div class="col-rcard-nom">{{ r.nom }}</div>
+            </div>
+            <div class="badge-dif" style="background:{{ r.color_dif }}18;border-color:{{ r.color_dif }}44;">
+              <div class="dot" style="background:{{ r.color_dif }};"></div>
+              <span style="color:{{ r.color_dif }};">{{ r.dificultat }}</span>
+            </div>
+          </div>
+          <div class="col-rcard-dades">
+            <span>📏 {{ r.km }} km</span>
+            <span>⛰ {{ r.desn_txt }}</span>
+            <span>⏱ {{ r.temps }}</span>
+          </div>
+        </a>
+        {% endfor %}
+      </div>
+    </div>
+    {% if not loop.last %}<hr class="col-separador">{% endif %}
+    {% endfor %}
+
+  {% else %}
+    <div class="col-buit">
+      <div class="icon">⭐</div>
+      <p>Encara no hi ha millors rutes definides.<br>
+      Afegeix la columna <strong>Millors_rutes</strong> al full de dades per crear-ne.</p>
+    </div>
+  {% endif %}
+
+</div>
+{% endblock %}

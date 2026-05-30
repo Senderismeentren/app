@@ -249,19 +249,6 @@
     </div>
     {% endif %}
 
-    <!-- ADVERTIMENT -->
-    {% if ruta.advertiments %}
-    <div class="bloc">
-      <div class="fitxa-adv">
-        <div class="fitxa-adv-icon">⚠️</div>
-        <div>
-          <div class="fitxa-adv-titol">Seguretat</div>
-          <div class="fitxa-adv-text">{{ ruta.advertiments }}</div>
-        </div>
-      </div>
-    </div>
-    {% endif %}
-
     <!-- DADES TÈCNIQUES -->
     <div class="bloc">
       <div class="bloc-cap"><span class="bloc-icon">📊</span><span class="bloc-titol">Dades tècniques</span></div>
@@ -311,6 +298,19 @@
           </div>
         </div>
         {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- ADVERTIMENT SEGURETAT -->
+    {% if ruta.advertiments %}
+    <div class="bloc">
+      <div class="fitxa-adv">
+        <div class="fitxa-adv-icon">⚠️</div>
+        <div>
+          <div class="fitxa-adv-titol">Seguretat</div>
+          <div class="fitxa-adv-text">{{ ruta.advertiments }}</div>
+        </div>
       </div>
     </div>
     {% endif %}
