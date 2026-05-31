@@ -199,6 +199,7 @@
     {% if rutes %}
       {% for r in rutes %}
       <div class="rcard" style="border-left-color:{{ r.color_dif }};cursor:pointer;" onclick="window.location='/ruta/{{ r.id }}'">
+      <div class="rcard" style="border-left-color:{{ r.color_dif }};">
         <div class="rcard-cap">
           <div style="position:relative;overflow:hidden;">
             <img src="https://raw.githubusercontent.com/Senderismeentren/imatges/main/ruta-{{ '%03d'|format(r.id) }}/foto1.jpg"
