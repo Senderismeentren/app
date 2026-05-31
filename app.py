@@ -364,24 +364,36 @@ def rutes_pagina():
     cims    = request.args.get("cims", "")
     millors = request.args.get("millors", "")
 
+    estacio = request.args.get("estacio", "")
+
+    rutes_all_list = get_rutes()
     if dif:     rutes = [r for r in rutes if r["dificultat"] == dif]
     if comarca: rutes = [r for r in rutes if comarca in [r["comarca_sortida"], r["comarca_arribada"]]]
     if operador:rutes = [r for r in rutes if operador in [r["op_sortida"], r["op_arribada"]]]
     if espai:   rutes = [r for r in rutes if r["espai"] == espai]
     if cims:    rutes = [r for r in rutes if r["cims"]]
     if millors: rutes = [r for r in rutes if r["millors"] == millors]
+    if estacio: rutes = [r for r in rutes if estacio in [r["sortida"], r["arribada"]]]
 
     filtres_actius = {k: v for k, v in {
         "dificultat": dif, "comarca": comarca,
         "operador": operador, "espai": espai,
-        "cims": cims, "millors": millors
+        "cims": cims, "millors": millors,
+        "estacio": estacio,
     }.items() if v}
+
+    # Afegir estacions al diccionari de filtres
+    filtres["estacions"] = sorted(set(
+        est for r in rutes_all_list
+        for est in [r["sortida"], r["arribada"]] if est
+    ))
 
     return render_template("rutes.html",
         rutes=rutes,
+        rutes_all=rutes_all_list,
         filtres=filtres,
         filtres_actius=filtres_actius,
-        n_total=len(get_rutes())
+        n_total=len(rutes_all_list)
     )
 
 
