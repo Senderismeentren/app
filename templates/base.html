@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{% block titol %}Senderisme en Tren{% endblock %} — Senderisme en Tren</title>
+  <title>{% block titol %}Senderisme en tren{% endblock %} — Senderisme en tren</title>
   <meta name="description" content="{% block descripcio %}Rutes de senderisme arreu de Catalunya accessibles en tren, metro, cremallera i funicular.{% endblock %}">
 
   <!-- Leaflet -->
@@ -178,7 +178,7 @@
 
 <!-- ── NAV ESCRIPTORI ── -->
 <nav class="nav">
-  <a class="nav-logo" href="/"><img src="https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/Logo_set_02.jpg" alt="Senderisme en Tren" style="height:36px;width:auto;vertical-align:middle;"></a>
+  <a class="nav-logo" href="/"><img src="https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/Logo_set_02.svg" alt="Senderisme en tren" style="height:36px;width:auto;vertical-align:middle;"></a>
   <div class="nav-links">
     {% for s in seccions %}
     <a class="nav-link {% if request.path == s.url %}actiu{% endif %}"
