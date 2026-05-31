@@ -437,6 +437,7 @@ def millors_rutes_pagina():
         cat = r["millors"]
         if not cat: continue
         grups.setdefault(cat, []).append(r)
+    grups = dict(sorted(grups.items()))
     return render_template("millors_rutes.html", grups=grups)
 
 
