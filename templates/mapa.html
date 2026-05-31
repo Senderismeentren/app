@@ -311,9 +311,7 @@ async function carregarLiniesGPX() {
     'fgc.RL2','rodalies-R2Nord'
   ];
   for (const nom of linies) {
-    const parts = nom.split('-');
-    const op = parts[0].toLowerCase();
-    const color = COLORS_OP_LINIES[op] || '#888';
+    const color = colorLinia(nom + '.gpx');
     try {
       const resp = await fetch(BASE_GPX_LINIES + nom + '.gpx');
       if (!resp.ok) continue;

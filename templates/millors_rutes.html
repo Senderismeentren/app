@@ -72,12 +72,19 @@
     <div class="col-grup">
       <div class="col-grup-cap">
         <div class="col-grup-icon">
-          {% if 'montserrat' in nom_cat.lower() %}⛰️
-          {% elif 'núria' in nom_cat.lower() or 'nuria' in nom_cat.lower() %}🏔️
-          {% elif 'costa' in nom_cat.lower() or 'litoral' in nom_cat.lower() %}🌊
-          {% elif 'pirineu' in nom_cat.lower() %}🎿
-          {% elif 'ibèr' in nom_cat.lower() %}⚔️
-          {% elif 'patrimoni' in nom_cat.lower() %}🏰
+          {% set cat_l = nom_cat.lower() %}
+          {% if 'castell' in cat_l %}🏰
+          {% elif 'gorg' in cat_l or 'cascad' in cat_l %}💧
+          {% elif 'santuari' in cat_l or 'religi' in cat_l or 'ermita' in cat_l or 'monestir' in cat_l %}⛪
+          {% elif 'cinglera' in cat_l or 'vf' in cat_l or 'ferrada' in cat_l %}🧗
+          {% elif 'montserrat' in cat_l %}⛰️
+          {% elif 'núria' in cat_l or 'nuria' in cat_l %}🏔️
+          {% elif 'costa' in cat_l or 'litoral' in cat_l or 'mar' in cat_l %}🌊
+          {% elif 'pirineu' in cat_l or 'alta muntanya' in cat_l %}🎿
+          {% elif 'ibèr' in cat_l or 'patrimoni' in cat_l %}⚔️
+          {% elif 'volcà' in cat_l or 'volca' in cat_l %}🌋
+          {% elif 'bosc' in cat_l or 'natura' in cat_l %}🌲
+          {% elif 'cim' in cat_l or '100 cims' in cat_l %}🏔️
           {% else %}⭐{% endif %}
         </div>
         <div>

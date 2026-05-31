@@ -87,6 +87,28 @@
 .rbtn-w { background: var(--verd); color: white; }
 .rutes-buit { text-align: center; padding: 80px 20px; color: #bbb; grid-column: 1/-1; }
 
+/* DESPLEGABLES SIDEBAR */
+details.fs-grup { margin-bottom: 4px; border-bottom: 1px solid #f0f0f0; padding-bottom: 4px; }
+details.fs-grup:last-child { border-bottom: none; }
+summary.fs-grup-summary {
+  font-size: 13px; font-weight: 700; color: #333;
+  cursor: pointer; padding: 8px 0; list-style: none;
+  display: flex; align-items: center; gap: 6px;
+  user-select: none;
+}
+summary.fs-grup-summary::-webkit-details-marker { display: none; }
+summary.fs-grup-summary::after { content: '▸'; margin-left: auto; font-size: 10px; color: #aaa; transition: transform 0.2s; }
+details[open] summary.fs-grup-summary::after { transform: rotate(90deg); }
+.fs-actiu-badge { background: #3498DB; color: white; border-radius: 20px; padding: 1px 7px; font-size: 10px; font-weight: 600; }
+.fs-check-link {
+  display: flex; align-items: center; gap: 8px; padding: 4px 0;
+  text-decoration: none; color: inherit; border-radius: 6px;
+  transition: background 0.1s; cursor: pointer;
+}
+.fs-check-link:hover { background: #f5f6fa; }
+.fs-check-link.actiu .fs-check-label { color: #1D4ED8; font-weight: 700; }
+.fs-check-link.actiu .fs-check-dot { box-shadow: 0 0 0 2px white, 0 0 0 3px currentColor; }
+
 /* MÒBIL */
 .btn-filtres-mob { display: none; align-items: center; gap: 6px; background: var(--blau-fosc); color: white; border: none; border-radius: 8px; padding: 7px 14px; font-size: 13px; font-weight: 700; cursor: pointer; }
 .filtres-mob-overlay { display: none; position: fixed; inset: 0; z-index: 800; background: rgba(0,0,0,0.5); }
@@ -126,71 +148,101 @@
         {% if filtres_actius %}<a class="fs-netejar" href="/rutes">↺ Netejar</a>{% endif %}
       </div>
 
-      <div class="fs-grup">
-        <div class="fs-grup-titol">Dificultat</div>
-        {% set dif_colors = {'Molt fàcil':'#2ECC71','Fàcil':'#3498DB','Moderada':'#E67E22','Exigent':'#E74C3C','Molt exigent':'#2C3E50','Molt difícil':'#2C3E50'} %}
-        {% for d in filtres.dificultats %}
-        {% set n = rutes_all | selectattr('dificultat','equalto',d) | list | length %}
-        <label class="fs-check">
-          <input type="checkbox" name="dif" value="{{ d }}"
-            {% if filtres_actius.get('dificultat') == d %}checked{% endif %}
-            onchange="aplicarFiltres()">
-          <span class="fs-check-dot" style="background:{{ dif_colors.get(d,'#888') }};"></span>
-          <span class="fs-check-label">{{ d }}</span>
-          <span class="fs-check-n">{{ n }}</span>
-        </label>
-        {% endfor %}
-      </div>
+      {% macro url_filtre(clau, valor) %}
+        {% set params = filtres_actius.copy() %}
+        {% if params.get(clau) == valor %}
+          {% set _ = params.pop(clau) %}
+        {% else %}
+          {% set _ = params.update({clau: valor}) %}
+        {% endif %}
+        /rutes?{% for k,v in params.items() %}{{ k }}={{ v }}&{% endfor %}
+      {% endmacro %}
 
-      <div class="fs-grup">
-        <div class="fs-grup-titol">Comarca</div>
-        <div class="fs-pills">
-          {% for c in filtres.comarques %}
-          <a class="fs-pill {% if filtres_actius.get('comarca') == c %}actiu{% endif %}"
-             href="/rutes?comarca={{ c }}&dificultat={{ filtres_actius.get('dificultat','') }}">{{ c }}</a>
-          {% endfor %}
-        </div>
-      </div>
-
-      <div class="fs-grup">
-        <div class="fs-grup-titol">Estació</div>
-        <div class="fs-pills">
+      <!-- ESTACIÓ -->
+      <details class="fs-grup" {% if filtres_actius.get('estacio') %}open{% endif %}>
+        <summary class="fs-grup-summary">
+          🚉 Estació
+          {% if filtres_actius.get('estacio') %}<span class="fs-actiu-badge">{{ filtres_actius.get('estacio') }}</span>{% endif %}
+        </summary>
+        <div class="fs-pills" style="margin-top:8px;">
           {% for e in filtres.estacions %}
           <a class="fs-pill {% if filtres_actius.get('estacio') == e %}actiu{% endif %}"
-             href="/rutes?estacio={{ e }}&dificultat={{ filtres_actius.get('dificultat','') }}&comarca={{ filtres_actius.get('comarca','') }}">{{ e }}</a>
+             href="{{ url_filtre('estacio', e) }}">{{ e }}</a>
           {% endfor %}
         </div>
-      </div>
+      </details>
 
-      <div class="fs-grup">
-        <div class="fs-grup-titol">Operador</div>
-        <div class="fs-pills">
+      <!-- LÍNIA / OPERADOR -->
+      <details class="fs-grup" {% if filtres_actius.get('operador') %}open{% endif %}>
+        <summary class="fs-grup-summary">
+          🚆 Operador / Línia
+          {% if filtres_actius.get('operador') %}<span class="fs-actiu-badge">{{ filtres_actius.get('operador') }}</span>{% endif %}
+        </summary>
+        <div class="fs-pills" style="margin-top:8px;">
           {% for op in filtres.operadors %}
           <a class="fs-pill {% if filtres_actius.get('operador') == op %}actiu{% endif %}"
-             href="/rutes?operador={{ op }}&dificultat={{ filtres_actius.get('dificultat','') }}&comarca={{ filtres_actius.get('comarca','') }}">{{ op }}</a>
+             href="{{ url_filtre('operador', op) }}">{{ op }}</a>
           {% endfor %}
         </div>
-      </div>
+      </details>
 
+      <!-- DIFICULTAT -->
+      <details class="fs-grup" {% if filtres_actius.get('dificultat') %}open{% endif %}>
+        <summary class="fs-grup-summary">
+          🧗 Dificultat
+          {% if filtres_actius.get('dificultat') %}<span class="fs-actiu-badge">{{ filtres_actius.get('dificultat') }}</span>{% endif %}
+        </summary>
+        <div style="margin-top:8px;">
+          {% set dif_colors = {'Molt fàcil':'#2ECC71','Fàcil':'#3498DB','Moderada':'#E67E22','Exigent':'#E74C3C','Molt exigent':'#2C3E50','Molt difícil':'#2C3E50'} %}
+          {% for d in filtres.dificultats %}
+          {% set n = rutes_all | selectattr('dificultat','equalto',d) | list | length %}
+          <a class="fs-check-link {% if filtres_actius.get('dificultat') == d %}actiu{% endif %}"
+             href="{{ url_filtre('dificultat', d) }}">
+            <span class="fs-check-dot" style="background:{{ dif_colors.get(d,'#888') }};"></span>
+            <span class="fs-check-label">{{ d }}</span>
+            <span class="fs-check-n">{{ n }}</span>
+          </a>
+          {% endfor %}
+        </div>
+      </details>
+
+      <!-- ESPAI NATURAL -->
       {% if filtres.espais %}
-      <div class="fs-grup">
-        <div class="fs-grup-titol">Espai natural</div>
-        <div class="fs-pills">
+      <details class="fs-grup" {% if filtres_actius.get('espai') %}open{% endif %}>
+        <summary class="fs-grup-summary">
+          🌿 Espai natural
+          {% if filtres_actius.get('espai') %}<span class="fs-actiu-badge">{{ filtres_actius.get('espai') }}</span>{% endif %}
+        </summary>
+        <div class="fs-pills" style="margin-top:8px;">
           {% for e in filtres.espais %}
           <a class="fs-pill {% if filtres_actius.get('espai') == e %}actiu{% endif %}"
-             href="/rutes?espai={{ e }}">{{ e }}</a>
+             href="{{ url_filtre('espai', e) }}">{{ e }}</a>
           {% endfor %}
         </div>
-      </div>
+      </details>
       {% endif %}
 
+      <!-- COMARCA -->
+      <details class="fs-grup" {% if filtres_actius.get('comarca') %}open{% endif %}>
+        <summary class="fs-grup-summary">
+          📍 Comarca
+          {% if filtres_actius.get('comarca') %}<span class="fs-actiu-badge">{{ filtres_actius.get('comarca') }}</span>{% endif %}
+        </summary>
+        <div class="fs-pills" style="margin-top:8px;">
+          {% for c in filtres.comarques %}
+          <a class="fs-pill {% if filtres_actius.get('comarca') == c %}actiu{% endif %}"
+             href="{{ url_filtre('comarca', c) }}">{{ c }}</a>
+          {% endfor %}
+        </div>
+      </details>
+
+      <!-- 100 CIMS -->
       <div class="fs-grup">
-        <div class="fs-grup-titol">Especials</div>
-        <label class="fs-toggle">
-          <input type="checkbox" {% if filtres_actius.get('cims') %}checked{% endif %}
-            onchange="window.location='/rutes?cims=1'">
-          <span class="fs-toggle-label">🏔 Només 100 Cims</span>
-        </label>
+        <a class="fs-check-link {% if filtres_actius.get('cims') %}actiu{% endif %}"
+           href="{{ url_filtre('cims', '1') }}" style="padding:8px 0;">
+          <span style="font-size:16px;">🏔</span>
+          <span class="fs-check-label" style="font-weight:600;">Només 100 Cims</span>
+        </a>
       </div>
     </aside>
 
@@ -248,11 +300,9 @@
                 {% if r.cims %}<span class="etiqueta etiqueta-cims">🏔 100 Cims</span>{% endif %}
                 {% if r.espai %}<span class="etiqueta etiqueta-espai">🌿 {{ r.espai }}</span>{% endif %}
                 <span class="etiqueta">🚉 {{ r.sortida }}</span>
+                {% if r.wiki %}<a href="{{ r.wiki }}" target="_blank" rel="noopener" onclick="event.stopPropagation()" class="etiqueta" style="background:#EAF3DE;color:#3B6D11;border-color:#C0DD97;text-decoration:none;">Wikiloc</a>{% endif %}
               </div>
-              <div class="rcard-btns">
-                <span class="rbtn rbtn-p">Veure ruta</span>
-                {% if r.wiki %}<span class="rbtn rbtn-w">Wikiloc</span>{% endif %}
-              </div>
+
             </div>
           </a>
           {% endfor %}
