@@ -1,9 +1,0 @@
-flask
-pandas
-openpyxl
-folium
-gpxpy
-requests
-gspread
-google-auth
-gunicorn
