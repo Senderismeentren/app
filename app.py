@@ -466,6 +466,33 @@ def api_rutes():
     } for r in rutes])
 
 
+@app.route("/api/gpx/linia/<nom_linia>")
+def api_gpx_linia(nom_linia):
+    """Serveix el GPX d'una línia de tren des de GitHub (evita CORS)."""
+    import re
+    if not re.match(r'[a-zA-Z0-9._-]+', nom_linia):
+        return jsonify({"error": "nom invàlid"}), 400
+    url = f"https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/gpx-linies/{nom_linia}.gpx"
+    try:
+        resp = requests.get(url, timeout=8)
+        if resp.status_code != 200:
+            return jsonify({"error": "no trobat"}), 404
+        gpx = gpxpy.parse(resp.text)
+        punts = []
+        for track in gpx.tracks:
+            for segment in track.segments:
+                for p in segment.points:
+                    punts.append({"lat": round(p.latitude,6), "lng": round(p.longitude,6)})
+        if not punts:
+            # Intentar amb routes
+            for route in gpx.routes:
+                for p in route.points:
+                    punts.append({"lat": round(p.latitude,6), "lng": round(p.longitude,6)})
+        return jsonify(punts)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route("/api/gpx/<int:ruta_id>")
 def api_gpx(ruta_id):
     """Retorna el track GPX com a JSON per al mapa."""
