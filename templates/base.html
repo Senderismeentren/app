@@ -178,7 +178,7 @@
 
 <!-- ── NAV ESCRIPTORI ── -->
 <nav class="nav">
-  <a class="nav-logo" href="/"><img src="https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/Logo_set_02.jpg" alt="Senderisme en Tren" style="height:36px;width:auto;vertical-align:middle;"></a>
+  <a class="nav-logo" href="/">🏔️ {{ nom_app }}</a>
   <div class="nav-links">
     {% for s in seccions %}
     <a class="nav-link {% if request.path == s.url %}actiu{% endif %}"
@@ -209,7 +209,7 @@
   <div class="footer-links">
     <a href="/rutes">Rutes</a>
     <a href="/mapa">Mapa</a>
-    <a href="/millors_rutes">Millors rutes</a>
+    <a href="/colleccions">Col·leccions</a>
     <a href="/articles">Articles</a>
   </div>
   <strong>{{ nom_app }}</strong><br>
