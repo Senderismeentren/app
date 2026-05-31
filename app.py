@@ -422,9 +422,17 @@ def mapa_pagina():
     estacions = get_estacions()
     # Només rutes amb coordenades
     rutes_mapa = [r for r in rutes if r["lat_sortida"] and r["lng_sortida"]]
+    # Agrupar estacions per operador per al sidebar
+    estacions_list = list(estacions.values())
+    estacions_per_op = {}
+    for est in sorted(estacions_list, key=lambda x: (x["op"] or "", x["nom"])):
+        op = est["op"] or "Altres"
+        estacions_per_op.setdefault(op, []).append(est)
+
     return render_template("mapa.html",
         rutes=rutes_mapa,
-        estacions=list(estacions.values()),
+        estacions=estacions_list,
+        estacions_per_op=estacions_per_op,
     )
 
 
