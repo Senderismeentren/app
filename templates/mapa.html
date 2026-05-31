@@ -103,6 +103,18 @@ body { overflow: hidden; }
     <span class="tcapa" id="tcapa-linies" onclick="toggleCapa('linies', this)">🚆 Línies de tren</span>
     <div class="mapa-sep"></div>
     <span class="tcapa" id="tcapa-cims" onclick="toggleCapa('cims', this)">🏔 100 Cims</span>
+    <div class="mapa-sep"></div>
+    <select onchange="if(this.value){const est=ESTACIONS.find(e=>e.nom===this.value);if(est){mapa.setView([est.lat,est.lng],14);obrirPanellEstacio(est);}this.value=''}"
+      style="border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.1);color:white;border-radius:6px;padding:4px 8px;font-size:12px;cursor:pointer;max-width:200px;">
+      <option value="">🔍 Cerca estació...</option>
+      {% for op, ests in estacions_per_op.items() %}
+      <optgroup label="{{ op }}">
+        {% for est in ests %}
+        <option value="{{ est.nom }}">{{ est.nom }}</option>
+        {% endfor %}
+      </optgroup>
+      {% endfor %}
+    </select>
     <span class="mapa-recompte" id="mapa-recompte">{{ rutes|length }} rutes · {{ estacions|length }} estacions</span>
   </div>
 
@@ -164,12 +176,21 @@ ESTACIONS.forEach(est => {
   if (!est.lat || !est.lng) return;
   const c = est.color || '#EE7F00';
   const nR = est.rutes ? est.rutes.length : 0;
+  // Logo del primer operador de l'estació
+  const opLower = (est.op || '').toLowerCase();
+  let logoId = est.linies && est.linies[0] ? est.linies[0] : '';
+  if (opLower.includes('fgc')) logoId = 'FGC';
+  else if (opLower.includes('cremallera')) logoId = 'Cremallera';
+  else if (opLower.includes('metro') || opLower.includes('tmb')) logoId = 'TMB';
+  else if (opLower.includes('tram')) logoId = 'Tram';
+  const logoUrl = `https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/Logo-${logoId}.svg`;
   const icon = L.divIcon({
-    html: `<div style="position:relative;">
-      <div style="width:13px;height:13px;border-radius:50%;background:${c};border:2.5px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.3);cursor:pointer;"></div>
-      ${nR > 0 ? `<div style="position:absolute;top:-7px;right:-8px;background:#1a1a2e;color:white;border-radius:8px;padding:1px 4px;font-size:9px;font-weight:700;border:1px solid rgba(255,255,255,0.3);">${nR}</div>` : ''}
+    html: `<div style="position:relative;background:white;border-radius:4px;padding:1px 3px;box-shadow:0 2px 5px rgba(0,0,0,0.28);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:17px;">
+      <img src="${logoUrl}" style="height:12px;max-width:34px;object-fit:contain;display:block;"
+        onerror="this.parentElement.innerHTML='<div style=\'width:10px;height:10px;border-radius:50%;background:${c};border:1.5px solid white;\'></div>${nR > 0 ? `<div style=\'position:absolute;top:-5px;right:-5px;background:#1a1a2e;color:white;border-radius:8px;padding:1px 3px;font-size:8px;font-weight:700;\'>${nR}</div>` : ''}'">
+      ${nR > 0 ? `<div style="position:absolute;top:-5px;right:-5px;background:#1a1a2e;color:white;border-radius:8px;padding:1px 3px;font-size:8px;font-weight:700;border:1px solid rgba(255,255,255,0.3);">${nR}</div>` : ''}
     </div>`,
-    className: '', iconSize: [13,13], iconAnchor: [6,6]
+    className: '', iconSize: [42,21], iconAnchor: [21,10]
   });
   L.marker([est.lat, est.lng], {icon})
     .addTo(capes.estacions)
@@ -356,7 +377,7 @@ function obrirPanellEstacio(est) {
   document.getElementById('panell-linies').innerHTML = (est.linies || [])
     .map(l => logoLinia(l, est.color || '#EE7F00')).join('');
   const n = est.rutes ? est.rutes.length : 0;
-  document.getElementById('panell-subtitol').textContent = `${n} rutes des d'aquesta estació`;
+  document.getElementById('panell-subtitol').innerHTML = `<span style="background:${est.color||'#EE7F00'};color:white;border-radius:4px;padding:1px 6px;font-size:10px;font-weight:700;margin-right:5px;">${est.op||''}</span> ${n} ruta${n===1?'':'s'}`;
 
   const rutesHTML = (est.rutes || []).map(r => {
     const ruta = RUTES.find(x => x.id === r.id);
