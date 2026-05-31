@@ -266,10 +266,36 @@ Object.keys(capesActives).forEach(nom => {
 
 // ── LÍNIES DE TREN DES DE GPX ──
 const BASE_GPX_LINIES = "https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/gpx-linies/";
-const COLORS_OP_LINIES = {
-  'fgc': '#97D700', 'rodalies': '#EE7F00', 'metro': '#E30613',
-  'tram': '#78BE20', 'cremallera': '#C8A96E', 'sncf': '#C00000'
+// Colors corporatius per línia
+const COLORS_LINIA = {
+  // Rodalies Barcelona
+  'rodalies-r1':    '#EE7F00', 'rodalies-rg1':   '#EE7F00',
+  'rodalies-r2':    '#1B75BC', 'rodalies-r2nord':'#1B75BC', 'rodalies-r2sud': '#1B75BC',
+  'rodalies-r3':    '#4DAF4A', 'rodalies-r4':    '#F15A24',
+  'rodalies-r7':    '#8B0099', 'rodalies-r8':    '#C6007E',
+  'rodalies-r11':   '#00AEEF', 'rodalies-r12':   '#754C29',
+  'rodalies-r13':   '#F7941D', 'rodalies-r14':   '#92278F',
+  'rodalies-r15':   '#00A550', 'rodalies-r16':   '#CC0000',
+  // FGC
+  'fgc-s1': '#97D700', 'fgc-s2': '#97D700', 'fgc-s5': '#97D700',
+  'fgc-s55':'#97D700', 'fgc-r5': '#E2001A', 'fgc-r6': '#E2001A',
+  'fgc-r50':'#E2001A', 'fgc-r60':'#E2001A',
+  // Cremalleres
+  'cremallera-nuria':      '#C8A96E',
+  'cremallera-montserrat': '#A05000',
+  // Alta velocitat / SNCF
+  'ave':  '#8B0000', 'sncf': '#C00000',
 };
+
+function colorLinia(nomFitxer) {
+  const clau = nomFitxer.toLowerCase().replace('.gpx','');
+  if (COLORS_LINIA[clau]) return COLORS_LINIA[clau];
+  // Fallback per operador
+  if (clau.startsWith('fgc')) return '#97D700';
+  if (clau.startsWith('cremallera')) return '#C8A96E';
+  if (clau.startsWith('sncf')) return '#C00000';
+  return '#EE7F00'; // Rodalies per defecte
+}
 
 async function carregarLiniesGPX() {
   // Llista de fitxers GPX de línies coneguts
@@ -296,7 +322,7 @@ async function carregarLiniesGPX() {
         parseFloat(p.getAttribute('lat')),
         parseFloat(p.getAttribute('lon'))
       ]);
-      L.polyline(latlngs, {color, weight: 5, opacity: 0.75, dashArray: '8,4'})
+      L.polyline(latlngs, {color, weight: 6, opacity: 0.85})
         .addTo(capes.linies)
         .bindTooltip(nom.replace('-', ' ').toUpperCase(), {sticky: true});
     } catch(e) { /* línia no disponible */ }
