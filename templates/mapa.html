@@ -100,7 +100,6 @@ body { overflow: hidden; }
   <div class="mapa-toolbar">
     <span class="mapa-toolbar-titol">🗺️ Mapa</span>
     <span class="tcapa actiu" id="tcapa-estacions" onclick="toggleCapa('estacions', this)">🚉 Estacions</span>
-    <span class="tcapa actiu" id="tcapa-rutes" onclick="toggleCapa('rutes', this)">🥾 Tracks</span>
     <span class="tcapa" id="tcapa-linies" onclick="toggleCapa('linies', this)">🚆 Línies de tren</span>
     <div class="mapa-sep"></div>
     <span class="tcapa" id="tcapa-cims" onclick="toggleCapa('cims', this)">🏔 100 Cims</span>
@@ -370,9 +369,9 @@ function obrirPanellEstacio(est) {
         </div>
         <div style="display:flex;gap:4px;flex-shrink:0;margin-top:2px;">
           <button class="btn-track" onclick="toggleTrack(${r.id},this)"
-            style="background:#f0f4ff;color:#3455a4;border:1px solid #c0cfe8;border-radius:6px;padding:3px 7px;font-size:11px;font-weight:700;cursor:pointer;">🗺️</button>
+            style="background:#f0f4ff;color:#3455a4;border:1px solid #c0cfe8;border-radius:6px;padding:3px 7px;font-size:11px;font-weight:700;cursor:pointer;">🗺️ Track</button>
           <a href="/ruta/${r.id}"
-            style="background:#0f3460;color:white;border:none;border-radius:6px;padding:3px 7px;font-size:11px;font-weight:700;text-decoration:none;display:flex;align-items:center;">→</a>
+            style="background:#0f3460;color:white;border:none;border-radius:6px;padding:3px 7px;font-size:11px;font-weight:700;text-decoration:none;display:flex;align-items:center;gap:3px;">📋 Fitxa</a>
         </div>
       </div>
     </div>`;

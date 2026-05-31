@@ -80,11 +80,6 @@
 .rst-l { font-size: 10px; color: #aaa; text-transform: uppercase; letter-spacing: 0.3px; }
 .rst-v { font-size: 13px; font-weight: 700; color: #111; }
 .rcard-tags { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 8px; }
-.rcard-btns { display: flex; gap: 6px; border-top: 1px solid #f5f5f5; padding-top: 8px; }
-.rbtn { border: none; border-radius: 7px; padding: 6px 12px; font-size: 11px; font-weight: 700; cursor: pointer; transition: all 0.15s; text-decoration: none; display: inline-flex; align-items: center; }
-.rbtn-p { flex: 1; background: var(--blau); color: white; justify-content: center; }
-.rbtn-p:hover { background: #1a4a80; }
-.rbtn-w { background: var(--verd); color: white; }
 .rutes-buit { text-align: center; padding: 80px 20px; color: #bbb; grid-column: 1/-1; }
 
 /* DESPLEGABLES SIDEBAR */
@@ -249,7 +244,7 @@ details[open] summary.fs-grup-summary::after { transform: rotate(90deg); }
     <!-- CONTINGUT -->
     <div class="rutes-contingut">
       <div class="rutes-stats">
-        <span class="rutes-stats-n" id="recompte-rutes">{{ rutes|length }} rutes{% if rutes|length != n_total %} de {{ n_total }}{% endif %}</span>
+        <span class="rutes-stats-n" id="recompte-rutes">{% if rutes|length == 1 %}1 ruta{% else %}{{ rutes|length }} rutes{% endif %}{% if rutes|length != n_total %} de {% if n_total == 1 %}1 ruta{% else %}{{ n_total }} rutes{% endif %}{% endif %}</span>
         <div class="rutes-ordre">
           Ordenar per
           <select onchange="ordenar(this.value)">
