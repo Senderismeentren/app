@@ -153,7 +153,7 @@ const ESTACIONS = {{ estacions|tojson }};
 
 const COLORS = {
   'Molt fàcil': '#2ECC71', 'Fàcil': '#3498DB',
-  'Moderada': '#E67E22', 'Exigent': '#E74C3C', 'Molt difícil': '#2C3E50'
+  'Moderada': '#E67E22', 'Exigent': '#E74C3C', 'Molt difícil': '#111111'
 };
 
 // ── MAPA ──
@@ -177,20 +177,22 @@ ESTACIONS.forEach(est => {
   const c = est.color || '#EE7F00';
   const nR = est.rutes ? est.rutes.length : 0;
   // Logo del primer operador de l'estació
+  // Logo de l'OPERADOR (no la línia)
   const opLower = (est.op || '').toLowerCase();
-  let logoId = est.linies && est.linies[0] ? est.linies[0] : '';
-  if (opLower.includes('fgc')) logoId = 'FGC';
-  else if (opLower.includes('cremallera')) logoId = 'Cremallera';
-  else if (opLower.includes('metro') || opLower.includes('tmb')) logoId = 'TMB';
-  else if (opLower.includes('tram')) logoId = 'Tram';
-  const logoUrl = `https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/Logo-${logoId}.svg`;
+  let logoOp = 'rodalies'; // per defecte
+  if (opLower.includes('fgc')) logoOp = 'FGC';
+  else if (opLower.includes('cremallera')) logoOp = 'Cremallera';
+  else if (opLower.includes('metro') || opLower.includes('tmb')) logoOp = 'TMB';
+  else if (opLower.includes('tram')) logoOp = 'Tram';
+  else if (opLower.includes('rodalies') || opLower.includes('renfe')) logoOp = 'rodalies';
+  const logoOpUrl = `https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/Logo-${logoOp}.svg`;
   const icon = L.divIcon({
-    html: `<div style="position:relative;background:white;border-radius:4px;padding:1px 3px;box-shadow:0 2px 5px rgba(0,0,0,0.28);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:17px;">
-      <img src="${logoUrl}" style="height:12px;max-width:34px;object-fit:contain;display:block;"
-        onerror="this.parentElement.innerHTML='<div style=\'width:10px;height:10px;border-radius:50%;background:${c};border:1.5px solid white;\'></div>${nR > 0 ? `<div style=\'position:absolute;top:-5px;right:-5px;background:#1a1a2e;color:white;border-radius:8px;padding:1px 3px;font-size:8px;font-weight:700;\'>${nR}</div>` : ''}'">
-      ${nR > 0 ? `<div style="position:absolute;top:-5px;right:-5px;background:#1a1a2e;color:white;border-radius:8px;padding:1px 3px;font-size:8px;font-weight:700;border:1px solid rgba(255,255,255,0.3);">${nR}</div>` : ''}
+    html: `<div style="position:relative;background:white;border-radius:5px;padding:2px 4px;box-shadow:0 2px 6px rgba(0,0,0,0.3);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;min-width:26px;height:20px;">
+      <img src="${logoOpUrl}" style="height:14px;max-width:38px;object-fit:contain;display:block;"
+        onerror="this.style.display='none';this.insertAdjacentHTML('afterend','<div style=\'width:11px;height:11px;border-radius:50%;background:${c};border:2px solid white;\'></div>')">
+      ${nR > 0 ? `<div style="position:absolute;top:-6px;right:-6px;background:#1a1a2e;color:white;border-radius:8px;padding:1px 4px;font-size:8px;font-weight:700;border:1px solid rgba(255,255,255,0.2);">${nR}</div>` : ''}
     </div>`,
-    className: '', iconSize: [42,21], iconAnchor: [21,10]
+    className: '', iconSize: [46,24], iconAnchor: [23,12]
   });
   L.marker([est.lat, est.lng], {icon})
     .addTo(capes.estacions)
@@ -372,7 +374,8 @@ function logoLinia(linia, colorOp) {
 
 // ── PANELL ESTACIÓ ──
 function obrirPanellEstacio(est) {
-  document.getElementById('panell-nom').textContent = '🚉 ' + est.nom;
+  const prep = /^[AEIOUaeiouàèéíïóòúü]/i.test(est.nom) ? "d'" : "de ";
+  document.getElementById('panell-nom').textContent = '🚉 Estació ' + prep + est.nom;
   document.getElementById('panell-op').textContent = est.op || '';
   document.getElementById('panell-linies').innerHTML = (est.linies || [])
     .map(l => logoLinia(l, est.color || '#EE7F00')).join('');

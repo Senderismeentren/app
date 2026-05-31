@@ -1,396 +1,302 @@
 {% extends "base.html" %}
+
 {% block titol %}Rutes{% endblock %}
 
 {% block estils_extra %}
 <style>
-.rutes-page { min-height: calc(100vh - var(--nav-h)); display: flex; flex-direction: column; }
+.rutes-page { min-height: calc(100vh - var(--nav-h)); }
 
-.rutes-header {
+/* ── CAPÇALERA FILTRES ─────────────────────────────────────────── */
+.filtres-bar {
   background: white; border-bottom: 1px solid #eee;
-  padding: 12px 20px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  padding: 12px 20px; position: sticky; top: var(--nav-h);
+  z-index: 100; display: flex; gap: 10px; flex-wrap: wrap; align-items: center;
 }
-.rutes-header h1 { font-size: 20px; font-weight: 800; color: #111; }
-.rutes-header p  { font-size: 13px; color: #888; }
-.rutes-cerca {
-  margin-left: auto; display: flex; align-items: center;
-  background: #f5f6fa; border: 1px solid #e0e0e0;
-  border-radius: 8px; padding: 6px 12px; gap: 8px;
-}
-.rutes-cerca input { border: none; background: none; font-size: 13px; outline: none; width: 180px; color: #111; }
-
-.rutes-body { display: flex; flex: 1; }
-
-/* SIDEBAR */
-.filtres-sidebar {
-  width: 250px; flex-shrink: 0; background: white;
-  border-right: 1px solid #eee; padding: 16px;
-  overflow-y: auto; position: sticky; top: var(--nav-h);
-  height: calc(100vh - var(--nav-h));
-}
-.fs-titol { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
-.fs-titol h3 { font-size: 15px; font-weight: 800; color: #111; }
-.fs-netejar { font-size: 12px; color: #3498DB; cursor: pointer; text-decoration: none; font-weight: 600; }
-.fs-netejar:hover { color: #2980b9; }
-.fs-grup { margin-bottom: 20px; border-bottom: 1px solid #f5f5f5; padding-bottom: 16px; }
-.fs-grup:last-child { border-bottom: none; }
-.fs-grup-titol { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: #aaa; margin-bottom: 8px; }
-.fs-check { display: flex; align-items: center; gap: 8px; padding: 4px 0; cursor: pointer; }
-.fs-check input { cursor: pointer; width: 15px; height: 15px; accent-color: var(--blau); }
-.fs-check-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
-.fs-check-label { font-size: 13px; color: #333; flex: 1; }
-.fs-check-n { font-size: 11px; color: #bbb; font-weight: 600; }
-.fs-pills { display: flex; flex-wrap: wrap; gap: 5px; max-height: 120px; overflow-y: auto; }
-.fs-pill {
+.filtres-titol { font-size: 18px; font-weight: 800; color: #111; margin-right: 8px; white-space: nowrap; }
+.filtres-grup { display: flex; gap: 5px; align-items: center; flex-wrap: wrap; }
+.filtres-sep { width: 1px; height: 22px; background: #e8e8e8; margin: 0 6px; flex-shrink: 0; }
+.filtres-label { font-size: 10px; font-weight: 700; color: #bbb; text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap; }
+.fpill {
   background: #f0f2f6; border: 1px solid #ddd; border-radius: 20px;
-  padding: 3px 10px; font-size: 11px; color: #555; cursor: pointer;
-  transition: all 0.15s; text-decoration: none; display: inline-block;
+  padding: 4px 11px; font-size: 12px; color: #555; cursor: pointer;
+  transition: all 0.15s; white-space: nowrap; text-decoration: none; display: inline-block;
 }
-.fs-pill:hover:not(.actiu) { background: #e4e8f0; }
-.fs-pill.actiu { background: var(--blau); color: white; border-color: var(--blau); font-weight: 600; }
-.fs-toggle { display: flex; align-items: center; gap: 8px; padding: 4px 0; cursor: pointer; }
-.fs-toggle input { cursor: pointer; width: 15px; height: 15px; accent-color: #0F6E56; }
-.fs-toggle-label { font-size: 13px; color: #333; }
+.fpill:hover:not(.actiu) { background: #e4e8f0; }
+.fpill.actiu { background: var(--blau); color: white; border-color: var(--blau); font-weight: 600; }
 
-/* CONTINGUT */
-.rutes-contingut { flex: 1; background: var(--gris); padding: 16px 20px; }
-.rutes-stats { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
-.rutes-stats-n { font-size: 14px; font-weight: 700; color: #555; flex: 1; }
-.rutes-ordre select { border: 1px solid #ddd; border-radius: 6px; padding: 4px 8px; font-size: 12px; background: white; cursor: pointer; }
-.filtres-actius-bar { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
-.fa-pill { display: inline-flex; align-items: center; gap: 5px; background: #EFF6FF; border: 1px solid #BFDBFE; border-radius: 20px; padding: 3px 10px; font-size: 11px; color: #1D4ED8; font-weight: 600; }
-.fa-pill-x { cursor: pointer; opacity: 0.6; }
-.fa-pill-x:hover { opacity: 1; }
-
-/* GRAELLA */
-.rutes-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
-
-/* CARD */
-.rcard { background: white; border-radius: var(--radius); border: 1px solid #eee; overflow: hidden; transition: all 0.2s; cursor: pointer; text-decoration: none; display: block; color: inherit; }
-.rcard:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); }
-.rcard-img { position: relative; height: 180px; overflow: hidden; background: #e8eaf0; }
-.rcard-img img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s; display: block; }
-.rcard:hover .rcard-img img { transform: scale(1.04); }
-.rcard-num {
-  position: absolute; top: 10px; left: 10px;
-  width: 30px; height: 30px; border-radius: 50%;
-  color: white; font-size: 12px; font-weight: 800;
-  display: flex; align-items: center; justify-content: center;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.35); z-index: 2;
+/* Filtre mòbil */
+.btn-filtres-mob {
+  display: none; align-items: center; gap: 6px;
+  background: var(--blau-fosc); color: white; border: none;
+  border-radius: 8px; padding: 8px 14px; font-size: 13px; font-weight: 700;
+  cursor: pointer; white-space: nowrap;
 }
-.rcard-dif {
-  position: absolute; bottom: 10px; left: 10px;
+.filtres-mob-panel {
+  display: none; position: fixed; inset: 0; z-index: 800;
+  background: rgba(0,0,0,0.5);
+}
+.filtres-mob-inner {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  background: white; border-radius: 16px 16px 0 0;
+  padding: 20px 16px 40px; max-height: 80vh; overflow-y: auto;
+}
+.filtres-mob-inner h3 { font-size: 16px; font-weight: 800; margin-bottom: 16px; }
+.filtres-mob-grup { margin-bottom: 16px; }
+.filtres-mob-grup label { font-size: 11px; font-weight: 700; color: #aaa; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 8px; }
+.filtres-mob-pills { display: flex; gap: 6px; flex-wrap: wrap; }
+.filtres-mob-panel.obert { display: block; }
+
+/* ── STATS ──────────────────────────────────────────────────────── */
+.rutes-stats {
+  padding: 10px 20px 8px; display: flex; align-items: center; gap: 10px;
+  flex-wrap: wrap;
+}
+.rutes-stats-n { font-size: 13px; font-weight: 700; color: #555; }
+.filtres-actius { display: flex; gap: 6px; flex-wrap: wrap; }
+.filtre-actiu-pill {
   display: inline-flex; align-items: center; gap: 5px;
-  border-radius: 20px; padding: 4px 10px;
-  background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); z-index: 2;
+  background: #EFF6FF; border: 1px solid #BFDBFE;
+  border-radius: 20px; padding: 3px 10px; font-size: 11px;
+  color: #1D4ED8; font-weight: 600; text-decoration: none;
 }
-.rcard-dif-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-.rcard-dif-txt { font-size: 12px; font-weight: 700; color: white; }
-.rcard-cos { padding: 12px 14px 14px; }
-.rcard-nom { font-size: 14px; font-weight: 700; color: #111; line-height: 1.35; margin-bottom: 10px; }
-.rcard-stats { display: flex; gap: 16px; margin-bottom: 10px; }
-.rst-l { font-size: 10px; color: #aaa; text-transform: uppercase; letter-spacing: 0.4px; font-weight: 600; }
-.rst-v { font-size: 14px; font-weight: 700; color: #111; margin-top: 1px; }
-.rcard-tags { display: flex; gap: 5px; flex-wrap: wrap; }
-.rutes-buit { text-align: center; padding: 80px 20px; color: #bbb; grid-column: 1/-1; }
-
-/* DESPLEGABLES SIDEBAR */
-details.fs-grup { margin-bottom: 4px; border-bottom: 1px solid #f0f0f0; padding-bottom: 4px; }
-details.fs-grup:last-child { border-bottom: none; }
-summary.fs-grup-summary {
-  font-size: 13px; font-weight: 700; color: #333;
-  cursor: pointer; padding: 8px 0; list-style: none;
-  display: flex; align-items: center; gap: 6px;
-  user-select: none;
+.filtre-actiu-pill:hover { background: #DBEAFE; }
+.btn-netejar {
+  background: #f5f5f5; border: 1px solid #ddd; border-radius: 20px;
+  padding: 3px 10px; font-size: 11px; color: #888; cursor: pointer;
+  font-weight: 600; text-decoration: none; display: inline-flex; align-items: center;
 }
-summary.fs-grup-summary::-webkit-details-marker { display: none; }
-summary.fs-grup-summary::after { content: '▸'; margin-left: auto; font-size: 10px; color: #aaa; transition: transform 0.2s; }
-details[open] summary.fs-grup-summary::after { transform: rotate(90deg); }
-.fs-actiu-badge { background: #3498DB; color: white; border-radius: 20px; padding: 1px 7px; font-size: 10px; font-weight: 600; }
-.fs-check-link {
-  display: flex; align-items: center; gap: 8px; padding: 4px 0;
-  text-decoration: none; color: inherit; border-radius: 6px;
-  transition: background 0.1s; cursor: pointer;
+.btn-netejar:hover { background: #ffe4e4; color: #dc2626; border-color: #fca5a5; }
+
+/* ── GRAELLA RUTES ──────────────────────────────────────────────── */
+.rutes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 14px; padding: 12px 20px 48px;
+  max-width: 1200px; margin: 0 auto;
 }
-.fs-check-link:hover { background: #f5f6fa; }
-.fs-check-link.actiu .fs-check-label { color: #1D4ED8; font-weight: 700; }
-.fs-check-link.actiu .fs-check-dot { box-shadow: 0 0 0 2px white, 0 0 0 3px currentColor; }
 
-/* MÒBIL */
-.btn-filtres-mob { display: none; align-items: center; gap: 6px; background: var(--blau-fosc); color: white; border: none; border-radius: 8px; padding: 7px 14px; font-size: 13px; font-weight: 700; cursor: pointer; }
-.filtres-mob-overlay { display: none; position: fixed; inset: 0; z-index: 800; background: rgba(0,0,0,0.5); }
-.filtres-mob-overlay.obert { display: block; }
-.filtres-mob-panel { position: absolute; bottom: 0; left: 0; right: 0; background: white; border-radius: 16px 16px 0 0; padding: 20px 16px 40px; max-height: 85vh; overflow-y: auto; }
+/* ── CARD RUTA ──────────────────────────────────────────────────── */
+.rcard {
+  background: white; border-radius: var(--radius);
+  border: 1px solid #eee; overflow: hidden;
+  transition: box-shadow 0.2s, transform 0.15s;
+  border-left: 4px solid transparent;
+  text-decoration: none; display: block; color: inherit;
+}
+.rcard:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); }
+.rcard-cap { padding: 12px 12px 8px; }
+.rcard-fila { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 8px; }
+.rcard-num {
+  width: 26px; height: 26px; border-radius: 50%;
+  color: white; font-size: 11px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.rcard-nom { flex: 1; font-size: 14px; font-weight: 700; color: #111; line-height: 1.3; }
 
-@media (max-width: 1100px) { .rutes-grid { grid-template-columns: repeat(2, 1fr); } }
+.rcard-stats { display: flex; gap: 16px; padding: 7px 12px; border-top: 1px solid #f5f5f5; }
+.rst-l { font-size: 10px; color: #aaa; text-transform: uppercase; letter-spacing: 0.3px; }
+.rst-v { font-size: 14px; font-weight: 700; color: #111; }
+
+.rcard-tags { padding: 4px 12px 8px; display: flex; gap: 4px; flex-wrap: wrap; }
+
+.rcard-btns {
+  padding: 6px 12px 10px; display: flex; gap: 6px;
+  border-top: 1px solid #f5f5f5;
+}
+.rbtn {
+  border: none; border-radius: 7px; padding: 6px 11px;
+  font-size: 11px; font-weight: 700; cursor: pointer;
+  transition: all 0.15s; text-decoration: none;
+  display: inline-flex; align-items: center; gap: 4px;
+}
+.rbtn-p { flex: 1; background: var(--blau); color: white; justify-content: center; }
+.rbtn-p:hover { background: #1a4a80; }
+.rbtn-w { background: var(--verd); color: white; }
+.rbtn-w:hover { background: #1e7a52; }
+
+/* ── BUIT ────────────────────────────────────────────────────────── */
+.rutes-buit {
+  text-align: center; padding: 80px 20px; color: #aaa;
+  grid-column: 1 / -1;
+}
+.rutes-buit .icon { font-size: 48px; margin-bottom: 12px; }
+.rutes-buit p { font-size: 15px; }
+
+/* ── RESPONSIVE ──────────────────────────────────────────────────── */
 @media (max-width: 768px) {
-  .filtres-sidebar { display: none; }
-  .btn-filtres-mob { display: flex !important; }
-  .rutes-grid { grid-template-columns: 1fr; }
-  .rutes-contingut { padding: 12px; }
-  .rutes-cerca input { width: 120px; }
+  .filtres-bar { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding: 10px 14px; top: 0; }
+  .filtres-bar::-webkit-scrollbar { display: none; }
+  .filtres-grup { display: none; }
+  .filtres-sep { display: none; }
+  .btn-filtres-mob { display: flex; }
+  .rutes-grid { grid-template-columns: 1fr; padding: 10px 14px 80px; }
+  .rutes-stats { padding: 8px 14px; }
 }
 </style>
 {% endblock %}
 
 {% block contingut %}
 <div class="rutes-page">
-  <div class="rutes-header">
-    <div>
-      <h1>🥾 Rutes</h1>
-      <p>Descobreix rutes i excursions accessibles amb tren, metro o funicular</p>
-    </div>
-    <div class="rutes-cerca">
-      <span>🔍</span>
-      <input type="text" id="cerca-text" placeholder="Cerca per nom..." oninput="filtrarJS()">
-    </div>
-    <button class="btn-filtres-mob" onclick="obrirFiltresMob()">⚙️ Filtres{% if filtres_actius %} ({{ filtres_actius|length }}){% endif %}</button>
-  </div>
 
-  <div class="rutes-body">
-    <!-- SIDEBAR -->
-    <aside class="filtres-sidebar">
-      <div class="fs-titol">
-        <h3>⚙️ Filtres</h3>
-        {% if filtres_actius %}<a class="fs-netejar" href="/rutes">↺ Netejar</a>{% endif %}
-      </div>
+  <!-- BARRA DE FILTRES -->
+  <div class="filtres-bar">
+    <span class="filtres-titol">🥾 Rutes</span>
 
-      {% macro url_filtre(clau, valor) %}
-        {% set params = filtres_actius.copy() %}
-        {% if params.get(clau) == valor %}
-          {% set _ = params.pop(clau) %}
-        {% else %}
-          {% set _ = params.update({clau: valor}) %}
-        {% endif %}
-        /rutes?{% for k,v in params.items() %}{{ k }}={{ v }}&{% endfor %}
-      {% endmacro %}
-
-      <!-- ESTACIÓ -->
-      <details class="fs-grup" {% if filtres_actius.get('estacio') %}open{% endif %}>
-        <summary class="fs-grup-summary">
-          🚉 Estació
-          {% if filtres_actius.get('estacio') %}<span class="fs-actiu-badge">{{ filtres_actius.get('estacio') }}</span>{% endif %}
-        </summary>
-        <div class="fs-pills" style="margin-top:8px;">
-          {% for e in filtres.estacions %}
-          <a class="fs-pill {% if filtres_actius.get('estacio') == e %}actiu{% endif %}"
-             href="{{ url_filtre('estacio', e) }}">{{ e }}</a>
-          {% endfor %}
-        </div>
-      </details>
-
-      <!-- LÍNIA / OPERADOR -->
-      <details class="fs-grup" {% if filtres_actius.get('operador') %}open{% endif %}>
-        <summary class="fs-grup-summary">
-          🚆 Operador / Línia
-          {% if filtres_actius.get('operador') %}<span class="fs-actiu-badge">{{ filtres_actius.get('operador') }}</span>{% endif %}
-        </summary>
-        <div class="fs-pills" style="margin-top:8px;">
-          {% for op in filtres.operadors %}
-          <a class="fs-pill {% if filtres_actius.get('operador') == op %}actiu{% endif %}"
-             href="{{ url_filtre('operador', op) }}">{{ op }}</a>
-          {% endfor %}
-        </div>
-      </details>
-
-      <!-- DIFICULTAT -->
-      <details class="fs-grup" {% if filtres_actius.get('dificultat') %}open{% endif %}>
-        <summary class="fs-grup-summary">
-          🧗 Dificultat
-          {% if filtres_actius.get('dificultat') %}<span class="fs-actiu-badge">{{ filtres_actius.get('dificultat') }}</span>{% endif %}
-        </summary>
-        <div style="margin-top:8px;">
-          {% set dif_colors = {'Molt fàcil':'#2ECC71','Fàcil':'#3498DB','Moderada':'#E67E22','Exigent':'#E74C3C','Molt exigent':'#2C3E50','Molt difícil':'#2C3E50'} %}
-          {% for d in filtres.dificultats %}
-          {% set n = rutes_all | selectattr('dificultat','equalto',d) | list | length %}
-          <a class="fs-check-link {% if filtres_actius.get('dificultat') == d %}actiu{% endif %}"
-             href="{{ url_filtre('dificultat', d) }}">
-            <span class="fs-check-dot" style="background:{{ dif_colors.get(d,'#888') }};"></span>
-            <span class="fs-check-label">{{ d }}</span>
-            <span class="fs-check-n">{{ n }}</span>
-          </a>
-          {% endfor %}
-        </div>
-      </details>
-
-      <!-- ESPAI NATURAL -->
-      {% if filtres.espais %}
-      <details class="fs-grup" {% if filtres_actius.get('espai') %}open{% endif %}>
-        <summary class="fs-grup-summary">
-          🌿 Espai natural
-          {% if filtres_actius.get('espai') %}<span class="fs-actiu-badge">{{ filtres_actius.get('espai') }}</span>{% endif %}
-        </summary>
-        <div class="fs-pills" style="margin-top:8px;">
-          {% for e in filtres.espais %}
-          <a class="fs-pill {% if filtres_actius.get('espai') == e %}actiu{% endif %}"
-             href="{{ url_filtre('espai', e) }}">{{ e }}</a>
-          {% endfor %}
-        </div>
-      </details>
-      {% endif %}
-
-      <!-- COMARCA -->
-      <details class="fs-grup" {% if filtres_actius.get('comarca') %}open{% endif %}>
-        <summary class="fs-grup-summary">
-          📍 Comarca
-          {% if filtres_actius.get('comarca') %}<span class="fs-actiu-badge">{{ filtres_actius.get('comarca') }}</span>{% endif %}
-        </summary>
-        <div class="fs-pills" style="margin-top:8px;">
-          {% for c in filtres.comarques %}
-          <a class="fs-pill {% if filtres_actius.get('comarca') == c %}actiu{% endif %}"
-             href="{{ url_filtre('comarca', c) }}">{{ c }}</a>
-          {% endfor %}
-        </div>
-      </details>
-
-      <!-- 100 CIMS -->
-      <div class="fs-grup">
-        <a class="fs-check-link {% if filtres_actius.get('cims') %}actiu{% endif %}"
-           href="{{ url_filtre('cims', '1') }}" style="padding:8px 0;">
-          <span style="font-size:16px;">🏔</span>
-          <span class="fs-check-label" style="font-weight:600;">Només 100 Cims</span>
-        </a>
-      </div>
-    </aside>
-
-    <!-- CONTINGUT -->
-    <div class="rutes-contingut">
-      <div class="rutes-stats">
-        <span class="rutes-stats-n" id="recompte-rutes">{% if rutes|length == 1 %}1 ruta{% else %}{{ rutes|length }} rutes{% endif %}{% if rutes|length != n_total %} de {% if n_total == 1 %}1 ruta{% else %}{{ n_total }} rutes{% endif %}{% endif %}</span>
-        <div class="rutes-ordre">
-          Ordenar per
-          <select onchange="ordenar(this.value)">
-            <option value="num">Número</option>
-            <option value="km">Distància</option>
-            <option value="desn">Desnivell</option>
-            <option value="nom">Nom A-Z</option>
-          </select>
-        </div>
-      </div>
-
-      {% if filtres_actius %}
-      <div class="filtres-actius-bar">
-        {% for k, v in filtres_actius.items() %}
-        <span class="fa-pill">{{ v }} <span class="fa-pill-x" onclick="treureFiltreActiu('{{ k }}')">✕</span></span>
-        {% endfor %}
-        <a href="/rutes" style="font-size:11px;color:#dc2626;font-weight:600;">✕ Netejar tot</a>
-      </div>
-      {% endif %}
-
-      <div class="rutes-grid" id="rutes-grid">
-        {% if rutes %}
-          {% for r in rutes %}
-          <a class="rcard" href="/ruta/{{ r.id }}"
-             data-nom="{{ r.nom|lower }}"
-             data-km="{{ r.km }}"
-             data-desn="{{ r.desn_p }}"
-             data-dif="{{ r.dificultat }}">
-            <div class="rcard-img">
-              <img src="https://raw.githubusercontent.com/Senderismeentren/imatges/main/ruta-{{ '%03d'|format(r.id) }}/foto1.jpg"
-                   alt="{{ r.nom }}" loading="lazy"
-                   onerror="this.style.display='none'">
-              <div class="rcard-num" style="background:{{ r.color_dif }};">{{ r.id }}</div>
-              <div class="rcard-dif">
-                <div class="rcard-dif-dot" style="background:{{ r.color_dif }};"></div>
-                <span class="rcard-dif-txt">{{ r.dificultat }}</span>
-              </div>
-            </div>
-            <div class="rcard-cos">
-              <div class="rcard-nom">{{ r.nom }}</div>
-              <div class="rcard-stats">
-                <div><div class="rst-l">Distància</div><div class="rst-v">{{ r.km }} km</div></div>
-                <div><div class="rst-l">Desnivell</div><div class="rst-v">{{ r.desn_txt }}</div></div>
-                <div><div class="rst-l">Temps</div><div class="rst-v">{{ r.temps }}</div></div>
-              </div>
-              <div class="rcard-tags">
-                {% if r.comarca_sortida %}<span class="etiqueta">{{ r.comarca_sortida }}</span>{% endif %}
-                {% if r.cims %}<span class="etiqueta etiqueta-cims">🏔 100 Cims</span>{% endif %}
-                {% if r.espai %}<span class="etiqueta etiqueta-espai">🌿 {{ r.espai }}</span>{% endif %}
-                <span class="etiqueta">🚉 {{ r.sortida }}</span>
-                {% if r.wiki %}<a href="{{ r.wiki }}" target="_blank" rel="noopener" onclick="event.stopPropagation()" class="etiqueta" style="background:#EAF3DE;color:#3B6D11;border-color:#C0DD97;text-decoration:none;">Wikiloc</a>{% endif %}
-              </div>
-
-            </div>
-          </a>
-          {% endfor %}
-        {% else %}
-          <div class="rutes-buit">
-            <div style="font-size:48px;margin-bottom:12px;">🔍</div>
-            <p>No hi ha rutes amb aquests filtres.<br>
-            <a href="/rutes" style="color:#3498DB;font-weight:600;">Veure totes les rutes</a></p>
-          </div>
-        {% endif %}
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- PANEL MÒBIL -->
-<div class="filtres-mob-overlay" id="filtresMobOverlay" onclick="tancarFiltresMob(event)">
-  <div class="filtres-mob-panel">
-    <h3 style="font-size:16px;font-weight:800;margin-bottom:16px;">⚙️ Filtres</h3>
-    <div style="margin-bottom:14px;">
-      <div class="fs-grup-titol">Dificultat</div>
-      {% set dif_colors = {'Molt fàcil':'#2ECC71','Fàcil':'#3498DB','Moderada':'#E67E22','Exigent':'#E74C3C','Molt exigent':'#2C3E50'} %}
+    <!-- Dificultat -->
+    <div class="filtres-grup">
+      <span class="filtres-label">Dificultat</span>
+      <a class="fpill {% if not filtres_actius.get('dificultat') %}actiu{% endif %}"
+         href="/rutes?{{ request.query_string.decode().replace('dificultat=' + (filtres_actius.get('dificultat','') or ''), '') }}">Totes</a>
       {% for d in filtres.dificultats %}
-      <label class="fs-check">
-        <input type="checkbox" value="{{ d }}" onchange="aplicarFiltres()">
-        <span class="fs-check-dot" style="background:{{ dif_colors.get(d,'#888') }};"></span>
-        <span class="fs-check-label">{{ d }}</span>
-      </label>
+      <a class="fpill {% if filtres_actius.get('dificultat') == d %}actiu{% endif %}"
+         href="/rutes?dificultat={{ d }}&comarca={{ filtres_actius.get('comarca','') }}&espai={{ filtres_actius.get('espai','') }}">{{ d }}</a>
       {% endfor %}
     </div>
-    <div style="margin-bottom:14px;">
-      <div class="fs-grup-titol">Comarca</div>
-      <div class="fs-pills">{% for c in filtres.comarques %}<a class="fs-pill" href="/rutes?comarca={{ c }}">{{ c }}</a>{% endfor %}</div>
+
+    <div class="filtres-sep"></div>
+
+    <!-- Comarca -->
+    <div class="filtres-grup">
+      <span class="filtres-label">Comarca</span>
+      <a class="fpill {% if not filtres_actius.get('comarca') %}actiu{% endif %}"
+         href="/rutes?dificultat={{ filtres_actius.get('dificultat','') }}">Totes</a>
+      {% for c in filtres.comarques %}
+      <a class="fpill {% if filtres_actius.get('comarca') == c %}actiu{% endif %}"
+         href="/rutes?comarca={{ c }}&dificultat={{ filtres_actius.get('dificultat','') }}">{{ c }}</a>
+      {% endfor %}
     </div>
-    {% if filtres_actius %}<a class="btn btn-blanc" href="/rutes" style="width:100%;justify-content:center;margin-top:8px;">✕ Netejar filtres</a>{% endif %}
+
+    <div class="filtres-sep"></div>
+
+    <!-- 100 Cims -->
+    <div class="filtres-grup">
+      <a class="fpill {% if filtres_actius.get('cims') %}actiu{% endif %}"
+         href="/rutes?cims=1&dificultat={{ filtres_actius.get('dificultat','') }}&comarca={{ filtres_actius.get('comarca','') }}">🏔 100 Cims</a>
+    </div>
+
+    <!-- Botó filtres mòbil -->
+    <button class="btn-filtres-mob" onclick="obrirFiltresMob()">
+      ⚙️ Filtres
+      {% if filtres_actius %}<span style="background:#3498DB;border-radius:50%;width:18px;height:18px;display:flex;align-items:center;justify-content:center;font-size:10px;">{{ filtres_actius|length }}</span>{% endif %}
+    </button>
+  </div>
+
+  <!-- STATS I FILTRES ACTIUS -->
+  <div class="rutes-stats">
+    <span class="rutes-stats-n">{% if rutes|length == 1 %}1 ruta{% else %}{{ rutes|length }} rutes{% endif %}{% if rutes|length != n_total %} de {{ n_total }}{% endif %}</span>
+    {% if filtres_actius %}
+    <div class="filtres-actius">
+      {% for k, v in filtres_actius.items() %}
+      <span class="filtre-actiu-pill">{{ v }} <a href="/rutes" style="color:inherit;margin-left:2px;">✕</a></span>
+      {% endfor %}
+      <a class="btn-netejar" href="/rutes">✕ Netejar tot</a>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- GRAELLA -->
+  <div class="rutes-grid">
+    {% if rutes %}
+      {% for r in rutes %}
+      <div class="rcard" style="border-left-color:{{ r.color_dif }};cursor:pointer;" onclick="window.location='/ruta/{{ r.id }}'">
+        <div class="rcard-cap">
+          <div style="position:relative;overflow:hidden;">
+            <img src="https://raw.githubusercontent.com/Senderismeentren/imatges/main/ruta-{{ '%03d'|format(r.id) }}/foto1.jpg"
+              alt="{{ r.nom }}" loading="lazy"
+              onerror="this.style.display='none'"
+              style="width:100%;height:130px;object-fit:cover;display:block;">
+            <div style="position:absolute;top:8px;left:8px;">
+              <div class="rcard-num" style="background:{{ r.color_dif }};box-shadow:0 2px 6px rgba(0,0,0,0.3);">{{ r.id }}</div>
+            </div>
+            <div style="position:absolute;bottom:8px;left:8px;">
+              <div class="badge-dif" style="background:rgba(0,0,0,0.55);border-color:transparent;backdrop-filter:blur(4px);">
+                <div class="dot" style="background:{{ r.color_dif }};"></div>
+                <span style="color:white;">{{ r.dificultat }}</span>
+              </div>
+            </div>
+          </div>
+          <div style="padding:8px 12px 4px;">
+            <div class="rcard-nom">{{ r.nom }}</div>
+          </div>
+        </div>
+        <div class="rcard-stats">
+          <div><div class="rst-l">Distància</div><div class="rst-v">{{ r.km }} km</div></div>
+          <div><div class="rst-l">Desnivell</div><div class="rst-v">{{ r.desn_txt }}</div></div>
+          <div><div class="rst-l">Temps</div><div class="rst-v">{{ r.temps }}</div></div>
+        </div>
+        <div class="rcard-tags">
+          {% if r.comarca_sortida %}<span class="etiqueta">{{ r.comarca_sortida }}</span>{% endif %}
+          {% if r.cims %}<span class="etiqueta etiqueta-cims">🏔 100 Cims</span>{% endif %}
+          {% if r.espai %}<span class="etiqueta etiqueta-espai">🌿 {{ r.espai }}</span>{% endif %}
+          <span class="etiqueta">🚉 {{ r.sortida }}</span>
+          {% if r.wiki %}<a href="{{ r.wiki }}" target="_blank" rel="noopener" onclick="event.stopPropagation()" class="etiqueta" style="background:#EAF3DE;color:#3B6D11;border-color:#C0DD97;text-decoration:none;">Wikiloc</a>{% endif %}
+        </div>
+
+      </div>
+      {% endfor %}
+    {% else %}
+      <div class="rutes-buit">
+        <div class="icon">🔍</div>
+        <p>No hi ha rutes amb aquests filtres.<br>
+        <a href="/rutes" style="color:#3498DB;font-weight:600;">Veure totes les rutes</a></p>
+      </div>
+    {% endif %}
+  </div>
+
+</div>
+
+<!-- PANEL FILTRES MÒBIL -->
+<div class="filtres-mob-panel" id="filtresMobPanel" onclick="tancarFiltresMob(event)">
+  <div class="filtres-mob-inner">
+    <h3>⚙️ Filtres</h3>
+
+    <div class="filtres-mob-grup">
+      <label>Dificultat</label>
+      <div class="filtres-mob-pills">
+        <a class="fpill {% if not filtres_actius.get('dificultat') %}actiu{% endif %}" href="/rutes?comarca={{ filtres_actius.get('comarca','') }}">Totes</a>
+        {% for d in filtres.dificultats %}
+        <a class="fpill {% if filtres_actius.get('dificultat') == d %}actiu{% endif %}"
+           href="/rutes?dificultat={{ d }}&comarca={{ filtres_actius.get('comarca','') }}">{{ d }}</a>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="filtres-mob-grup">
+      <label>Comarca</label>
+      <div class="filtres-mob-pills">
+        <a class="fpill {% if not filtres_actius.get('comarca') %}actiu{% endif %}" href="/rutes?dificultat={{ filtres_actius.get('dificultat','') }}">Totes</a>
+        {% for c in filtres.comarques %}
+        <a class="fpill {% if filtres_actius.get('comarca') == c %}actiu{% endif %}"
+           href="/rutes?comarca={{ c }}&dificultat={{ filtres_actius.get('dificultat','') }}">{{ c }}</a>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="filtres-mob-grup">
+      <label>Especials</label>
+      <div class="filtres-mob-pills">
+        <a class="fpill {% if filtres_actius.get('cims') %}actiu{% endif %}"
+           href="/rutes?cims=1">🏔 100 Cims</a>
+      </div>
+    </div>
+
+    {% if filtres_actius %}
+    <a class="btn btn-blanc" href="/rutes" style="width:100%;justify-content:center;margin-top:8px;">✕ Netejar filtres</a>
+    {% endif %}
   </div>
 </div>
+
 {% endblock %}
 
 {% block scripts_extra %}
 <script>
-function filtrarJS() {
-  const cerca = document.getElementById('cerca-text').value.toLowerCase();
-  const cards = document.querySelectorAll('.rcard');
-  let n = 0;
-  cards.forEach(c => {
-    const visible = !cerca || (c.dataset.nom||'').includes(cerca);
-    c.style.display = visible ? '' : 'none';
-    if (visible) n++;
-  });
-  document.getElementById('recompte-rutes').textContent = n + ' rutes';
-}
-function aplicarFiltres() {
-  const difs = [...document.querySelectorAll('input[name="dif"]:checked')].map(i => i.value);
-  const params = new URLSearchParams(window.location.search);
-  if (difs.length === 1) params.set('dificultat', difs[0]);
-  else params.delete('dificultat');
-  window.location = '/rutes?' + params.toString();
-}
-function treureFiltreActiu(clau) {
-  const params = new URLSearchParams(window.location.search);
-  params.delete(clau);
-  window.location = '/rutes?' + params.toString();
-}
-function ordenar(criteri) {
-  const grid = document.getElementById('rutes-grid');
-  const cards = [...grid.querySelectorAll('.rcard')];
-  cards.sort((a, b) => {
-    if (criteri === 'km') return parseFloat(a.dataset.km||0) - parseFloat(b.dataset.km||0);
-    if (criteri === 'desn') return parseFloat(a.dataset.desn||0) - parseFloat(b.dataset.desn||0);
-    if (criteri === 'nom') return (a.dataset.nom||'').localeCompare(b.dataset.nom||'');
-    return 0;
-  });
-  cards.forEach(c => grid.appendChild(c));
-}
 function obrirFiltresMob() {
-  document.getElementById('filtresMobOverlay').classList.add('obert');
+  document.getElementById('filtresMobPanel').classList.add('obert');
   document.body.style.overflow = 'hidden';
 }
 function tancarFiltresMob(e) {
-  if (e.target === document.getElementById('filtresMobOverlay')) {
-    document.getElementById('filtresMobOverlay').classList.remove('obert');
+  if (e.target === document.getElementById('filtresMobPanel')) {
+    document.getElementById('filtresMobPanel').classList.remove('obert');
     document.body.style.overflow = '';
   }
 }
