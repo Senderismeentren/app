@@ -576,21 +576,9 @@ def api_horaris(id_estacio):
             resp = requests.get(base, params=params, timeout=8)
             data = resp.json()
 
-            # Si no hi ha resultats, provar sense filtre d'hora (debug)
+            # Si no hi ha trens a partir d'ara, llista buida
             if not data.get("results"):
-                params_debug = {
-                    "where": f"stop_name='{nom_api}'",
-                    "order_by": "departure_time ASC",
-                    "limit": "5",
-                    "select": "departure_time,route_short_name,trip_headsign",
-                }
-                resp2 = requests.get(base, params=params_debug, timeout=8)
-                data2 = resp2.json()
-                if data2.get("results"):
-                    # Hi ha trens però no a partir d'ara - retornem els últims del dia
-                    params["where"] = f"stop_name='{nom_api}'"
-                    resp = requests.get(base, params=params, timeout=8)
-                    data = resp.json()
+                return jsonify({"horaris": [], "operador": "FGC"})
 
             horaris = []
             vists = set()
@@ -608,7 +596,7 @@ def api_horaris(id_estacio):
                         "retard": 0,
                         "ara": False
                     })
-            return jsonify({"horaris": horaris[:8], "operador": "FGC", "total": data.get("total_count", 0), "hora_filtre": hora_actual})
+            return jsonify({"horaris": horaris[:8], "operador": "FGC"})
 
         # ── RODALIES via eltrennofunca.cat ───────────────────────────
         rodalies_key = os.environ.get("RODALIES_API_KEY", "")
