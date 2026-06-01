@@ -177,15 +177,19 @@ ESTACIONS.forEach(est => {
   const c = est.color || '#EE7F00';
   const nR = est.rutes ? est.rutes.length : 0;
   // Logo del primer operador de l'estació
-  // Logo de l'OPERADOR (no la línia)
+  // Logo de l'OPERADOR als marcadors
   const opLower = (est.op || '').toLowerCase();
-  let logoOp = 'rodalies'; // per defecte
-  if (opLower.includes('fgc')) logoOp = 'FGC';
-  else if (opLower.includes('cremallera')) logoOp = 'Cremallera';
-  else if (opLower.includes('metro') || opLower.includes('tmb')) logoOp = 'TMB';
-  else if (opLower.includes('tram')) logoOp = 'Tram';
-  else if (opLower.includes('rodalies') || opLower.includes('renfe')) logoOp = 'rodalies';
-  const logoOpUrl = `https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/Logo-${logoOp}.svg`;
+  let logoOp = 'logo-rodalies';
+  if (opLower.includes('fgc'))                                   logoOp = 'logo-fgc';
+  else if (opLower.includes('cremallera'))                       logoOp = 'logo-cremalleranuria';
+  else if (opLower.includes('llacs') || opLower.includes('tren dels llacs')) logoOp = 'logo-trendelsllacs';
+  else if (opLower.includes('tmb') || opLower.includes('metro')) logoOp = 'logo-tmb';
+  else if (opLower.includes('tram'))                             logoOp = 'logo-tram';
+  else if (opLower.includes('sncf'))                             logoOp = 'logo-sncf';
+  else if (opLower.includes('adif') || opLower.includes('alta velocitat')) logoOp = 'logo-altavelocitat';
+  else if (opLower.includes('renfe'))                            logoOp = 'logo-renfe';
+  else if (opLower.includes('rodalies'))                         logoOp = 'logo-rodalies';
+  const logoOpUrl = \`${BASE}\${logoOp}.svg\`;
   const icon = L.divIcon({
     html: `<div style="position:relative;background:white;border-radius:5px;padding:2px 4px;box-shadow:0 2px 6px rgba(0,0,0,0.3);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;min-width:26px;height:20px;">
       <img src="${logoOpUrl}" style="height:14px;max-width:38px;object-fit:contain;display:block;"
@@ -290,23 +294,21 @@ Object.keys(capesActives).forEach(nom => {
 const BASE_GPX_LINIES = "https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/gpx-linies/";
 // Colors corporatius FGC i Rodalies
 const COLORS_LINIA = {
-  // FGC - línies Llobregat-Anoia (vermell)
-  'fgc-r5':  '#E2001A', 'fgc-r6':  '#E2001A',
-  'fgc-r50': '#E2001A', 'fgc-r60': '#E2001A',
-  'fgc-rl2': '#E2001A', 'fgc.rl2': '#E2001A',
-  // FGC - línies Vallès (verd)
-  'fgc-s1': '#008000', 'fgc-s2': '#008000',
-  'fgc-s3': '#008000', 'fgc-s4': '#008000',
-  'fgc-s8': '#008000', 'fgc-s9': '#008000',
-  // FGC - Metro del Baix Llobregat
-  'fgc-l6': '#0070C0', 'fgc-l7': '#0070C0',
-  'fgc-l8': '#0070C0', 'fgc-l12':'#0070C0',
+  // FGC - Llobregat-Anoia (vermell)
+  'fgc-r5':'#E2001A','fgc-r6':'#E2001A','fgc-r50':'#E2001A','fgc-r60':'#E2001A',
+  'fgc-rl2':'#E2001A','fgc.rl2':'#E2001A',
+  // FGC - Vallès (verd)
+  'fgc-s1':'#008000','fgc-s2':'#008000','fgc-s3':'#008000','fgc-s4':'#008000',
+  'fgc-s8':'#008000','fgc-s9':'#008000',
+  // FGC - Metro Baix Llobregat (blau)
+  'fgc-l6':'#0070C0','fgc-l7':'#0070C0','fgc-l8':'#0070C0','fgc-l12':'#0070C0',
   // FGC - cremalleres i funiculars
-  'fgc-fc': '#C8A96E',  // Funicular de Gelida
-  'fgc-mm': '#A05000',  // Cremallera Montserrat
-  'fgc-nu': '#8B6914',  // Cremallera Núria
+  'fgc-fc':'#C8A96E','fgc-mm':'#A05000','fgc-nu':'#8B6914',
   // Rodalies
-  'rodalies-r2nord': '#1B75BC',
+  'rodalies-r2nord':'#1B75BC',
+  // Tram (verd llima)
+  'tram-t1':'#78BE20','tram-t2':'#78BE20','tram-t3':'#78BE20',
+  'tram-t4':'#78BE20','tram-t5':'#78BE20','tram-t6':'#78BE20',
 };
 
 function colorLinia(nomFitxer) {
@@ -366,8 +368,30 @@ function toggleCapa(nom, el) {
 // ── LOGOS LÍNIES ──
 const BASE_LOGO = "https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/Logo-{linia}.svg";
 
+// Mapeig complet línia -> fitxer logo
+const LOGO_LINIA = {
+  // Rodalies
+  'r1':'logo-r1','rg1':'logo-rg1','r2':'logo-r2','r2nord':'logo-r2nord',
+  'r2sud':'logo-r2sud','r3':'logo-r3','r4':'logo-r4','r7':'logo-r7',
+  'r8':'logo-r8','r11':'logo-r11','r13':'logo-r13','r14':'logo-r14',
+  'r15':'logo-r15','r16':'logo-r16','r17':'logo-r17',
+  // FGC Vallès
+  's1':'logo-s1','s2':'logo-s2',
+  // FGC Llobregat-Anoia
+  'rl2':'logo-rl2','rl3':'logo-rl3','rl4':'logo-rl4',
+  // Tram
+  't1':'logo-t1','t2':'logo-t2','t3':'logo-t3',
+  't4':'logo-t4','t5':'logo-t5','t6':'logo-t6',
+  // Altres
+  'rt1':'logo-rt1','rt2':'logo-rt2',
+};
+
 function logoLinia(linia, colorOp) {
-  const url = BASE_LOGO.replace('{linia}', linia);
+  const clau = linia.toLowerCase().replace(/[^a-z0-9]/g,'');
+  const nomLogo = LOGO_LINIA[clau] || null;
+  const url = nomLogo
+    ? \`${BASE}\${nomLogo}.svg\`
+    : BASE_LOGO.replace('{linia}', linia.toLowerCase());
   return `<img src="${url}" alt="${linia}" style="height:22px;border-radius:4px;vertical-align:middle;"
     onerror="this.replaceWith(Object.assign(document.createElement('span'),{textContent:'${linia}',style:'background:${colorOp};color:white;border-radius:4px;padding:2px 7px;font-size:11px;font-weight:700;display:inline-block;'}))">`;
 }
