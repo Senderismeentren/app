@@ -558,12 +558,14 @@ def api_horaris(id_estacio):
     try:
         # ── FGC ──────────────────────────────────────────────────────
         if not id_estacio.isdigit():
-            hora_actual = ara.strftime("%H:%M:%S")
+            # Hora local catalana (UTC+2 estiu, UTC+1 hivern)
+            import zoneinfo
+            tz_cat = zoneinfo.ZoneInfo("Europe/Madrid")
+            ara_cat = datetime.now(tz_cat)
+            hora_actual = ara_cat.strftime("%H:%M:%S")
             base = "https://dadesobertes.fgc.cat/api/explore/v2.1/catalog/datasets/viajes-de-hoy/records"
-            # L'ID pot ser un codi (VL) o un nom d'estació
-            # Provem primer per stop_name (funciona segur)
             nom_estacio = id_estacio.replace("_", " ")
-            # Normalitzar accents per compatibilitat amb l'API FGC (usa noms sense accent)
+            # Normalitzar accents per compatibilitat amb l'API FGC
             _acc = {'à':'a','è':'e','é':'e','í':'i','ï':'i','ó':'o','ò':'o','ú':'u','ü':'u','ç':'c','À':'A','È':'E','É':'E','Í':'I','Ï':'I','Ó':'O','Ò':'O','Ú':'U','Ü':'U','·':''}
             nom_api = ''.join(_acc.get(c, c) for c in nom_estacio)
             # Primera crida: tots els trens d'avui a partir d'ara
@@ -576,9 +578,23 @@ def api_horaris(id_estacio):
             resp = requests.get(base, params=params, timeout=8)
             data = resp.json()
 
-            # Si no hi ha trens a partir d'ara, llista buida
+            # Si no hi ha trens a partir d'ara, provar sense filtre d'hora
+            # i retornar els primers del dia ordenats
             if not data.get("results"):
-                return jsonify({"horaris": [], "operador": "FGC"})
+                params2 = {
+                    "where": f"stop_name='{nom_api}'",
+                    "order_by": "departure_time ASC",
+                    "limit": "20",
+                    "select": "departure_time,route_short_name,trip_headsign",
+                }
+                resp = requests.get(base, params=params2, timeout=8)
+                data = resp.json()
+                # Filtrar manualment per hora actual
+                results_filtrats = [
+                    r for r in data.get("results", [])
+                    if r.get("departure_time","") >= hora_actual
+                ]
+                data["results"] = results_filtrats
 
             horaris = []
             vists = set()
