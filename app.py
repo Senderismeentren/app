@@ -559,9 +559,12 @@ def api_horaris(id_estacio):
             # L'ID pot ser un codi (VL) o un nom d'estació
             # Provem primer per stop_name (funciona segur)
             nom_estacio = id_estacio.replace("_", " ")
+            # Normalitzar accents per compatibilitat amb l'API FGC (usa noms sense accent)
+            _acc = {'à':'a','è':'e','é':'e','í':'i','ï':'i','ó':'o','ò':'o','ú':'u','ü':'u','ç':'c','À':'A','È':'E','É':'E','Í':'I','Ï':'I','Ó':'O','Ò':'O','Ú':'U','Ü':'U','·':''}
+            nom_api = ''.join(_acc.get(c, c) for c in nom_estacio)
             # Primera crida: tots els trens d'avui a partir d'ara
             params = {
-                "where": f"stop_name='{nom_estacio}' and departure_time>='{hora_actual}'",
+                "where": f"stop_name='{nom_api}' and departure_time>='{hora_actual}'",
                 "order_by": "departure_time ASC",
                 "limit": "20",
                 "select": "departure_time,route_short_name,trip_headsign",
@@ -572,7 +575,7 @@ def api_horaris(id_estacio):
             # Si no hi ha resultats, provar sense filtre d'hora (debug)
             if not data.get("results"):
                 params_debug = {
-                    "where": f"stop_name='{nom_estacio}'",
+                    "where": f"stop_name='{nom_api}'",
                     "order_by": "departure_time ASC",
                     "limit": "5",
                     "select": "departure_time,route_short_name,trip_headsign",
@@ -581,7 +584,7 @@ def api_horaris(id_estacio):
                 data2 = resp2.json()
                 if data2.get("results"):
                     # Hi ha trens però no a partir d'ara - retornem els últims del dia
-                    params["where"] = f"stop_name='{nom_estacio}'"
+                    params["where"] = f"stop_name='{nom_api}'"
                     resp = requests.get(base, params=params, timeout=8)
                     data = resp.json()
 
