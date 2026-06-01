@@ -67,7 +67,7 @@ body { overflow: hidden; }
 }
 .ruta-mini:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.08); transform: translateX(2px); }
 .ruta-mini-nom { font-size: 12px; font-weight: 700; color: #111; line-height: 1.35; margin-bottom: 5px; }
-.ruta-mini-dades { display: flex; gap: 8px; font-size: 11px; color: #888; }
+.ruta-mini-dades { display: flex; flex-wrap: wrap; gap: 6px; font-size: 11px; color: #666; align-items: center; }
 
 /* ── INFO RUTA AL MAPA ── */
 .mapa-info-ruta {
@@ -191,12 +191,12 @@ ESTACIONS.forEach(est => {
   else if (opLower.includes('rodalies'))                         logoOp = 'logo-rodalies';
   const logoOpUrl = `https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/${logoOp}.svg`;
   const icon = L.divIcon({
-    html: `<div style="position:relative;background:white;border-radius:5px;padding:2px 4px;box-shadow:0 2px 6px rgba(0,0,0,0.3);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;min-width:26px;height:20px;">
-      <img src="${logoOpUrl}" style="height:14px;max-width:38px;object-fit:contain;display:block;"
-        onerror="this.style.display='none';this.insertAdjacentHTML('afterend','<div style=\'width:11px;height:11px;border-radius:50%;background:${c};border:2px solid white;\'></div>')">
-      ${nR > 0 ? `<div style="position:absolute;top:-6px;right:-6px;background:#1a1a2e;color:white;border-radius:8px;padding:1px 4px;font-size:8px;font-weight:700;border:1px solid rgba(255,255,255,0.2);">${nR}</div>` : ''}
+    html: `<div style="position:relative;cursor:pointer;">
+      <img src="${logoOpUrl}" style="height:20px;max-width:44px;object-fit:contain;display:block;filter:drop-shadow(0 1px 3px rgba(0,0,0,0.4));"
+        onerror="this.style.display='none';this.insertAdjacentHTML('afterend','<div style=\'width:12px;height:12px;border-radius:50%;background:${c};border:2.5px solid white;box-shadow:0 2px 5px rgba(0,0,0,0.35)\'></div>')">
+      ${nR > 0 ? `<div style="position:absolute;top:-5px;right:-5px;background:#1a1a2e;color:white;border-radius:8px;padding:1px 4px;font-size:8px;font-weight:700;border:1px solid rgba(255,255,255,0.3);">${nR}</div>` : ''}
     </div>`,
-    className: '', iconSize: [46,24], iconAnchor: [23,12]
+    className: '', iconSize: [44,22], iconAnchor: [22,11]
   });
   L.marker([est.lat, est.lng], {icon})
     .addTo(capes.estacions)
@@ -400,11 +400,24 @@ function logoLinia(linia, colorOp) {
 function obrirPanellEstacio(est) {
   const prep = /^[AEIOUaeiouàèéíïóòúü]/i.test(est.nom) ? "d'" : "de ";
   document.getElementById('panell-nom').textContent = '🚉 Estació ' + prep + est.nom;
-  document.getElementById('panell-op').textContent = est.op || '';
-  document.getElementById('panell-linies').innerHTML = (est.linies || [])
-    .map(l => logoLinia(l, est.color || '#EE7F00')).join('');
+  // Logo operador + línies junts, sense text redundant
+  const logoOpPanell = (() => {
+    const op = (est.op||'').toLowerCase();
+    if (op.includes('fgc')) return 'logo-fgc';
+    if (op.includes('cremallera')) return 'logo-cremalleranuria';
+    if (op.includes('llacs')) return 'logo-trendelsllacs';
+    if (op.includes('tmb')||op.includes('metro')) return 'logo-tmb';
+    if (op.includes('tram')) return 'logo-tram';
+    if (op.includes('sncf')) return 'logo-sncf';
+    if (op.includes('renfe')) return 'logo-renfe';
+    return 'logo-rodalies';
+  })();
+  const BASE_R = 'https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/';
+  document.getElementById('panell-op').innerHTML = `<img src="${BASE_R}${logoOpPanell}.svg" style="height:18px;object-fit:contain;vertical-align:middle;margin-right:6px;"
+    onerror="this.style.display='none'"> ${(est.linies||[]).map(l => logoLinia(l, est.color||'#EE7F00')).join(' ')}`;
+  document.getElementById('panell-linies').innerHTML = '';
   const n = est.rutes ? est.rutes.length : 0;
-  document.getElementById('panell-subtitol').innerHTML = `<span style="background:${est.color||'#EE7F00'};color:white;border-radius:4px;padding:1px 6px;font-size:10px;font-weight:700;margin-right:5px;">${est.op||''}</span> ${n} ruta${n===1?'':'s'}`;
+  document.getElementById('panell-subtitol').textContent = `${n} ruta${n===1?'':'s'}`;
 
   const rutesHTML = (est.rutes || []).map(r => {
     const ruta = RUTES.find(x => x.id === r.id);
@@ -413,7 +426,7 @@ function obrirPanellEstacio(est) {
       <div style="display:flex;align-items:flex-start;gap:6px;">
         <div style="flex:1;">
           <div class="ruta-mini-nom">${r.nom}</div>
-          ${ruta ? `<div class="ruta-mini-dades"><span>📏 ${ruta.km} km</span><span>⬆ ${ruta.desn_txt}</span><span>⏱ ${ruta.temps}</span></div>` : ''}
+          ${ruta ? `<div class="ruta-mini-dades" style="display:flex;flex-wrap:wrap;gap:6px;font-size:11px;color:#666;margin-top:4px;"><span>📏 ${ruta.km} km</span><span>⬆ ${ruta.desn_txt}</span><span>⏱ ${ruta.temps}</span></div>` : ''}
         </div>
         <div style="display:flex;gap:4px;flex-shrink:0;margin-top:2px;">
           <button class="btn-track" onclick="toggleTrack(${r.id},this)"
