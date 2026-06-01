@@ -568,33 +568,21 @@ def api_horaris(id_estacio):
             # Normalitzar accents per compatibilitat amb l'API FGC
             _acc = {'à':'a','è':'e','é':'e','í':'i','ï':'i','ó':'o','ò':'o','ú':'u','ü':'u','ç':'c','À':'A','È':'E','É':'E','Í':'I','Ï':'I','Ó':'O','Ò':'O','Ú':'U','Ü':'U','·':''}
             nom_api = ''.join(_acc.get(c, c) for c in nom_estacio)
-            # Primera crida: tots els trens d'avui a partir d'ara
+            # Carregar tots els trens d'avui i filtrar per hora en Python
             params = {
-                "where": f"stop_name='{nom_api}' and departure_time>='{hora_actual}'",
+                "where": f"stop_name='{nom_api}'",
                 "order_by": "departure_time ASC",
-                "limit": "20",
+                "limit": "100",
                 "select": "departure_time,route_short_name,trip_headsign",
             }
             resp = requests.get(base, params=params, timeout=8)
             data = resp.json()
-
-            # Si no hi ha trens a partir d'ara, provar sense filtre d'hora
-            # i retornar els primers del dia ordenats
-            if not data.get("results"):
-                params2 = {
-                    "where": f"stop_name='{nom_api}'",
-                    "order_by": "departure_time ASC",
-                    "limit": "20",
-                    "select": "departure_time,route_short_name,trip_headsign",
-                }
-                resp = requests.get(base, params=params2, timeout=8)
-                data = resp.json()
-                # Filtrar manualment per hora actual
-                results_filtrats = [
-                    r for r in data.get("results", [])
-                    if r.get("departure_time","") >= hora_actual
-                ]
-                data["results"] = results_filtrats
+            # Filtrar per hora actual en Python (evita problemes de format a l'API)
+            results_filtrats = [
+                r for r in data.get("results", [])
+                if r.get("departure_time", "") >= hora_actual
+            ]
+            data["results"] = results_filtrats
 
             horaris = []
             vists = set()
