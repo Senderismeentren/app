@@ -336,7 +336,9 @@ const COLORS_LINIA = {
   // FGC cremalleres
   'fgc-fc':'#C8A96E','fgc-mm':'#A05000','fgc-nu':'#6B4226',
   // Rodalies colors oficials
-  'rodalies-r2nord':'#1B75BC',
+  'rodalies-r1':'#00AEEF',
+  'rodalies-r2nord':'#00A651',
+  'rodalies-r3':'#ED1C24',
   // Tram
   'tram-t1':'#78BE20','tram-t2':'#78BE20','tram-t3':'#78BE20',
   'tram-t4':'#78BE20','tram-t5':'#78BE20','tram-t6':'#78BE20',
@@ -355,9 +357,9 @@ function colorLinia(nomFitxer) {
   if (clau.startsWith('fgc-s')) return '#008000';
   if (clau.startsWith('fgc-l')) return '#0070C0';
   if (clau.startsWith('fgc'))   return '#97D700';
-  if (clau.startsWith('rodalies-r1')) return '#EE7F00';
-  if (clau.startsWith('rodalies-r2')) return '#1B75BC';
-  if (clau.startsWith('rodalies-r3')) return '#4DAF4A';
+  if (clau.startsWith('rodalies-r1')) return '#00AEEF';
+  if (clau.startsWith('rodalies-r2')) return '#00A651';
+  if (clau.startsWith('rodalies-r3')) return '#ED1C24';
   if (clau.startsWith('rodalies-r4')) return '#F15A24';
   if (clau.startsWith('rodalies'))    return '#EE7F00';
   if (clau === 'tmb-l1') return '#E30613';
@@ -408,7 +410,7 @@ const capesOperador = {};
 const operadorsActius = {};
 
 const LINIES_PER_OP = {
-  'rodalies':   ['rodalies-r2nord'],
+  'rodalies':   ['rodalies-r1','rodalies-r2nord'],
   'fgc':        ['fgc-fc','fgc-l12','fgc-l6','fgc-l7','fgc-l8','fgc-mm','fgc-nu',
                  'fgc-r5','fgc-r50','fgc-r6','fgc-r60','fgc-rl2',
                  'fgc-s1','fgc-s2','fgc-s3','fgc-s4','fgc-s8','fgc-s9'],
