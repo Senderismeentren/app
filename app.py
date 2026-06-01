@@ -606,30 +606,31 @@ def api_horaris(id_estacio):
                     })
             return jsonify({"horaris": horaris[:8], "operador": "FGC", "total": data.get("total_count", 0), "hora_filtre": hora_actual})
 
-        # ── RODALIES ─────────────────────────────────────────────────
-        # IDs Rodalies són numèrics
-        url = (
-            f"https://rodalies.gencat.cat/es/horaris/salida.json"
-            f"?estacioOrigen={id_estacio}"
-            f"&hora={ara.strftime('%H')}"
-            f"&minuts={ara.strftime('%M')}"
-        )
-        resp = requests.get(url, timeout=5)
+        # ── RODALIES via eltrennofunca.cat ───────────────────────────
+        rodalies_key = os.environ.get("RODALIES_API_KEY", "")
+        url = f"https://eltrennofunca.cat/api/horaris/station/{id_estacio}"
+        headers_etf = {"X-API-Key": rodalies_key} if rodalies_key else {}
+        resp = requests.get(url, headers=headers_etf, timeout=6)
         data = resp.json()
         horaris = []
-        for t in data.get("trens", [])[:6]:
-            hora = t.get("hora", "")
-            linia = t.get("linia", "")
-            dest = t.get("destinacio", "")
-            retard = int(t.get("retard", 0))
-            horaris.append({
-                "hora": hora,
-                "linia": linia,
-                "destinacio": dest,
-                "retard": retard,
-                "ara": False
-            })
-        return jsonify({"horaris": horaris, "operador": "Rodalies"})
+        vists = set()
+        for entry in data.get("entries", []):
+            hora = entry.get("theoreticalDeparture", "")[:5]
+            hora_est = entry.get("estimatedDeparture", "")[:5]
+            linia = entry.get("lineId", "")
+            dest = entry.get("lineName", "")
+            retard = int(entry.get("currentDelay", 0) or 0)
+            clau = f"{hora}_{linia}"
+            if hora and linia and clau not in vists:
+                vists.add(clau)
+                horaris.append({
+                    "hora": hora_est or hora,
+                    "linia": linia,
+                    "destinacio": dest,
+                    "retard": retard,
+                    "ara": False
+                })
+        return jsonify({"horaris": horaris[:8], "operador": "Rodalies"})
 
     except Exception as e:
         return jsonify({"horaris": [], "error": str(e)})
