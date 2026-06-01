@@ -1,600 +1,660 @@
-{% extends "base.html" %}
+"""
+Senderisme en Tren — Flask app
+"""
+import os
+import json
+import math
+import requests
+import gpxpy
+import pandas as pd
+import gspread
+from flask import Flask, render_template, jsonify, request, abort
+from google.oauth2.service_account import Credentials
+from concurrent.futures import ThreadPoolExecutor
+from functools import lru_cache
+import time
 
-{% block titol %}{{ ruta.codi }} · {{ ruta.nom }}{% endblock %}
-{% block descripcio %}{{ ruta.descripcio[:160] }}{% endblock %}
+app = Flask(__name__)
 
-{% block estils_extra %}
-<style>
-/* ── NAV FITXA ──────────────────────────────────────────────────── */
-.fitxa-nav {
-  position: fixed; top: var(--nav-h); left: 0; right: 0; z-index: 200;
-  background: rgba(255,255,255,0.97); backdrop-filter: blur(8px);
-  height: 46px; display: flex; align-items: center; padding: 0 16px; gap: 12px;
-  border-bottom: 1px solid #eee; box-shadow: 0 1px 8px rgba(0,0,0,0.06);
-}
-.fitxa-nav-back {
-  color: #555; font-size: 13px; font-weight: 600; display: flex;
-  align-items: center; gap: 5px; text-decoration: none; flex-shrink: 0;
-}
-.fitxa-nav-back:hover { color: var(--blau); }
-.fitxa-nav-nom {
-  flex: 1; font-size: 13px; font-weight: 600; color: #111;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-.fitxa-nav-codi {
-  background: {{ ruta.color_dif }}; color: white;
-  border-radius: 6px; padding: 3px 8px; font-size: 11px; font-weight: 700; flex-shrink: 0;
-}
+# ── CONFIGURACIÓ ────────────────────────────────────────────────────
+SHEET_ID        = os.environ.get("SHEET_ID", "")
+GOOGLE_CREDS    = os.environ.get("GOOGLE_CREDS", "")   # JSON de credencials
+BASE_FOTO_URL   = "https://raw.githubusercontent.com/Senderismeentren/imatges/main/ruta-{id:03d}/foto{n}.jpg"
+BASE_GPX_URL    = "https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/gpx/ruta-{id:03d}.gpx"
+BASE_LOGO_URL   = "https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/Logo-{linia}.svg"
+MAX_FOTOS       = 9
+CACHE_TTL       = 1800   # 30 min
 
-/* ── HERO ───────────────────────────────────────────────────────── */
-.fitxa-hero { position: relative; height: 300px; overflow: hidden; margin-top: 46px; }
-.fitxa-hero-img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.fitxa-hero-overlay { position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.05) 55%); }
-.fitxa-hero-content { position: absolute; bottom: 0; left: 0; right: 0; padding: 20px 20px 18px; }
-.fitxa-hero-badges { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
-.fitxa-badge {
-  display: inline-flex; align-items: center; gap: 5px;
-  border-radius: 20px; padding: 3px 10px; font-size: 11px; font-weight: 700;
-  backdrop-filter: blur(4px);
-}
-.fitxa-badge-dif { background: {{ ruta.color_dif }}; color: white; }
-.fitxa-badge-cims { background: rgba(225,245,238,0.92); color: #0F6E56; }
-.fitxa-badge-espai { background: rgba(255,255,255,0.18); color: white; border: 1px solid rgba(255,255,255,0.3); }
-.fitxa-nom { color: white; font-size: clamp(18px,4vw,26px); font-weight: 800; line-height: 1.25; text-shadow: 0 1px 8px rgba(0,0,0,0.5); }
-
-/* ── BARRA DADES ────────────────────────────────────────────────── */
-.fitxa-dades-bar {
-  background: white; border-bottom: 1px solid #eee;
-  display: flex; overflow-x: auto; scrollbar-width: none;
-}
-.fitxa-dades-bar::-webkit-scrollbar { display: none; }
-.fitxa-dada {
-  padding: 11px 16px 10px; flex-shrink: 0;
-  border-right: 1px solid #f0f0f0;
-}
-.fitxa-dada:last-child { border-right: none; }
-.fitxa-dada-l { font-size: 10px; color: #aaa; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700; }
-.fitxa-dada-v { font-size: 15px; font-weight: 700; color: #111; margin-top: 2px; white-space: nowrap; }
-
-/* ── LAYOUT DOS COLUMNES ────────────────────────────────────────── */
-.fitxa-body {
-  max-width: 1100px; margin: 0 auto;
-  padding: 16px; display: grid;
-  grid-template-columns: 1fr 380px; gap: 16px;
-}
-.fitxa-col-dreta { display: flex; flex-direction: column; gap: 14px; }
-
-/* ── BLOCS ──────────────────────────────────────────────────────── */
-.bloc {
-  background: white; border-radius: var(--radius);
-  border: 1px solid #eee; overflow: hidden; margin-bottom: 14px;
-}
-.bloc-cap {
-  padding: 13px 16px 0; display: flex; align-items: center; gap: 8px;
-}
-.bloc-icon { font-size: 15px; }
-.bloc-titol { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #999; }
-.bloc-cos { padding: 10px 16px 16px; }
-
-/* ── DESCRIPCIÓ ─────────────────────────────────────────────────── */
-.fitxa-desc { font-size: 14px; color: #333; line-height: 1.78; }
-
-/* ── ADVERTIMENT ────────────────────────────────────────────────── */
-.fitxa-adv {
-  display: flex; gap: 10px; align-items: flex-start;
-  padding: 12px 16px; background: #FFF8E1;
-  border-top: 3px solid #F59E0B;
-}
-.fitxa-adv-icon { font-size: 20px; flex-shrink: 0; margin-top: 1px; }
-.fitxa-adv-titol { font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; color: #92400E; font-weight: 700; }
-.fitxa-adv-text { font-size: 13px; color: #78350F; line-height: 1.6; margin-top: 3px; }
-
-/* ── GRAELLA DADES TÈCNIQUES ────────────────────────────────────── */
-.dades-tec { display: grid; grid-template-columns: 1fr 1fr; gap: 0; }
-.dt-item {
-  display: flex; gap: 10px; align-items: flex-start;
-  padding: 9px 0; border-bottom: 1px solid #f5f5f5;
-}
-.dt-item:nth-last-child(-n+2) { border-bottom: none; }
-.dt-icon { font-size: 16px; color: #ccc; flex-shrink: 0; width: 22px; margin-top: 1px; }
-.dt-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; color: #bbb; font-weight: 700; }
-.dt-val { font-size: 13px; font-weight: 600; color: #222; margin-top: 2px; }
-
-/* ── ESTACIONS ──────────────────────────────────────────────────── */
-.est-bloc { padding: 12px 16px; border-bottom: 1px solid #f5f5f5; }
-.est-bloc:last-child { border-bottom: none; }
-.est-header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
-.est-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
-.est-nom { font-size: 14px; font-weight: 700; color: #111; }
-.est-op { font-size: 11px; color: #aaa; margin-left: auto; }
-.est-linies { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 10px; }
-.linia-badge {
-  border-radius: 4px; padding: 2px 7px; font-size: 11px; font-weight: 700;
-  color: white; background: #EE7F00;
+# ── COLORS DIFICULTAT ───────────────────────────────────────────────
+COLORS_DIF = {
+    "molt fàcil":  "#2ECC71", "molt facil":  "#2ECC71",
+    "fàcil":       "#3498DB", "facil":       "#3498DB",
+    "moderada":    "#E67E22",
+    "exigent":     "#E74C3C",
+    "molt exigent":"#111111",
 }
 
-/* ── HORARIS ────────────────────────────────────────────────────── */
-.horaris-titol { font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; color: #aaa; font-weight: 700; margin-bottom: 6px; }
-.horari-row { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid #f8f8f8; }
-.horari-row:last-child { border-bottom: none; }
-.horari-hora { font-size: 19px; font-weight: 800; color: #111; width: 52px; flex-shrink: 0; font-variant-numeric: tabular-nums; }
-.horari-hora.ara { color: #16A34A; }
-.horari-linia-badge { color: white; border-radius: 4px; padding: 2px 6px; font-size: 11px; font-weight: 700; flex-shrink: 0; }
-.horari-dest { flex: 1; font-size: 12px; color: #555; }
-.horari-retard { font-size: 11px; font-weight: 600; padding: 2px 7px; border-radius: 20px; flex-shrink: 0; }
-.retard-ok   { background: #DCFCE7; color: #16A34A; }
-.retard-warn { background: #FEF3C7; color: #D97706; }
-.retard-late { background: #FEE2E2; color: #DC2626; }
-.btn-actualitza {
-  display: block; width: 100%; margin-top: 10px; padding: 8px;
-  background: #f5f6fa; border: 1px solid #e0e0e0; border-radius: 8px;
-  font-size: 12px; font-weight: 600; color: #555; cursor: pointer; text-align: center;
-  transition: all 0.15s;
-}
-.btn-actualitza:hover { background: #e8eaf0; }
-.horaris-peu { font-size: 10px; color: #bbb; text-align: center; margin-top: 6px; }
-.horaris-loading { text-align: center; padding: 16px; color: #aaa; font-size: 13px; }
+def color_dif(dif):
+    if not dif: return "#888888"
+    return COLORS_DIF.get(str(dif).strip().lower(), "#888888")
 
-/* ── MAPA ───────────────────────────────────────────────────────── */
-#fitxa-mapa { height: 280px; width: 100%; border-radius: 0 0 var(--radius) var(--radius); }
-
-/* ── PERFIL ─────────────────────────────────────────────────────── */
-.perfil-wrap { padding: 10px 16px 16px; }
-#fitxa-perfil { height: 160px; }
-
-/* ── SENDERS ────────────────────────────────────────────────────── */
-.senders-llista { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 16px 14px; }
-.sender-pill {
-  display: inline-flex; align-items: center; gap: 5px;
-  background: #f0f0f0; border-radius: 6px; padding: 4px 10px;
-  font-size: 12px; font-weight: 600; color: #444; text-decoration: none;
-  transition: background 0.15s;
-}
-.sender-pill:hover { background: #e0e0e0; }
-
-/* ── ELEMENTS D'INTERÈS ─────────────────────────────────────────── */
-.elements-llista { padding: 8px 16px 14px; }
-.el-item { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid #f5f5f5; }
-.el-item:last-child { border-bottom: none; }
-.el-icon { font-size: 18px; width: 28px; text-align: center; flex-shrink: 0; }
-.el-nom { font-size: 13px; font-weight: 600; color: #222; }
-.el-cat { font-size: 11px; color: #aaa; margin-top: 1px; }
-
-/* ── FOTOS ──────────────────────────────────────────────────────── */
-.fotos-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; padding: 0 16px 16px; }
-@media (max-width: 768px) {
-  .fitxa-col-esq { display: flex; flex-direction: column; }
-  .bloc-fotos-mob { order: 10; }
-}
-.foto-thumb { aspect-ratio: 1; border-radius: 6px; overflow: hidden; cursor: pointer; }
-.foto-thumb img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.25s; }
-.foto-thumb:hover img { transform: scale(1.07); }
-
-/* ── LIGHTBOX ───────────────────────────────────────────────────── */
-.lightbox { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.92); z-index: 1000; justify-content: center; align-items: center; }
-.lightbox.obert { display: flex; }
-.lightbox img { max-width: 90vw; max-height: 90vh; border-radius: 8px; object-fit: contain; }
-.lightbox-close { position: absolute; top: 20px; right: 20px; color: white; font-size: 30px; cursor: pointer; background: none; border: none; }
-.lightbox-prev, .lightbox-next { position: absolute; top: 50%; transform: translateY(-50%); color: white; font-size: 36px; cursor: pointer; background: none; border: none; padding: 10px; }
-.lightbox-prev { left: 16px; }
-.lightbox-next { right: 16px; }
-
-/* ── BOTONS FLOTANTS ────────────────────────────────────────────── */
-.btns-flotants { position: fixed; bottom: 24px; right: 16px; display: flex; flex-direction: column; gap: 8px; z-index: 500; }
-.btn-flotant {
-  display: flex; align-items: center; gap: 8px;
-  padding: 10px 16px; border-radius: 50px; border: none;
-  font-size: 13px; font-weight: 700; cursor: pointer;
-  box-shadow: 0 3px 12px rgba(0,0,0,0.2); transition: all 0.15s; text-decoration: none;
-}
-.btn-flotant:hover { transform: translateY(-1px); box-shadow: 0 5px 16px rgba(0,0,0,0.25); }
-.btn-fl-wiki { background: #2d9e6b; color: white; }
-.btn-fl-mapa { background: var(--blau); color: white; }
-
-/* ── RESPONSIVE ──────────────────────────────────────────────────── */
-@media (max-width: 768px) {
-  .fitxa-nav { top: 0; }
-  .fitxa-hero { margin-top: 46px; height: 240px; }
-  .fitxa-body { grid-template-columns: 1fr; padding: 12px 12px 80px; }
-  .fitxa-col-dreta { gap: 12px; }
-  .fotos-grid { grid-template-columns: repeat(3, 1fr); }
-  .btns-flotants { bottom: calc(var(--mob-nav-h) + 12px); }
-}
-</style>
-{% endblock %}
-
-{% block contingut %}
-
-<!-- NAV FITXA -->
-<div class="fitxa-nav">
-  <a class="fitxa-nav-back" href="/rutes">← Rutes</a>
-  <div class="fitxa-nav-nom">{{ ruta.nom }}</div>
-  <div class="fitxa-nav-codi">{{ ruta.codi }}</div>
-</div>
-
-<!-- HERO -->
-<div class="fitxa-hero">
-  <img class="fitxa-hero-img"
-    src="https://raw.githubusercontent.com/Senderismeentren/imatges/main/ruta-{{ '%03d'|format(ruta.id) }}/foto1.jpg"
-    onerror="this.src='https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=1200&q=80'"
-    alt="{{ ruta.nom }}">
-  <div class="fitxa-hero-overlay"></div>
-  <div class="fitxa-hero-content">
-    <div class="fitxa-hero-badges">
-      <span class="fitxa-badge fitxa-badge-dif">● {{ ruta.dificultat }}</span>
-      {% if ruta.cims %}<span class="fitxa-badge fitxa-badge-cims">🏔 100 Cims</span>{% endif %}
-      {% if ruta.espai %}<span class="fitxa-badge fitxa-badge-espai">🌿 {{ ruta.espai }}</span>{% endif %}
-    </div>
-    <h1 class="fitxa-nom">{{ ruta.nom }}</h1>
-  </div>
-</div>
-
-<!-- BARRA DADES -->
-<div class="fitxa-dades-bar">
-  <div class="fitxa-dada"><div class="fitxa-dada-l">Distància</div><div class="fitxa-dada-v">📏 {{ ruta.km }} km</div></div>
-  <div class="fitxa-dada"><div class="fitxa-dada-l">Desnivell</div><div class="fitxa-dada-v">⛰ {{ ruta.desn_txt }}</div></div>
-  <div class="fitxa-dada"><div class="fitxa-dada-l">Temps</div><div class="fitxa-dada-v">⏱ {{ ruta.temps }}</div></div>
-  <div class="fitxa-dada"><div class="fitxa-dada-l">Tipus</div><div class="fitxa-dada-v">↔ {{ ruta.tipus }}</div></div>
-  {% if ruta.punt_alt %}<div class="fitxa-dada"><div class="fitxa-dada-l">Punt més alt</div><div class="fitxa-dada-v">⛰ {{ ruta.punt_alt }}{% if ruta.alcada_alt %} ({{ ruta.alcada_alt }} m){% endif %}</div></div>{% endif %}
-  {% if ruta.epoca %}<div class="fitxa-dada"><div class="fitxa-dada-l">Millor època</div><div class="fitxa-dada-v">📅 {{ ruta.epoca }}</div></div>{% endif %}
-</div>
-
-<!-- COS -->
-<div class="fitxa-body">
-
-  <!-- COLUMNA ESQUERRA -->
-  <div class="fitxa-col-esq">
-
-    <!-- DESCRIPCIÓ -->
-    {% if ruta.descripcio %}
-    <div class="bloc">
-      <div class="bloc-cap"><span class="bloc-icon">📖</span><span class="bloc-titol">Descripció</span></div>
-      <div class="bloc-cos"><p class="fitxa-desc">{{ ruta.descripcio }}</p></div>
-    </div>
-    {% endif %}
-
-    <!-- DADES TÈCNIQUES -->
-    <div class="bloc">
-      <div class="bloc-cap"><span class="bloc-icon">📊</span><span class="bloc-titol">Dades tècniques</span></div>
-      <div class="bloc-cos" style="padding-top:6px;">
-        <div class="dades-tec">
-          <div class="dt-item"><div class="dt-icon">🚉</div><div><div class="dt-label">Sortida</div><div class="dt-val">{{ ruta.sortida }}</div></div></div>
-          <div class="dt-item"><div class="dt-icon">🏁</div><div><div class="dt-label">Arribada</div><div class="dt-val">{{ ruta.arribada }}</div></div></div>
-          {% if ruta.comarca_sortida %}<div class="dt-item"><div class="dt-icon">🗺</div><div><div class="dt-label">Comarca sortida</div><div class="dt-val">{{ ruta.comarca_sortida }}</div></div></div>{% endif %}
-          {% if ruta.comarca_arribada %}<div class="dt-item"><div class="dt-icon">🗺</div><div><div class="dt-label">Comarca arribada</div><div class="dt-val">{{ ruta.comarca_arribada }}</div></div></div>{% endif %}
-          {% if ruta.cims and ruta.nom_cim %}<div class="dt-item"><div class="dt-icon">⛰️</div><div><div class="dt-label">100 Cims</div><div class="dt-val">{{ ruta.nom_cim }}</div></div></div>{% endif %}
-          {% if ruta.millors %}<div class="dt-item"><div class="dt-icon">⭐</div><div><div class="dt-label">Col·lecció</div><div class="dt-val">{{ ruta.millors }}</div></div></div>{% endif %}
-        </div>
-      </div>
-    </div>
-
-    <!-- SENDERS -->
-    {% if ruta.senders %}
-    <div class="bloc">
-      <div class="bloc-cap"><span class="bloc-icon">🥾</span><span class="bloc-titol">Senders</span></div>
-      <div class="senders-llista">
-        {% for s in ruta.senders %}
-        <a href="https://senders.feec.cat/" target="_blank" rel="noopener" class="sender-pill">{{ s }}</a>
-        {% endfor %}
-      </div>
-    </div>
-    {% endif %}
-
-    <!-- ELEMENTS D'INTERÈS -->
-    {% if ruta.punts_interes %}
-    <div class="bloc">
-      <div class="bloc-cap"><span class="bloc-icon">📍</span><span class="bloc-titol">Punts d'interès</span></div>
-      <div class="elements-llista">
-        {% for nom, cat in ruta.punts_interes %}
-        <div class="el-item">
-          <div class="el-icon">
-            {% if 'castell' in cat.lower() or 'torre' in cat.lower() %}🏰
-            {% elif 'ibèr' in cat.lower() or 'arqueol' in cat.lower() %}⚔️
-            {% elif 'dolmen' in cat.lower() or 'prehist' in cat.lower() %}🗿
-            {% elif 'monestir' in cat.lower() or 'ermita' in cat.lower() %}⛪
-            {% elif 'riu' in cat.lower() or 'font' in cat.lower() %}🌊
-            {% elif 'cim' in cat.lower() or 'turó' in cat.lower() %}🏔️
-            {% else %}📍{% endif %}
-          </div>
-          <div>
-            <div class="el-nom">{{ nom }}</div>
-            {% if cat %}<div class="el-cat">{{ cat }}</div>{% endif %}
-          </div>
-        </div>
-        {% endfor %}
-      </div>
-    </div>
-    {% endif %}
-
-    <!-- ADVERTIMENT SEGURETAT -->
-    {% if ruta.advertiments %}
-    <div class="bloc">
-      <div class="fitxa-adv">
-        <div class="fitxa-adv-icon">⚠️</div>
-        <div>
-          <div class="fitxa-adv-titol">Seguretat</div>
-          <div class="fitxa-adv-text">{{ ruta.advertiments }}</div>
-        </div>
-      </div>
-    </div>
-    {% endif %}
-
-    <!-- FOTOS -->
-    {% if fotos %}
-    <div class="bloc bloc-fotos-mob">
-      <div class="bloc-cap"><span class="bloc-icon">📷</span><span class="bloc-titol">Fotos</span></div>
-      <div class="fotos-grid" style="margin-top:10px;">
-        {% for foto_url in fotos %}
-        <div class="foto-thumb" onclick="obrirLightbox({{ loop.index0 }})">
-          <img src="{{ foto_url }}" alt="Foto {{ loop.index }}" loading="lazy"
-               onerror="this.parentElement.style.display='none'">
-        </div>
-        {% endfor %}
-      </div>
-    </div>
-    {% endif %}
-
-  </div><!-- fi col-esq -->
-
-  <!-- COLUMNA DRETA -->
-  <div class="fitxa-col-dreta">
-
-    <!-- MAPA GPX -->
-    <div class="bloc" style="overflow:hidden;">
-      <div class="bloc-cap" style="padding-bottom:10px;"><span class="bloc-icon">🗺️</span><span class="bloc-titol">Mapa del recorregut</span></div>
-      <div id="fitxa-mapa"></div>
-    </div>
-
-    <!-- PERFIL D'ALTITUD -->
-    <div class="bloc">
-      <div class="bloc-cap"><span class="bloc-icon">📈</span><span class="bloc-titol">Perfil d'altitud</span></div>
-      <div class="perfil-wrap"><canvas id="fitxa-perfil"></canvas></div>
-    </div>
-
-    <!-- HORARIS EN TEMPS REAL -->
-    <div class="bloc">
-      <div class="bloc-cap"><span class="bloc-icon">🚆</span><span class="bloc-titol">Pròxims trens</span></div>
-      <div class="bloc-cos" style="padding-top:8px;">
-        <div id="horaris-container">
-          <div class="horaris-loading">⏳ Carregant horaris...</div>
-        </div>
-      </div>
-    </div>
-
-  </div><!-- fi col-dreta -->
-
-</div><!-- fi fitxa-body -->
-
-<!-- LIGHTBOX -->
-<div class="lightbox" id="lightbox" onclick="tancarLightbox(event)">
-  <button class="lightbox-close" onclick="tancarLightbox()">✕</button>
-  <button class="lightbox-prev" onclick="canviarFoto(-1)">‹</button>
-  <img id="lightbox-img" src="" alt="">
-  <button class="lightbox-next" onclick="canviarFoto(1)">›</button>
-</div>
-
-<!-- BOTONS FLOTANTS -->
-<div class="btns-flotants">
-  {% if ruta.wiki %}
-  <a class="btn-flotant btn-fl-wiki" href="{{ ruta.wiki }}" target="_blank" rel="noopener">🔗 Wikiloc</a>
-  {% endif %}
-</div>
-
-{% endblock %}
-
-{% block scripts_extra %}
-<script>
-// ── DADES GPX ──
-const GPX_PUNTS = {{ gpx_punts|safe }};
-const PERFIL_DISTS = {{ perfil_dists|safe }};
-const PERFIL_ELES = {{ perfil_eles|safe }};
-const RUTA_COLOR = "{{ ruta.color_dif }}";
-const RUTA_ID = {{ ruta.id }};
-// Per FGC usem el nom; per Rodalies (numèric) usem l'ID
-const ID_SORTIDA = "{{ ruta.id_sortida if ruta.id_sortida else ruta.sortida | replace(' ','_') }}";
-const ID_ARRIBADA = "{{ ruta.id_arribada if ruta.id_arribada else ruta.arribada | replace(' ','_') }}";
-const NOM_SORTIDA = "{{ ruta.sortida }}";
-const NOM_ARRIBADA = "{{ ruta.arribada }}";
-const LINIES_SORTIDA = {{ ruta.linies_sortida|tojson }};
-const LINIES_ARRIBADA = {{ ruta.linies_arribada|tojson }};
-const COLOR_OP_S = "{{ ruta.color_op_s }}";
-const COLOR_OP_A = "{{ ruta.color_op_a }}";
-
-// ── MAPA ──
-const mapa = L.map('fitxa-mapa', {zoomControl:true, scrollWheelZoom:false}).setView([41.8, 2.0], 8);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  attribution: '© OpenStreetMap', maxZoom: 18
-}).addTo(mapa);
-
-if (GPX_PUNTS && GPX_PUNTS.length > 0) {
-  const latlngs = GPX_PUNTS.map(p => [p.lat, p.lng]);
-  const poly = L.polyline(latlngs, {color: RUTA_COLOR, weight: 4, opacity: 0.9}).addTo(mapa);
-  mapa.fitBounds(poly.getBounds(), {padding: [20, 20]});
-
-  const iconPunt = (label, color) => L.divIcon({
-    html: `<div style="background:${color};color:white;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;border:2px solid white;box-shadow:0 2px 5px rgba(0,0,0,0.3);">${label}</div>`,
-    className: '', iconSize: [24,24], iconAnchor: [12,12]
-  });
-
-  L.marker(latlngs[0], {icon: iconPunt('S', '#16A34A')}).addTo(mapa)
-    .bindTooltip(`Sortida: ${NOM_SORTIDA}`, {direction: 'top'});
-
-  if (latlngs[0][0] !== latlngs[latlngs.length-1][0] || latlngs[0][1] !== latlngs[latlngs.length-1][1]) {
-    L.marker(latlngs[latlngs.length-1], {icon: iconPunt('A', '#DC2626')}).addTo(mapa)
-      .bindTooltip(`Arribada: ${NOM_ARRIBADA}`, {direction: 'top'});
-  }
-} else {
-  // Sense GPX: mostrar marcadors d'estació si hi ha coordenades
-  const latS = {{ ruta.lat_sortida }}, lngS = {{ ruta.lng_sortida }};
-  const latA = {{ ruta.lat_arribada }}, lngA = {{ ruta.lng_arribada }};
-  if (latS && lngS) {
-    L.marker([latS, lngS]).addTo(mapa).bindTooltip(NOM_SORTIDA, {direction:'top'});
-    mapa.setView([latS, lngS], 12);
-  }
-  if (latA && lngA && (latA !== latS || lngA !== lngS)) {
-    L.marker([latA, lngA]).addTo(mapa).bindTooltip(NOM_ARRIBADA, {direction:'top'});
-    mapa.fitBounds([[latS,lngS],[latA,lngA]], {padding:[30,30]});
-  }
+# ── COLORS OPERADOR ─────────────────────────────────────────────────
+COLORS_OP = {
+    "rodalies":      "#EE7F00",
+    "fgc":           "#97D700",
+    "metro":         "#E30613",
+    "tram":          "#78BE20",
+    "alta velocitat":"#8B0000",
+    "cremallera":    "#C8A96E",
+    "sncf":          "#C00000",
 }
 
-// ── PERFIL ──
-if (PERFIL_DISTS.length > 0) {
-  const ctx = document.getElementById('fitxa-perfil').getContext('2d');
-  new Chart(ctx, {
-    type: 'line',
-    data: {
-      labels: PERFIL_DISTS.map(d => d + ' km'),
-      datasets: [{
-        data: PERFIL_ELES,
-        borderColor: RUTA_COLOR,
-        backgroundColor: RUTA_COLOR + '22',
-        borderWidth: 2, fill: true, tension: 0.4,
-        pointRadius: 0, pointHoverRadius: 4,
-        pointHoverBackgroundColor: RUTA_COLOR,
-      }]
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: {
-        legend: { display: false },
-        tooltip: { callbacks: {
-          label: ctx => `${ctx.parsed.y} m`,
-          title: ctx => ctx[0].label
-        }}
-      },
-      scales: {
-        x: { grid: {display:false}, ticks: {maxTicksLimit:5, font:{size:10}, color:'#aaa'} },
-        y: { grid: {color:'#f0f0f0'}, ticks: {font:{size:10}, color:'#aaa', callback: v => v+'m'} }
-      }
-    }
-  });
-} else {
-  document.getElementById('fitxa-perfil').parentElement.innerHTML =
-    '<p style="text-align:center;color:#bbb;font-size:13px;padding:20px;">Perfil no disponible per a aquesta ruta.</p>';
-}
+def color_op(op):
+    if not op: return "#EE7F00"
+    op_l = str(op).strip().lower()
+    for k, v in COLORS_OP.items():
+        if k in op_l: return v
+    return "#EE7F00"
 
-// ── HORARIS EN TEMPS REAL ──
-async function carregarHoraris() {
-  const container = document.getElementById('horaris-container');
-  try {
-    let html = '';
+# ── CÀRREGA DE DADES ────────────────────────────────────────────────
+_cache_dades = {"dades": None, "ts": 0}
 
-    // Estació de sortida
-    html += renderEstacioHoraris(NOM_SORTIDA, ID_SORTIDA, LINIES_SORTIDA, COLOR_OP_S, 'sortida');
+def carregar_dades():
+    """Carrega les dades del Google Sheet amb cache de 30 min."""
+    ara = time.time()
+    if _cache_dades["dades"] is not None and ara - _cache_dades["ts"] < CACHE_TTL:
+        return _cache_dades["dades"]
 
-    // Estació d'arribada (si és diferent)
-    if (NOM_ARRIBADA && NOM_ARRIBADA !== NOM_SORTIDA) {
-      html += renderEstacioHoraris(NOM_ARRIBADA, ID_ARRIBADA, LINIES_ARRIBADA, COLOR_OP_A, 'arribada');
+    try:
+        if GOOGLE_CREDS and SHEET_ID:
+            # Suporta tant JSON pur com format TOML de Streamlit
+            raw = GOOGLE_CREDS.strip()
+            if raw.startswith("{"):
+                # Format JSON directe
+                creds_dict = json.loads(raw)
+            else:
+                # Format TOML de Streamlit: extreure clau=valor
+                import re
+                creds_dict = {}
+                for line in raw.splitlines():
+                    line = line.strip()
+                    if not line or line.startswith("["):
+                        continue
+                    m = re.match(r'^(\w+)\s*=\s*"(.*)"$', line)
+                    if m:
+                        key, val = m.group(1), m.group(2)
+                        # Restaurar salts de línia de la private_key
+                        creds_dict[key] = val.replace("\\n", "\n")
+            creds = Credentials.from_service_account_info(
+                creds_dict,
+                scopes=["https://spreadsheets.google.com/feeds",
+                        "https://www.googleapis.com/auth/drive"]
+            )
+            gc = gspread.authorize(creds)
+            sh = gc.open_by_key(SHEET_ID)
+            ws = sh.get_worksheet(0)
+            df = pd.DataFrame(ws.get_all_records())
+        else:
+            # Fallback local per a desenvolupament
+            df = pd.read_excel("SET_excel_app.xlsx")
+    except Exception as e:
+        print(f"Error carregant dades: {e}")
+        df = pd.DataFrame()
+
+    _cache_dades["dades"] = df
+    _cache_dades["ts"] = ara
+    return df
+
+
+def ruta_a_dict(row):
+    """Converteix una fila del DataFrame a diccionari net per a les plantilles."""
+    def v(camp):
+        val = row.get(camp, "")
+        if pd.isna(val) if hasattr(pd, 'isna') else val != val:
+            return ""
+        return str(val).strip() if val is not None else ""
+
+    def vf(camp):
+        try: return float(row.get(camp, 0) or 0)
+        except: return 0.0
+
+    num = v("Núm_Ruta")
+    try: ruta_id = int(float(num))
+    except: ruta_id = 0
+
+    tipus = v("Tipus_ruta").lower()
+    desn_p = vf("desnivell_positiu")
+    desn_n = vf("desnivell_negatiu")
+    if "circular" in tipus:
+        desn_txt = f"+/- {int(desn_p)} m"
+    else:
+        desn_txt = f"+{int(desn_p)} m / -{int(desn_n)} m"
+
+    temps_fmt = ""
+    try:
+        hd = float(str(v("Durada_estimada")).replace(",", "."))
+        h, mn = int(hd), round((hd - int(hd)) * 60)
+        if h > 0 and mn > 0: temps_fmt = f"{h}h{mn:02d}min"
+        elif h > 0: temps_fmt = f"{h}h"
+        else: temps_fmt = f"{mn}min"
+    except: pass
+
+    dif = v("Dificultat")
+    senders = [s.strip() for s in v("Senders").split(";") if s.strip()]
+
+    # Ordenar senders: GR → PR → SL → altres
+    def ordre_sender(s):
+        su = s.upper()
+        if su.startswith("GR"): return (0, su)
+        if su.startswith("PR"): return (1, su)
+        if su.startswith("SL"): return (2, su)
+        return (3, su)
+    senders = sorted(senders, key=ordre_sender)
+
+    elements = [e.strip() for e in v("Elements_interès").split(";") if e.strip()]
+    cats_el  = [c.strip() for c in v("Categories_elements_interès").split(";") if c.strip()]
+    punts_interes = list(zip(elements, cats_el + [""]*(len(elements)-len(cats_el))))
+
+    return {
+        "id":           ruta_id,
+        "codi":         f"ST{ruta_id:03d}",
+        "nom":          v("Nom_ruta"),
+        "wiki":         v("Enllaç_Wikiloc"),
+        "sortida":      v("Estació_sortida"),
+        "op_sortida":   v("Operador_sortida"),
+        "id_sortida":   v("ID_estació_sortida"),
+        "lat_sortida":  vf("Lat_sortida"),
+        "lng_sortida":  vf("Lon_sortida"),
+        "linies_sortida": [l.strip() for l in v("Linies_sortida").split(";") if l.strip()],
+        "muni_sortida": v("Municipi_sortida"),
+        "comarca_sortida": v("Comarca_sortida"),
+        "arribada":     v("Estació_arribada"),
+        "op_arribada":  v("Operador_arribada"),
+        "id_arribada":  v("ID_estació_arribada"),
+        "lat_arribada": vf("Lat_arribada"),
+        "lng_arribada": vf("Lon_arribada"),
+        "linies_arribada": [l.strip() for l in v("Linies_Arribada").split(";") if l.strip()],
+        "muni_arribada":v("Municipi_arribada"),
+        "comarca_arribada": v("Comarca_arribada"),
+        "km":           v("km"),
+        "desn_txt":     desn_txt,
+        "desn_p":       int(desn_p),
+        "desn_n":       int(desn_n),
+        "tipus":        v("Tipus_ruta"),
+        "dificultat":   dif,
+        "color_dif":    color_dif(dif),
+        "color_op_s":   color_op(v("Operador_sortida")),
+        "color_op_a":   color_op(v("Operador_arribada")),
+        "temps":        temps_fmt,
+        "epoca":        v("Millor_època"),
+        "punt_alt":     v("Punt_mes_alt"),
+        "alcada_alt":   int(vf("Alçada_punt_alt")),
+        "cims":         v("100cims").lower() in ("si", "sí", "yes", "1", "true"),
+        "nom_cim":      v("Nom_100cims"),
+        "lat_cim":      vf("Lat_100cims"),
+        "lng_cim":      vf("Lon_100cims"),
+        "senders":      senders,
+        "espai":        v("Espai_natural"),
+        "punts_interes": punts_interes,
+        "millors":      v("Millors_rutes"),
+        "descripcio":   v("Descripció_ruta"),
+        "advertiments": v("Advertiments"),
     }
 
-    container.innerHTML = html;
 
-    // Intentar carregar horaris reals si hi ha IDs
-    if (ID_SORTIDA) await actualitzarHoraris('sortida', ID_SORTIDA, COLOR_OP_S);
-    if (ID_ARRIBADA && NOM_ARRIBADA !== NOM_SORTIDA) await actualitzarHoraris('arribada', ID_ARRIBADA, COLOR_OP_A);
+def get_rutes():
+    """Retorna totes les rutes com a llista de dicts."""
+    df = carregar_dades()
+    if df.empty: return []
+    rutes = []
+    for _, row in df.iterrows():
+        try:
+            r = ruta_a_dict(row.to_dict())
+            if r["id"] > 0:
+                rutes.append(r)
+        except Exception as e:
+            print(f"Error processant ruta: {e}")
+    return sorted(rutes, key=lambda x: x["id"])
 
-  } catch(e) {
-    container.innerHTML = '<p style="color:#bbb;font-size:13px;text-align:center;padding:12px;">Horaris no disponibles.</p>';
-  }
-}
 
-function renderEstacioHoraris(nom, idEst, linies, colorOp, tipus) {
-  const linieBadges = linies.map(l =>
-    `<span class="linia-badge" style="background:${colorOp};">${l}</span>`
-  ).join('');
-  return `
-  <div class="est-bloc">
-    <div class="est-header">
-      <div class="est-dot" style="background:${colorOp};"></div>
-      <div class="est-nom">${nom}</div>
-    </div>
-    <div class="est-linies">${linieBadges}</div>
-    <div class="horaris-titol">Pròximes sortides</div>
-    <div id="horaris-${tipus}">
-      ${idEst ?
-        '<div class="horaris-loading">⏳ Carregant...</div>' :
-        '<p style="font-size:12px;color:#bbb;">Horaris en temps real disponibles properament.</p>'
-      }
-    </div>
-    ${idEst ? `<button class="btn-actualitza" onclick="actualitzarHoraris('${tipus}','${idEst}','${colorOp}')">↻ Actualitzar</button>` : ''}
-    <div class="horaris-peu" id="peu-${tipus}"></div>
-  </div>`;
-}
+# ── FOTOS ────────────────────────────────────────────────────────────
+_cache_fotos = {}
 
-async function actualitzarHoraris(tipus, idEst, colorOp) {
-  const el = document.getElementById('horaris-' + tipus);
-  const peu = document.getElementById('peu-' + tipus);
-  if (!el || !idEst) return;
+def obtenir_fotos(ruta_id):
+    if ruta_id in _cache_fotos:
+        return _cache_fotos[ruta_id]
+    fotos = []
+    for n in range(1, MAX_FOTOS + 1):
+        url = BASE_FOTO_URL.format(id=ruta_id, n=n)
+        try:
+            r = requests.head(url, timeout=3)
+            if r.status_code == 200:
+                fotos.append(url)
+            else:
+                break
+        except:
+            break
+    _cache_fotos[ruta_id] = fotos
+    return fotos
 
-  el.innerHTML = '<div class="horaris-loading">⏳ Carregant...</div>';
-  try {
-    const resp = await fetch(`/api/horaris/${idEst}`);
-    const data = await resp.json();
 
-    if (data.horaris && data.horaris.length > 0) {
-      el.innerHTML = data.horaris.map(h => {
-        const retardClass = h.retard === 0 ? 'retard-ok' : h.retard <= 3 ? 'retard-warn' : 'retard-late';
-        const retardTxt = h.retard === 0 ? 'A temps' : `+${h.retard} min`;
-        const horaClass = h.ara ? 'ara' : '';
-        return `
-        <div class="horari-row">
-          <div class="horari-hora ${horaClass}">${h.hora}</div>
-          <span class="horari-linia-badge" style="background:${colorOp};">${h.linia}</span>
-          <div class="horari-dest">${h.destinacio}</div>
-          <span class="horari-retard ${retardClass}">${retardTxt}</span>
-        </div>`;
-      }).join('');
-      if (peu) peu.textContent = 'Actualitzat fa uns moments';
-    } else {
-      // Missatge específic per cremalleres sense GTFS públic
-      const CREMALLERES_SENSE_GTFS = ['Núria','Queralbs','Ribes de Freser','Ribes-Enllaç','La Pobla de Lillet'];
-      const nomEst = idEst.replace(/_/g,' ');
-      const esCremallera = CREMALLERES_SENSE_GTFS.some(e => nomEst.includes(e));
-      if (esCremallera) {
-        el.innerHTML = `<div style="font-size:12px;color:#888;line-height:1.5;">
-          <p>El cremallera de Núria no publica horaris en temps real.</p>
-          <a href="https://www.fgc.cat/cat/cremallera-nuria.asp" target="_blank" rel="noopener"
-            style="color:#3498DB;font-weight:600;display:inline-flex;align-items:center;gap:4px;margin-top:4px;">
-            🔗 Horaris oficials a fgc.cat
-          </a>
-        </div>`;
-      } else {
-        el.innerHTML = '<p style="font-size:12px;color:#bbb;">No hi ha horaris disponibles en aquest moment.</p>';
-      }
+# ── GPX ─────────────────────────────────────────────────────────────
+_cache_gpx = {}
+
+def obtenir_gpx(ruta_id):
+    if ruta_id in _cache_gpx:
+        return _cache_gpx[ruta_id]
+    url = BASE_GPX_URL.format(id=ruta_id)
+    try:
+        r = requests.get(url, timeout=5)
+        if r.status_code != 200:
+            _cache_gpx[ruta_id] = None
+            return None
+        gpx = gpxpy.parse(r.text)
+        punts = []
+        for track in gpx.tracks:
+            for segment in track.segments:
+                for p in segment.points:
+                    punts.append({
+                        "lat": round(p.latitude, 6),
+                        "lng": round(p.longitude, 6),
+                        "ele": round(p.elevation or 0, 1)
+                    })
+        _cache_gpx[ruta_id] = punts
+        return punts
+    except Exception as e:
+        print(f"Error GPX {ruta_id}: {e}")
+        _cache_gpx[ruta_id] = None
+        return None
+
+
+def gpx_a_perfil(punts):
+    """Calcula distància acumulada i elevació per al perfil d'altitud."""
+    if not punts: return [], []
+    dists, eles = [0], [punts[0]["ele"]]
+    for i in range(1, len(punts)):
+        p1, p2 = punts[i-1], punts[i]
+        # Distància aproximada en km (Haversine simplificat)
+        dlat = math.radians(p2["lat"] - p1["lat"])
+        dlng = math.radians(p2["lng"] - p1["lng"])
+        a = math.sin(dlat/2)**2 + math.cos(math.radians(p1["lat"])) * math.cos(math.radians(p2["lat"])) * math.sin(dlng/2)**2
+        d = 6371 * 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
+        dists.append(round(dists[-1] + d, 3))
+        eles.append(punts[i]["ele"])
+    # Simplificar a màxim 200 punts
+    if len(dists) > 200:
+        step = len(dists) // 200
+        dists = dists[::step]
+        eles = eles[::step]
+    return dists, eles
+
+
+# ── ESTACIONS (agregades de les rutes) ──────────────────────────────
+def get_estacions():
+    rutes = get_rutes()
+    estacions = {}
+    for r in rutes:
+        for camp in [("sortida","op_sortida","lat_sortida","lng_sortida","linies_sortida","color_op_s"),
+                     ("arribada","op_arribada","lat_arribada","lng_arribada","linies_arribada","color_op_a")]:
+            nom = r[camp[0]]
+            if not nom: continue
+            if nom not in estacions:
+                estacions[nom] = {
+                    "nom": nom,
+                    "op": r[camp[1]],
+                    "lat": r[camp[2]],
+                    "lng": r[camp[3]],
+                    "linies": r[camp[4]],
+                    "color": r[camp[5]],
+                    "rutes": []
+                }
+            if r["id"] not in [x["id"] for x in estacions[nom]["rutes"]]:
+                estacions[nom]["rutes"].append({"id": r["id"], "nom": r["nom"]})
+    return estacions
+
+
+# ── FILTRES DISPONIBLES ─────────────────────────────────────────────
+def get_filtres(rutes):
+    dificultats = sorted(set(r["dificultat"] for r in rutes if r["dificultat"]))
+    comarques = sorted(set(
+        c for r in rutes
+        for c in [r["comarca_sortida"], r["comarca_arribada"]] if c
+    ))
+    operadors = sorted(set(
+        op for r in rutes
+        for op in [r["op_sortida"], r["op_arribada"]] if op
+    ))
+    espais = sorted(set(r["espai"] for r in rutes if r["espai"]))
+    millors = sorted(set(r["millors"] for r in rutes if r["millors"]))
+    return {
+        "dificultats": dificultats,
+        "comarques": comarques,
+        "operadors": operadors,
+        "espais": espais,
+        "millors": millors,
     }
-  } catch(e) {
-    el.innerHTML = '<p style="font-size:12px;color:#bbb;">No s\'han pogut carregar els horaris.</p>';
-  }
-}
 
-carregarHoraris();
 
-// ── LIGHTBOX ──
-const FOTOS = {{ fotos|tojson }};
-let fotoActual = 0;
+# ══════════════════════════════════════════════════════════════════════
+# RUTES FLASK (URLs)
+# ══════════════════════════════════════════════════════════════════════
 
-function obrirLightbox(idx) {
-  fotoActual = idx;
-  document.getElementById('lightbox-img').src = FOTOS[idx];
-  document.getElementById('lightbox').classList.add('obert');
-  document.body.style.overflow = 'hidden';
-}
-function tancarLightbox(e) {
-  if (!e || e.target === document.getElementById('lightbox') || e.target.classList.contains('lightbox-close')) {
-    document.getElementById('lightbox').classList.remove('obert');
-    document.body.style.overflow = '';
-  }
-}
-function canviarFoto(dir) {
-  fotoActual = (fotoActual + dir + FOTOS.length) % FOTOS.length;
-  document.getElementById('lightbox-img').src = FOTOS[fotoActual];
-}
-document.addEventListener('keydown', e => {
-  if (document.getElementById('lightbox').classList.contains('obert')) {
-    if (e.key === 'ArrowRight') canviarFoto(1);
-    if (e.key === 'ArrowLeft') canviarFoto(-1);
-    if (e.key === 'Escape') tancarLightbox();
-  }
-});
-</script>
-{% endblock %}
+@app.route("/")
+def inici():
+    rutes = get_rutes()
+    destacades = rutes[:3]
+    # Estacions úniques (sense duplicats)
+    estacions_uniques = set()
+    for r in rutes:
+        if r["sortida"]: estacions_uniques.add(r["sortida"])
+        if r["arribada"]: estacions_uniques.add(r["arribada"])
+    # Línies úniques (sense duplicats)
+    linies_uniques = set()
+    for r in rutes:
+        for l in r["linies_sortida"]: linies_uniques.add(l)
+        for l in r["linies_arribada"]: linies_uniques.add(l)
+    linies_uniques = {l for l in linies_uniques if l}
+    stats = {
+        "n_rutes": len(rutes),
+        "n_cims": sum(1 for r in rutes if r["cims"]),
+        "n_estacions": len(estacions_uniques),
+        "n_linies": len(linies_uniques),
+    }
+    return render_template("inici.html", destacades=destacades, stats=stats)
+
+
+@app.route("/rutes")
+def rutes_pagina():
+    rutes = get_rutes()
+    filtres = get_filtres(rutes)
+
+    # Aplicar filtres de la URL
+    dif     = request.args.get("dificultat", "")
+    comarca = request.args.get("comarca", "")
+    operador= request.args.get("operador", "")
+    espai   = request.args.get("espai", "")
+    cims    = request.args.get("cims", "")
+    millors = request.args.get("millors", "")
+
+    estacio = request.args.get("estacio", "")
+
+    rutes_all_list = get_rutes()
+    if dif:     rutes = [r for r in rutes if r["dificultat"] == dif]
+    if comarca: rutes = [r for r in rutes if comarca in [r["comarca_sortida"], r["comarca_arribada"]]]
+    if operador:rutes = [r for r in rutes if operador in [r["op_sortida"], r["op_arribada"]]]
+    if espai:   rutes = [r for r in rutes if r["espai"] == espai]
+    if cims:    rutes = [r for r in rutes if r["cims"]]
+    if millors: rutes = [r for r in rutes if r["millors"] == millors]
+    if estacio: rutes = [r for r in rutes if estacio in [r["sortida"], r["arribada"]]]
+
+    filtres_actius = {k: v for k, v in {
+        "dificultat": dif, "comarca": comarca,
+        "operador": operador, "espai": espai,
+        "cims": cims, "millors": millors,
+        "estacio": estacio,
+    }.items() if v}
+
+    # Afegir estacions al diccionari de filtres
+    filtres["estacions"] = sorted(set(
+        est for r in rutes_all_list
+        for est in [r["sortida"], r["arribada"]] if est
+    ))
+
+    return render_template("rutes.html",
+        rutes=rutes,
+        rutes_all=rutes_all_list,
+        filtres=filtres,
+        filtres_actius=filtres_actius,
+        n_total=len(rutes_all_list)
+    )
+
+
+@app.route("/ruta/<int:ruta_id>")
+def fitxa_ruta(ruta_id):
+    rutes = get_rutes()
+    ruta = next((r for r in rutes if r["id"] == ruta_id), None)
+    if not ruta: abort(404)
+
+    fotos = obtenir_fotos(ruta_id)
+    gpx_punts = obtenir_gpx(ruta_id)
+    dists, eles = gpx_a_perfil(gpx_punts) if gpx_punts else ([], [])
+
+    return render_template("fitxa.html",
+        ruta=ruta,
+        fotos=fotos,
+        gpx_punts=json.dumps(gpx_punts or []),
+        perfil_dists=json.dumps(dists),
+        perfil_eles=json.dumps(eles),
+    )
+
+
+@app.route("/mapa")
+def mapa_pagina():
+    rutes = get_rutes()
+    estacions = get_estacions()
+    # Només rutes amb coordenades
+    rutes_mapa = [r for r in rutes if r["lat_sortida"] and r["lng_sortida"]]
+    # Agrupar estacions per operador per al sidebar
+    estacions_list = list(estacions.values())
+    estacions_per_op = {}
+    for est in sorted(estacions_list, key=lambda x: (x["op"] or "", x["nom"])):
+        op = est["op"] or "Altres"
+        estacions_per_op.setdefault(op, []).append(est)
+
+    return render_template("mapa.html",
+        rutes=rutes_mapa,
+        estacions=estacions_list,
+        estacions_per_op=estacions_per_op,
+    )
+
+
+@app.route("/millors_rutes")
+def millors_rutes_pagina():
+    rutes = get_rutes()
+    # Agrupar per categoria Millors_rutes
+    grups = {}
+    for r in rutes:
+        cat = r["millors"]
+        if not cat: continue
+        grups.setdefault(cat, []).append(r)
+    grups = dict(sorted(grups.items()))
+    return render_template("millors_rutes.html", grups=grups)
+
+
+# ── APIs JSON ────────────────────────────────────────────────────────
+
+@app.route("/api/rutes")
+def api_rutes():
+    """API JSON per al mapa i filtres dinàmics."""
+    rutes = get_rutes()
+    # Camps mínims per al mapa
+    return jsonify([{
+        "id": r["id"],
+        "nom": r["nom"],
+        "dificultat": r["dificultat"],
+        "color_dif": r["color_dif"],
+        "km": r["km"],
+        "desn_txt": r["desn_txt"],
+        "temps": r["temps"],
+        "cims": r["cims"],
+        "lat_s": r["lat_sortida"],
+        "lng_s": r["lng_sortida"],
+        "lat_a": r["lat_arribada"],
+        "lng_a": r["lng_arribada"],
+        "comarca": r["comarca_sortida"],
+        "espai": r["espai"],
+    } for r in rutes])
+
+
+# Caché de GPX de línies (en memòria, es carrega un cop)
+_cache_gpx_linies = {}
+
+@app.route("/api/gpx/linia/<nom_linia>")
+def api_gpx_linia(nom_linia):
+    """Serveix el GPX d'una línia de tren des de GitHub amb caché."""
+    import re
+    if not re.match(r'[a-zA-Z0-9._-]+', nom_linia):
+        return jsonify({"error": "nom invàlid"}), 400
+
+    # Retornar des de caché si ja existeix
+    if nom_linia in _cache_gpx_linies:
+        return jsonify(_cache_gpx_linies[nom_linia])
+
+    url = f"https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/gpx-linies/{nom_linia}.gpx"
+    try:
+        resp = requests.get(url, timeout=8)
+        if resp.status_code != 200:
+            return jsonify({"error": "no trobat"}), 404
+        gpx = gpxpy.parse(resp.text)
+        punts = []
+        for track in gpx.tracks:
+            for segment in track.segments:
+                for p in segment.points:
+                    punts.append({"lat": round(p.latitude,6), "lng": round(p.longitude,6)})
+        if not punts:
+            for route in gpx.routes:
+                for p in route.points:
+                    punts.append({"lat": round(p.latitude,6), "lng": round(p.longitude,6)})
+        # Simplificar punts per reduir mida (cada 3 punts)
+        if len(punts) > 500:
+            punts = punts[::3]
+        _cache_gpx_linies[nom_linia] = punts
+        return jsonify(punts)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/gpx/<int:ruta_id>")
+def api_gpx(ruta_id):
+    """Retorna el track GPX com a JSON per al mapa."""
+    punts = obtenir_gpx(ruta_id)
+    if punts is None:
+        return jsonify({"error": "GPX no disponible"}), 404
+    return jsonify(punts)
+
+
+@app.route("/api/estacio/<nom_estacio>")
+def api_estacio(nom_estacio):
+    """Rutes d'una estació concreta."""
+    rutes = get_rutes()
+    rutes_est = [r for r in rutes if nom_estacio in [r["sortida"], r["arribada"]]]
+    return jsonify([{
+        "id": r["id"], "nom": r["nom"],
+        "dificultat": r["dificultat"], "color_dif": r["color_dif"],
+        "km": r["km"], "temps": r["temps"],
+    } for r in rutes_est])
+
+
+@app.route("/api/horaris/<path:id_estacio>")
+def api_horaris(id_estacio):
+    """Horaris en temps real FGC (per nom estació) i Rodalies (per ID numèric)."""
+    from datetime import datetime
+    ara = datetime.now()
+
+    try:
+        # ── FGC ──────────────────────────────────────────────────────
+        if not id_estacio.isdigit():
+            hora_actual = ara.strftime("%H:%M:%S")
+            base = "https://dadesobertes.fgc.cat/api/explore/v2.1/catalog/datasets/viajes-de-hoy/records"
+            # L'ID pot ser un codi (VL) o un nom d'estació
+            # Provem primer per stop_name (funciona segur)
+            nom_estacio = id_estacio.replace("_", " ")
+            # Normalitzar accents per compatibilitat amb l'API FGC (usa noms sense accent)
+            _acc = {'à':'a','è':'e','é':'e','í':'i','ï':'i','ó':'o','ò':'o','ú':'u','ü':'u','ç':'c','À':'A','È':'E','É':'E','Í':'I','Ï':'I','Ó':'O','Ò':'O','Ú':'U','Ü':'U','·':''}
+            nom_api = ''.join(_acc.get(c, c) for c in nom_estacio)
+            # Primera crida: tots els trens d'avui a partir d'ara
+            params = {
+                "where": f"stop_name='{nom_api}' and departure_time>='{hora_actual}'",
+                "order_by": "departure_time ASC",
+                "limit": "20",
+                "select": "departure_time,route_short_name,trip_headsign",
+            }
+            resp = requests.get(base, params=params, timeout=8)
+            data = resp.json()
+
+            # Si no hi ha resultats, provar sense filtre d'hora (debug)
+            if not data.get("results"):
+                params_debug = {
+                    "where": f"stop_name='{nom_api}'",
+                    "order_by": "departure_time ASC",
+                    "limit": "5",
+                    "select": "departure_time,route_short_name,trip_headsign",
+                }
+                resp2 = requests.get(base, params=params_debug, timeout=8)
+                data2 = resp2.json()
+                if data2.get("results"):
+                    # Hi ha trens però no a partir d'ara - retornem els últims del dia
+                    params["where"] = f"stop_name='{nom_api}'"
+                    resp = requests.get(base, params=params, timeout=8)
+                    data = resp.json()
+
+            horaris = []
+            vists = set()
+            for rec in data.get("results", []):
+                hora = rec.get("departure_time", "")[:5]
+                linia = rec.get("route_short_name", "")
+                dest = rec.get("trip_headsign", "")
+                clau = f"{hora}_{linia}_{dest}"
+                if hora and linia and clau not in vists:
+                    vists.add(clau)
+                    horaris.append({
+                        "hora": hora,
+                        "linia": linia,
+                        "destinacio": dest,
+                        "retard": 0,
+                        "ara": False
+                    })
+            return jsonify({"horaris": horaris[:8], "operador": "FGC", "total": data.get("total_count", 0), "hora_filtre": hora_actual})
+
+        # ── RODALIES via eltrennofunca.cat ───────────────────────────
+        rodalies_key = os.environ.get("RODALIES_API_KEY", "")
+        url = f"https://eltrennofunca.cat/api/horaris/station/{id_estacio}"
+        headers_etf = {"X-API-Key": rodalies_key} if rodalies_key else {}
+        resp = requests.get(url, headers=headers_etf, timeout=6)
+        data = resp.json()
+        horaris = []
+        vists = set()
+        for entry in data.get("entries", []):
+            hora = entry.get("theoreticalDeparture", "")[:5]
+            hora_est = entry.get("estimatedDeparture", "")[:5]
+            linia = entry.get("lineId", "")
+            dest = entry.get("lineName", "")
+            retard = int(entry.get("currentDelay", 0) or 0)
+            clau = f"{hora}_{linia}"
+            if hora and linia and clau not in vists:
+                vists.add(clau)
+                horaris.append({
+                    "hora": hora_est or hora,
+                    "linia": linia,
+                    "destinacio": dest,
+                    "retard": retard,
+                    "ara": False
+                })
+        return jsonify({"horaris": horaris[:8], "operador": "Rodalies"})
+
+    except Exception as e:
+        return jsonify({"horaris": [], "error": str(e)})
+
+
+# ── ERROR HANDLERS ───────────────────────────────────────────────────
+@app.errorhandler(404)
+def pagina_no_trobada(e):
+    return render_template("404.html"), 404
+
+
+# ── CONTEXT PROCESSORS (variables globals a totes les plantilles) ────
+@app.context_processor
+def globals_plantilles():
+    return {
+        "nom_app": "Senderisme en tren",
+        "seccions": [
+            {"id": "rutes",      "nom": "Rutes",        "icon": "🥾", "url": "/rutes"},
+            {"id": "mapa",       "nom": "Mapa",         "icon": "🗺️", "url": "/mapa"},
+            {"id": "colleccions","nom": "Millors rutes",  "icon": "⭐", "url": "/millors_rutes"},
+            {"id": "articles",   "nom": "Articles",     "icon": "📖", "url": "/articles"},
+        ]
+    }
+
+
+if __name__ == "__main__":
+    app.run(debug=True, port=5000)
