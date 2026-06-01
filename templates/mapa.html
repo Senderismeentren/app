@@ -100,8 +100,11 @@ body { overflow: hidden; }
   <div class="mapa-toolbar">
     <span class="mapa-toolbar-titol">🗺️ Mapa</span>
     <span class="tcapa actiu" id="tcapa-estacions" onclick="toggleCapa('estacions', this)">🚉 Estacions</span>
-    <span style="font-size:10px;color:rgba(255,255,255,0.45);font-weight:700;text-transform:uppercase;letter-spacing:0.8px;white-space:nowrap;">Línies</span>
-    <div id="op-rodalies" onclick="toggleOperador('rodalies',this)" title="Rodalies" style="background:white;border-radius:5px;padding:2px 5px;cursor:pointer;height:26px;width:48px;display:flex;align-items:center;justify-content:center;opacity:0.5;transition:all 0.15s;"><img src="https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/logo-rodalies.svg" style="height:16px;max-width:40px;object-fit:contain;pointer-events:none;" onerror="this.parentElement.style.display='none'"></div><div id="op-fgc" onclick="toggleOperador('fgc',this)" title="FGC" style="background:white;border-radius:5px;padding:2px 5px;cursor:pointer;height:26px;width:48px;display:flex;align-items:center;justify-content:center;opacity:0.5;transition:all 0.15s;"><img src="https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/logo-fgc.svg" style="height:16px;max-width:40px;object-fit:contain;pointer-events:none;" onerror="this.parentElement.style.display='none'"></div><div id="op-tmb" onclick="toggleOperador('tmb',this)" title="TMB" style="background:white;border-radius:5px;padding:2px 5px;cursor:pointer;height:26px;width:48px;display:flex;align-items:center;justify-content:center;opacity:0.5;transition:all 0.15s;"><img src="https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/logo-tmb.svg" style="height:16px;max-width:40px;object-fit:contain;pointer-events:none;" onerror="this.parentElement.style.display='none'"></div><div id="op-tram" onclick="toggleOperador('tram',this)" title="Tram" style="background:white;border-radius:5px;padding:2px 5px;cursor:pointer;height:26px;width:48px;display:flex;align-items:center;justify-content:center;opacity:0.5;transition:all 0.15s;"><img src="https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/logo-tram.svg" style="height:16px;max-width:40px;object-fit:contain;pointer-events:none;" onerror="this.parentElement.style.display='none'"></div><div id="op-cremallera" onclick="toggleOperador('cremallera',this)" title="Cremallera" style="background:white;border-radius:5px;padding:2px 5px;cursor:pointer;height:26px;width:48px;display:flex;align-items:center;justify-content:center;opacity:0.5;transition:all 0.15s;"><img src="https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/logo-cremalleranuria.svg" style="height:16px;max-width:40px;object-fit:contain;pointer-events:none;" onerror="this.parentElement.style.display='none'"></div><div id="op-sncf" onclick="toggleOperador('sncf',this)" title="SNCF" style="background:white;border-radius:5px;padding:2px 5px;cursor:pointer;height:26px;width:48px;display:flex;align-items:center;justify-content:center;opacity:0.5;transition:all 0.15s;"><img src="https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/logo-sncf.svg" style="height:16px;max-width:40px;object-fit:contain;pointer-events:none;" onerror="this.parentElement.style.display='none'"></div>
+    <div style="display:flex;align-items:center;gap:1px;background:rgba(0,0,0,0.25);border-radius:8px;padding:2px;border:1px solid rgba(255,255,255,0.1);">
+      <span style="font-size:9px;color:rgba(255,255,255,0.4);font-weight:700;text-transform:uppercase;letter-spacing:1px;padding:0 6px;white-space:nowrap;">Línies</span>
+      <div style="width:1px;height:18px;background:rgba(255,255,255,0.15);"></div>
+      <div id="op-rodalies" onclick="toggleOperador('rodalies',this)" title="ROD" style="border-radius:6px;padding:3px 6px;cursor:pointer;height:28px;min-width:42px;display:flex;align-items:center;justify-content:center;opacity:0.45;transition:all 0.15s;"><img src="https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/logo-rodalies.svg" style="height:15px;max-width:36px;object-fit:contain;pointer-events:none;filter:brightness(0) invert(1);" onerror="this.parentElement.innerHTML='<span style=\"color:white;font-size:9px;font-weight:700;\">ROD</span>'"></div><div id="op-fgc" onclick="toggleOperador('fgc',this)" title="FGC" style="border-radius:6px;padding:3px 6px;cursor:pointer;height:28px;min-width:42px;display:flex;align-items:center;justify-content:center;opacity:0.45;transition:all 0.15s;"><img src="https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/logo-fgc.svg" style="height:15px;max-width:36px;object-fit:contain;pointer-events:none;filter:brightness(0) invert(1);" onerror="this.parentElement.innerHTML='<span style=\"color:white;font-size:9px;font-weight:700;\">FGC</span>'"></div><div id="op-tmb" onclick="toggleOperador('tmb',this)" title="TMB" style="border-radius:6px;padding:3px 6px;cursor:pointer;height:28px;min-width:42px;display:flex;align-items:center;justify-content:center;opacity:0.45;transition:all 0.15s;"><img src="https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/logo-tmb.svg" style="height:15px;max-width:36px;object-fit:contain;pointer-events:none;filter:brightness(0) invert(1);" onerror="this.parentElement.innerHTML='<span style=\"color:white;font-size:9px;font-weight:700;\">TMB</span>'"></div><div id="op-tram" onclick="toggleOperador('tram',this)" title="TRAM" style="border-radius:6px;padding:3px 6px;cursor:pointer;height:28px;min-width:42px;display:flex;align-items:center;justify-content:center;opacity:0.45;transition:all 0.15s;"><img src="https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/logo-tram.svg" style="height:15px;max-width:36px;object-fit:contain;pointer-events:none;filter:brightness(0) invert(1);" onerror="this.parentElement.innerHTML='<span style=\"color:white;font-size:9px;font-weight:700;\">TRAM</span>'"></div><div id="op-cremallera" onclick="toggleOperador('cremallera',this)" title="CREM" style="border-radius:6px;padding:3px 6px;cursor:pointer;height:28px;min-width:42px;display:flex;align-items:center;justify-content:center;opacity:0.45;transition:all 0.15s;"><img src="https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/logo-cremalleranuria.svg" style="height:15px;max-width:36px;object-fit:contain;pointer-events:none;filter:brightness(0) invert(1);" onerror="this.parentElement.innerHTML='<span style=\"color:white;font-size:9px;font-weight:700;\">CREM</span>'"></div><div id="op-sncf" onclick="toggleOperador('sncf',this)" title="SNCF" style="border-radius:6px;padding:3px 6px;cursor:pointer;height:28px;min-width:42px;display:flex;align-items:center;justify-content:center;opacity:0.45;transition:all 0.15s;"><img src="https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/logo-sncf.svg" style="height:15px;max-width:36px;object-fit:contain;pointer-events:none;filter:brightness(0) invert(1);" onerror="this.parentElement.innerHTML='<span style=\"color:white;font-size:9px;font-weight:700;\">SNCF</span>'"></div>
+    </div>
     <div class="mapa-sep"></div>
     <span class="tcapa" id="tcapa-cims" onclick="toggleCapa('cims', this)">🏔 100 Cims</span>
     <div class="mapa-sep"></div>
@@ -393,8 +396,10 @@ const LINIES_PER_OP = {
 async function toggleOperador(op, imgEl) {
   const actiu = operadorsActius[op];
   operadorsActius[op] = !actiu;
-  imgEl.style.opacity = actiu ? '0.5' : '1';
-  imgEl.style.outline = actiu ? 'none' : '2px solid #3498DB';
+  imgEl.style.opacity = actiu ? '0.45' : '1';
+  imgEl.style.background = actiu ? 'transparent' : 'rgba(255,255,255,0.18)';
+  const img = imgEl.querySelector('img');
+  if (img) img.style.filter = actiu ? 'brightness(0) invert(1)' : 'none';
 
   if (actiu) {
     // Amagar línies d'aquest operador
@@ -408,19 +413,19 @@ async function toggleOperador(op, imgEl) {
   if (!capesOperador[op]) {
     capesOperador[op] = [];
     const linies = LINIES_PER_OP[op] || [];
-    for (const nom of linies) {
+    await Promise.all(linies.map(async nom => {
       try {
         const resp = await fetch('/api/gpx/linia/' + nom);
-        if (!resp.ok) continue;
+        if (!resp.ok) return;
         const punts = await resp.json();
-        if (!punts || punts.length === 0) continue;
+        if (!punts || punts.length === 0) return;
         const latlngs = punts.map(p => [p.lat, p.lng]);
         const color = colorLinia(nom + '.gpx');
         const poly = L.polyline(latlngs, {color, weight: 4, opacity: 0.85}).addTo(mapa)
           .bindTooltip(nom.replace(/[-_.]/g,' ').toUpperCase(), {sticky:true});
         capesOperador[op].push(poly);
       } catch(e) {}
-    }
+    }));
   } else {
     capesOperador[op].forEach(l => l.addTo(mapa));
   }
