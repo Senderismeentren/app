@@ -191,12 +191,12 @@ ESTACIONS.forEach(est => {
   else if (opLower.includes('rodalies'))                         logoOp = 'logo-rodalies';
   const logoOpUrl = `https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/${logoOp}.svg`;
   const icon = L.divIcon({
-    html: `<div style="position:relative;cursor:pointer;">
+    html: `<div style="position:relative;cursor:pointer;display:inline-flex;align-items:center;gap:3px;">
       <img src="${logoOpUrl}" style="height:20px;max-width:44px;object-fit:contain;display:block;filter:drop-shadow(0 1px 3px rgba(0,0,0,0.4));"
         onerror="this.style.display='none';this.insertAdjacentHTML('afterend','<div style=\'width:12px;height:12px;border-radius:50%;background:${c};border:2.5px solid white;box-shadow:0 2px 5px rgba(0,0,0,0.35)\'></div>')">
-      ${nR > 0 ? `<div style="position:absolute;top:-5px;right:-5px;background:#1a1a2e;color:white;border-radius:8px;padding:1px 4px;font-size:8px;font-weight:700;border:1px solid rgba(255,255,255,0.3);">${nR}</div>` : ''}
+      ${nR > 0 ? `<div style="background:#1a1a2e;color:white;border-radius:8px;padding:1px 5px;font-size:9px;font-weight:700;border:1px solid rgba(255,255,255,0.3);white-space:nowrap;">${nR}</div>` : ''}
     </div>`,
-    className: '', iconSize: [44,22], iconAnchor: [22,11]
+    className: '', iconSize: [60,22], iconAnchor: [30,11]
   });
   L.marker([est.lat, est.lng], {icon})
     .addTo(capes.estacions)
@@ -413,8 +413,12 @@ function obrirPanellEstacio(est) {
     return 'logo-rodalies';
   })();
   const BASE_R = 'https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/';
-  document.getElementById('panell-op').innerHTML = `<img src="${BASE_R}${logoOpPanell}.svg" style="height:18px;object-fit:contain;vertical-align:middle;margin-right:6px;"
-    onerror="this.style.display='none'"> ${(est.linies||[]).map(l => logoLinia(l, est.color||'#EE7F00')).join(' ')}`;
+  document.getElementById('panell-op').innerHTML =
+    `<div style="display:flex;align-items:center;gap:6px;flex-wrap:nowrap;">
+      <img src="${BASE_R}${logoOpPanell}.svg" style="height:18px;object-fit:contain;flex-shrink:0;"
+        onerror="this.style.display='none'">
+      <div style="display:flex;gap:4px;flex-wrap:wrap;">${(est.linies||[]).map(l => logoLinia(l, est.color||'#EE7F00')).join('')}</div>
+    </div>`;
   document.getElementById('panell-linies').innerHTML = '';
   const n = est.rutes ? est.rutes.length : 0;
   document.getElementById('panell-subtitol').textContent = `${n} ruta${n===1?'':'s'}`;
@@ -423,17 +427,13 @@ function obrirPanellEstacio(est) {
     const ruta = RUTES.find(x => x.id === r.id);
     const color = ruta ? (COLORS[ruta.dificultat] || '#888') : '#888';
     return `<div class="ruta-mini" style="border-left-color:${color};">
-      <div style="display:flex;align-items:flex-start;gap:6px;">
-        <div style="flex:1;">
-          <div class="ruta-mini-nom">${r.nom}</div>
-          ${ruta ? `<div class="ruta-mini-dades" style="display:flex;flex-wrap:wrap;gap:6px;font-size:11px;color:#666;margin-top:4px;"><span>📏 ${ruta.km} km</span><span>⬆ ${ruta.desn_txt}</span><span>⏱ ${ruta.temps}</span></div>` : ''}
-        </div>
-        <div style="display:flex;gap:4px;flex-shrink:0;margin-top:2px;">
-          <button class="btn-track" onclick="toggleTrack(${r.id},this)"
-            style="background:#f0f4ff;color:#3455a4;border:1px solid #c0cfe8;border-radius:6px;padding:3px 7px;font-size:11px;font-weight:700;cursor:pointer;">🗺️ Track</button>
-          <a href="/ruta/${r.id}"
-            style="background:#0f3460;color:white;border:none;border-radius:6px;padding:3px 7px;font-size:11px;font-weight:700;text-decoration:none;display:flex;align-items:center;gap:3px;">📋 Fitxa</a>
-        </div>
+      <div class="ruta-mini-nom">${r.nom}</div>
+      ${ruta ? `<div class="ruta-mini-dades"><span>📏 ${ruta.km} km</span><span>⬆ ${ruta.desn_txt}</span><span>⏱ ${ruta.temps}</span></div>` : ''}
+      <div style="display:flex;gap:5px;margin-top:7px;">
+        <button class="btn-track" onclick="toggleTrack(${r.id},this)"
+          style="background:#f0f4ff;color:#3455a4;border:1px solid #c0cfe8;border-radius:6px;padding:4px 8px;font-size:11px;font-weight:700;cursor:pointer;flex:1;">🗺️ Track</button>
+        <a href="/ruta/${r.id}"
+          style="background:#0f3460;color:white;border:none;border-radius:6px;padding:4px 8px;font-size:11px;font-weight:700;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:3px;flex:1;">📋 Fitxa</a>
       </div>
     </div>`;
   }).join('');
