@@ -101,21 +101,23 @@ body { overflow: hidden; }
     <span class="mapa-toolbar-titol">🗺️ Mapa</span>
     <span class="tcapa actiu" id="tcapa-estacions" onclick="toggleCapa('estacions', this)">🚉 Estacions</span>
     <span style="font-size:11px;color:rgba(255,255,255,0.5);font-weight:600;white-space:nowrap;">Línies:</span>
-    <img src="https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/logo-rodalies.svg" title="Rodalies" id="logo-rodalies"
-      onclick="toggleOperador('rodalies',this)"
-      style="height:22px;object-fit:contain;cursor:pointer;opacity:0.45;transition:opacity 0.2s;filter:brightness(0) invert(1);">
-    <img src="https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/logo-fgc.svg" title="FGC" id="logo-fgc"
-      onclick="toggleOperador('fgc',this)"
-      style="height:22px;object-fit:contain;cursor:pointer;opacity:0.45;transition:opacity 0.2s;filter:brightness(0) invert(1);">
-    <img src="https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/logo-tram.svg" title="Tram" id="logo-tram"
-      onclick="toggleOperador('tram',this)"
-      style="height:22px;object-fit:contain;cursor:pointer;opacity:0.45;transition:opacity 0.2s;filter:brightness(0) invert(1);">
-    <img src="https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/logo-cremalleranuria.svg" title="Cremallera Núria" id="logo-cremalleranuria"
-      onclick="toggleOperador('cremallera',this)"
-      style="height:22px;object-fit:contain;cursor:pointer;opacity:0.45;transition:opacity 0.2s;filter:brightness(0) invert(1);">
-    <img src="https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/logo-sncf.svg" title="SNCF" id="logo-sncf"
-      onclick="toggleOperador('sncf',this)"
-      style="height:22px;object-fit:contain;cursor:pointer;opacity:0.45;transition:opacity 0.2s;filter:brightness(0) invert(1);">
+    <div style="display:flex;gap:6px;align-items:center;background:rgba(255,255,255,0.08);border-radius:8px;padding:4px 8px;">
+      <img src="https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/logo-rodalies.svg" title="Rodalies" id="logo-rodalies"
+        onclick="toggleOperador('rodalies',this)"
+        style="height:20px;width:52px;object-fit:contain;cursor:pointer;opacity:0.5;transition:all 0.2s;border-radius:4px;padding:2px;">
+      <img src="https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/logo-fgc.svg" title="FGC" id="logo-fgc"
+        onclick="toggleOperador('fgc',this)"
+        style="height:20px;width:52px;object-fit:contain;cursor:pointer;opacity:0.5;transition:all 0.2s;border-radius:4px;padding:2px;">
+      <img src="https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/logo-tram.svg" title="Tram" id="logo-tram"
+        onclick="toggleOperador('tram',this)"
+        style="height:20px;width:52px;object-fit:contain;cursor:pointer;opacity:0.5;transition:all 0.2s;border-radius:4px;padding:2px;">
+      <img src="https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/logo-cremalleranuria.svg" title="Cremallera Núria" id="logo-cremalleranuria"
+        onclick="toggleOperador('cremallera',this)"
+        style="height:20px;width:52px;object-fit:contain;cursor:pointer;opacity:0.5;transition:all 0.2s;border-radius:4px;padding:2px;">
+      <img src="https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/logo-sncf.svg" title="SNCF" id="logo-sncf"
+        onclick="toggleOperador('sncf',this)"
+        style="height:20px;width:52px;object-fit:contain;cursor:pointer;opacity:0.5;transition:all 0.2s;border-radius:4px;padding:2px;">
+    </div>
     <div class="mapa-sep"></div>
     <span class="tcapa" id="tcapa-cims" onclick="toggleCapa('cims', this)">🏔 100 Cims</span>
     <div class="mapa-sep"></div>
@@ -387,8 +389,9 @@ const LINIES_PER_OP = {
 async function toggleOperador(op, imgEl) {
   const actiu = operadorsActius[op];
   operadorsActius[op] = !actiu;
-  imgEl.style.opacity = actiu ? '0.45' : '1';
-  imgEl.style.filter = actiu ? 'brightness(0) invert(1)' : 'none';
+  imgEl.style.opacity = actiu ? '0.5' : '1';
+  imgEl.style.background = actiu ? 'transparent' : 'rgba(255,255,255,0.15)';
+  imgEl.style.borderRadius = '4px';
 
   if (actiu) {
     // Amagar línies d'aquest operador
