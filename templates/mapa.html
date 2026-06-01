@@ -1,0 +1,453 @@
+{% extends "base.html" %}
+
+{% block titol %}Mapa{% endblock %}
+
+{% block estils_extra %}
+<style>
+/* El mapa ocupa tota la pantalla menys el nav */
+body { overflow: hidden; }
+.mapa-page {
+  height: calc(100vh - var(--nav-h));
+  display: flex; flex-direction: column;
+}
+
+/* ── TOOLBAR ── */
+.mapa-toolbar {
+  background: white; border-bottom: 1px solid #eee;
+  padding: 8px 16px; display: flex; gap: 8px;
+  flex-wrap: wrap; align-items: center; flex-shrink: 0;
+  z-index: 100;
+}
+.mapa-toolbar-titol { font-size: 15px; font-weight: 800; color: #111; margin-right: 4px; white-space: nowrap; }
+.tcapa {
+  background: #f0f2f6; border: 1px solid #ddd; border-radius: 20px;
+  padding: 4px 11px; font-size: 12px; color: #555; cursor: pointer;
+  transition: all 0.15s; white-space: nowrap; user-select: none;
+}
+.tcapa.actiu { background: var(--blau-fosc); color: white; border-color: var(--blau-fosc); }
+.tcapa:hover:not(.actiu) { background: #e4e8f0; }
+.mapa-sep { width: 1px; height: 22px; background: #e8e8e8; margin: 0 4px; flex-shrink: 0; }
+.mapa-recompte { font-size: 12px; color: #aaa; margin-left: auto; white-space: nowrap; }
+
+/* ── MAPA ── */
+#mapa-general { flex: 1; }
+
+/* ── PANELL LATERAL (estació/rutes) ── */
+.mapa-panell {
+  position: absolute; top: 0; right: 0;
+  width: 300px; max-height: 100%;
+  background: white; box-shadow: -3px 0 16px rgba(0,0,0,0.12);
+  z-index: 500; display: flex; flex-direction: column;
+  transform: translateX(100%); transition: transform 0.25s ease;
+  border-radius: 0;
+}
+.mapa-panell.obert { transform: translateX(0); }
+.panell-cap {
+  padding: 14px 16px 10px; border-bottom: 1px solid #eee;
+  display: flex; align-items: flex-start; gap: 8px;
+}
+.panell-cap-info { flex: 1; }
+.panell-nom { font-size: 16px; font-weight: 800; color: #111; margin-bottom: 3px; }
+.panell-op { font-size: 12px; color: #aaa; }
+.panell-linies { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 8px; }
+.panell-linia { border-radius: 4px; padding: 2px 7px; font-size: 11px; font-weight: 700; color: white; }
+.panell-tancar {
+  background: none; border: none; font-size: 20px; color: #aaa;
+  cursor: pointer; padding: 0; flex-shrink: 0;
+}
+.panell-tancar:hover { color: #333; }
+.panell-scroll { flex: 1; overflow-y: auto; padding: 10px 12px 20px; }
+.panell-subtitol { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #aaa; margin: 8px 0 6px; }
+
+/* Ruta card mini al panell */
+.ruta-mini {
+  border: 1px solid #eee; border-radius: 8px; padding: 10px 10px 8px;
+  margin-bottom: 7px; cursor: pointer; transition: all 0.15s;
+  border-left: 3px solid transparent; text-decoration: none; display: block; color: inherit;
+}
+.ruta-mini:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.08); transform: translateX(2px); }
+.ruta-mini-nom { font-size: 12px; font-weight: 700; color: #111; line-height: 1.35; margin-bottom: 5px; }
+.ruta-mini-dades { display: flex; gap: 8px; font-size: 11px; color: #888; }
+
+/* ── INFO RUTA AL MAPA ── */
+.mapa-info-ruta {
+  position: absolute; bottom: 16px; left: 16px; z-index: 400;
+  background: white; border-radius: 10px; padding: 10px 14px;
+  box-shadow: 0 3px 16px rgba(0,0,0,0.18); max-width: 260px;
+  border-left: 4px solid #888; transition: all 0.2s; pointer-events: none;
+}
+.mapa-info-ruta.ocult { opacity: 0; transform: translateY(4px); }
+.mir-nom { font-size: 13px; font-weight: 700; color: #111; line-height: 1.3; margin-bottom: 4px; }
+.mir-dades { font-size: 12px; color: #666; line-height: 1.8; }
+
+@media (max-width: 768px) {
+  body { overflow: auto; }
+  .mapa-page { height: calc(100vh - var(--mob-nav-h)); overflow: hidden; }
+  .mapa-toolbar { overflow-x: auto; flex-wrap: nowrap; scrollbar-width: none; padding: 8px 12px; }
+  .mapa-toolbar::-webkit-scrollbar { display: none; }
+  .mapa-sep { display: none; }
+  .mapa-recompte { display: none; }
+  .mapa-panell { width: 100%; border-radius: 16px 16px 0 0; top: auto; bottom: 0; right: 0; left: 0; max-height: 60vh; transform: translateY(100%); }
+  .mapa-panell.obert { transform: translateY(0); }
+}
+</style>
+{% endblock %}
+
+{% block contingut %}
+<div class="mapa-page" style="position:relative;">
+
+  <!-- TOOLBAR -->
+  <div class="mapa-toolbar">
+    <span class="mapa-toolbar-titol">🗺️ Mapa</span>
+    <span class="tcapa actiu" id="tcapa-estacions" onclick="toggleCapa('estacions', this)">🚉 Estacions</span>
+    <span class="tcapa" id="tcapa-linies" onclick="toggleCapa('linies', this)">🚆 Línies de tren</span>
+    <div class="mapa-sep"></div>
+    <span class="tcapa" id="tcapa-cims" onclick="toggleCapa('cims', this)">🏔 100 Cims</span>
+    <div class="mapa-sep"></div>
+    <select onchange="if(this.value){const est=ESTACIONS.find(e=>e.nom===this.value);if(est){mapa.setView([est.lat,est.lng],14);obrirPanellEstacio(est);}this.value=''}"
+      style="border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.1);color:white;border-radius:6px;padding:4px 8px;font-size:12px;cursor:pointer;max-width:200px;">
+      <option value="">🔍 Cerca estació...</option>
+      {% for op, ests in estacions_per_op.items() %}
+      <optgroup label="{{ op }}">
+        {% for est in ests %}
+        <option value="{{ est.nom }}">{{ est.nom }}</option>
+        {% endfor %}
+      </optgroup>
+      {% endfor %}
+    </select>
+    <span class="mapa-recompte" id="mapa-recompte">{{ rutes|length }} rutes · {{ estacions|length }} estacions</span>
+  </div>
+
+  <!-- MAPA -->
+  <div id="mapa-general"></div>
+
+  <!-- PANELL ESTACIÓ -->
+  <div class="mapa-panell" id="mapa-panell">
+    <div class="panell-cap">
+      <div class="panell-cap-info">
+        <div class="panell-nom" id="panell-nom">—</div>
+        <div class="panell-op" id="panell-op"></div>
+        <div class="panell-linies" id="panell-linies"></div>
+      </div>
+      <button class="panell-tancar" onclick="tancarPanell()">✕</button>
+    </div>
+    <div class="panell-scroll">
+      <div class="panell-subtitol" id="panell-subtitol"></div>
+      <div id="panell-rutes"></div>
+    </div>
+  </div>
+
+  <!-- INFO RUTA -->
+  <div class="mapa-info-ruta ocult" id="mapa-info-ruta">
+    <div class="mir-nom" id="mir-nom"></div>
+    <div class="mir-dades" id="mir-dades"></div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts_extra %}
+<script>
+const RUTES = {{ rutes|tojson }};
+const ESTACIONS = {{ estacions|tojson }};
+
+const COLORS = {
+  'Molt fàcil': '#2ECC71', 'Fàcil': '#3498DB',
+  'Moderada': '#E67E22', 'Exigent': '#E74C3C', 'Molt difícil': '#111111'
+};
+
+// ── MAPA ──
+const mapa = L.map('mapa-general', {zoomControl: true}).setView([41.8, 2.0], 7);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '© OpenStreetMap', maxZoom: 18
+}).addTo(mapa);
+
+// ── CAPES ──
+const capes = {
+  estacions: L.layerGroup(),
+  rutes:     L.layerGroup(),
+  linies:    L.layerGroup(),
+  cims:      L.layerGroup(),
+};
+const capesActives = { estacions: true, rutes: true, linies: false, cims: false };
+
+// Estacions
+ESTACIONS.forEach(est => {
+  if (!est.lat || !est.lng) return;
+  const c = est.color || '#EE7F00';
+  const nR = est.rutes ? est.rutes.length : 0;
+  // Logo del primer operador de l'estació
+  // Logo de l'OPERADOR als marcadors
+  const opLower = (est.op || '').toLowerCase();
+  let logoOp = 'logo-rodalies';
+  if (opLower.includes('fgc'))                                   logoOp = 'logo-fgc';
+  else if (opLower.includes('cremallera'))                       logoOp = 'logo-cremalleranuria';
+  else if (opLower.includes('llacs') || opLower.includes('tren dels llacs')) logoOp = 'logo-trendelsllacs';
+  else if (opLower.includes('tmb') || opLower.includes('metro')) logoOp = 'logo-tmb';
+  else if (opLower.includes('tram'))                             logoOp = 'logo-tram';
+  else if (opLower.includes('sncf'))                             logoOp = 'logo-sncf';
+  else if (opLower.includes('adif') || opLower.includes('alta velocitat')) logoOp = 'logo-altavelocitat';
+  else if (opLower.includes('renfe'))                            logoOp = 'logo-renfe';
+  else if (opLower.includes('rodalies'))                         logoOp = 'logo-rodalies';
+  const logoOpUrl = `https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/${logoOp}.svg`;
+  const icon = L.divIcon({
+    html: `<div style="position:relative;background:white;border-radius:5px;padding:2px 4px;box-shadow:0 2px 6px rgba(0,0,0,0.3);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;min-width:26px;height:20px;">
+      <img src="${logoOpUrl}" style="height:14px;max-width:38px;object-fit:contain;display:block;"
+        onerror="this.style.display='none';this.insertAdjacentHTML('afterend','<div style=\'width:11px;height:11px;border-radius:50%;background:${c};border:2px solid white;\'></div>')">
+      ${nR > 0 ? `<div style="position:absolute;top:-6px;right:-6px;background:#1a1a2e;color:white;border-radius:8px;padding:1px 4px;font-size:8px;font-weight:700;border:1px solid rgba(255,255,255,0.2);">${nR}</div>` : ''}
+    </div>`,
+    className: '', iconSize: [46,24], iconAnchor: [23,12]
+  });
+  L.marker([est.lat, est.lng], {icon})
+    .addTo(capes.estacions)
+    .on('click', () => obrirPanellEstacio(est));
+});
+
+// Tracks carregats sota demanda
+const tracksCarregats = {};
+
+async function toggleTrack(rutaId, btn) {
+  if (tracksCarregats[rutaId]) {
+    const { layer, markers } = tracksCarregats[rutaId];
+    if (mapa.hasLayer(layer)) {
+      mapa.removeLayer(layer);
+      markers.forEach(m => mapa.removeLayer(m));
+      btn.textContent = '🗺️';
+      btn.style.background = '#f0f4ff';
+      btn.style.color = '#3455a4';
+    } else {
+      layer.addTo(mapa);
+      markers.forEach(m => m.addTo(mapa));
+      btn.textContent = '✕';
+      btn.style.background = '#3498DB';
+      btn.style.color = 'white';
+      mapa.fitBounds(layer.getBounds(), {padding:[30,30]});
+    }
+    return;
+  }
+  btn.textContent = '⏳';
+  btn.disabled = true;
+  const ruta = RUTES.find(r => r.id === rutaId);
+  const color = ruta ? (COLORS[ruta.dificultat] || '#888') : '#888';
+  try {
+    const resp = await fetch(`/api/gpx/${rutaId}`);
+    if (!resp.ok) throw new Error('no gpx');
+    const punts = await resp.json();
+    if (!punts || punts.length === 0) throw new Error('buit');
+    const latlngs = punts.map(p => [p.lat, p.lng]);
+    const layer = L.polyline(latlngs, {color, weight: 4, opacity: 0.9})
+      .addTo(mapa)
+      .on('click', () => window.location.href = `/ruta/${rutaId}`);
+    const iconPunt = (label) => L.divIcon({
+      html: `<div style="background:${color};color:white;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;border:2px solid white;box-shadow:0 1px 4px rgba(0,0,0,0.3);">${label}</div>`,
+      className: '', iconSize: [20,20], iconAnchor: [10,10]
+    });
+    const ms = L.marker(latlngs[0], {icon: iconPunt('S')}).addTo(mapa);
+    const markers = [ms];
+    if (latlngs[0][0] !== latlngs[latlngs.length-1][0]) {
+      markers.push(L.marker(latlngs[latlngs.length-1], {icon: iconPunt('A')}).addTo(mapa));
+    }
+    tracksCarregats[rutaId] = {layer, markers};
+    mapa.fitBounds(layer.getBounds(), {padding:[30,30]});
+    btn.textContent = '✕';
+    btn.style.background = '#3498DB';
+    btn.style.color = 'white';
+  } catch(e) {
+    btn.textContent = '—';
+  }
+  btn.disabled = false;
+}
+
+function netejarTracks() {
+  Object.values(tracksCarregats).forEach(({layer, markers}) => {
+    mapa.removeLayer(layer);
+    markers.forEach(m => mapa.removeLayer(m));
+  });
+  document.querySelectorAll('.btn-track').forEach(b => {
+    b.textContent = '🗺️';
+    b.style.background = '#f0f4ff';
+    b.style.color = '#3455a4';
+  });
+}
+
+// Marcadors 100 Cims - usar coordenades del cim específic
+RUTES.filter(r => r.cims).forEach(r => {
+  const lat = r.lat_cim || r.lat_s;
+  const lng = r.lng_cim || r.lng_s;
+  if (!lat || !lng) return;
+  const nom_cim = r.nom_cim || r.nom;
+  const icon = L.divIcon({
+    html: `<div style="background:#0F6E56;color:white;border-radius:6px;padding:2px 6px;font-size:9px;font-weight:700;border:1.5px solid white;box-shadow:0 2px 4px rgba(0,0,0,0.3);white-space:nowrap;">🏔 ${nom_cim}</div>`,
+    className: '', iconSize: [120,20], iconAnchor: [10,10]
+  });
+  L.marker([lat, lng], {icon})
+    .addTo(capes.cims)
+    .bindTooltip(`<b>${nom_cim}</b><br><small>${r.nom}</small>`, {direction: 'top'});
+});
+
+// Afegir capes actives
+Object.keys(capesActives).forEach(nom => {
+  if (capesActives[nom]) capes[nom].addTo(mapa);
+});
+
+// ── LÍNIES DE TREN DES DE GPX ──
+const BASE_GPX_LINIES = "https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/gpx-linies/";
+// Colors corporatius FGC i Rodalies
+const COLORS_LINIA = {
+  // FGC - Llobregat-Anoia (vermell)
+  'fgc-r5':'#E2001A','fgc-r6':'#E2001A','fgc-r50':'#E2001A','fgc-r60':'#E2001A',
+  'fgc-rl2':'#E2001A','fgc.rl2':'#E2001A',
+  // FGC - Vallès (verd)
+  'fgc-s1':'#008000','fgc-s2':'#008000','fgc-s3':'#008000','fgc-s4':'#008000',
+  'fgc-s8':'#008000','fgc-s9':'#008000',
+  // FGC - Metro Baix Llobregat (blau)
+  'fgc-l6':'#0070C0','fgc-l7':'#0070C0','fgc-l8':'#0070C0','fgc-l12':'#0070C0',
+  // FGC - cremalleres i funiculars
+  'fgc-fc':'#C8A96E','fgc-mm':'#A05000','fgc-nu':'#8B6914',
+  // Rodalies
+  'rodalies-r2nord':'#1B75BC',
+  // Tram (verd llima)
+  'tram-t1':'#78BE20','tram-t2':'#78BE20','tram-t3':'#78BE20',
+  'tram-t4':'#78BE20','tram-t5':'#78BE20','tram-t6':'#78BE20',
+};
+
+function colorLinia(nomFitxer) {
+  const clau = nomFitxer.toLowerCase().replace('.gpx','');
+  if (COLORS_LINIA[clau]) return COLORS_LINIA[clau];
+  if (clau.startsWith('fgc-r') || clau.startsWith('fgc.r')) return '#E2001A';
+  if (clau.startsWith('fgc-s')) return '#008000';
+  if (clau.startsWith('fgc-l')) return '#0070C0';
+  if (clau.startsWith('fgc'))   return '#97D700';
+  if (clau.startsWith('rodalies-r1')) return '#EE7F00';
+  if (clau.startsWith('rodalies-r2')) return '#1B75BC';
+  if (clau.startsWith('rodalies-r3')) return '#4DAF4A';
+  if (clau.startsWith('rodalies-r4')) return '#F15A24';
+  if (clau.startsWith('rodalies'))    return '#EE7F00';
+  return '#888888';
+}
+
+async function carregarLiniesGPX() {
+  // Llista de fitxers GPX de línies coneguts
+  const linies = [
+    'fgc-FC','fgc-L12','fgc-L6','fgc-L7','fgc-L8','fgc-MM','fgc-NU',
+    'fgc-R5','fgc-R50','fgc-R6','fgc-R60','fgc-RL2',
+    'fgc-S1','fgc-S2','fgc-S3','fgc-S4','fgc-S8','fgc-S9',
+    'fgc.RL2','rodalies-R2Nord'
+  ];
+  for (const nom of linies) {
+    const color = colorLinia(nom + '.gpx');
+    try {
+      const resp = await fetch(BASE_GPX_LINIES + nom + '.gpx');
+      if (!resp.ok) continue;
+      const text = await resp.text();
+      const parser = new DOMParser();
+      const gpxDoc = parser.parseFromString(text, 'text/xml');
+      const trkpts = gpxDoc.querySelectorAll('trkpt');
+      if (trkpts.length === 0) continue;
+      const latlngs = Array.from(trkpts).map(p => [
+        parseFloat(p.getAttribute('lat')),
+        parseFloat(p.getAttribute('lon'))
+      ]);
+      L.polyline(latlngs, {color, weight: 7, opacity: 0.9})
+        .addTo(capes.linies)
+        .bindTooltip(nom.replace('-', ' ').toUpperCase(), {sticky: true});
+    } catch(e) { /* línia no disponible */ }
+  }
+}
+
+// ── TOGGLE CAPES ──
+function toggleCapa(nom, el) {
+  el.classList.toggle('actiu');
+  capesActives[nom] = el.classList.contains('actiu');
+  if (capesActives[nom]) {
+    capes[nom].addTo(mapa);
+    if (nom === 'linies' && capes.linies.getLayers().length === 0) carregarLiniesGPX();
+  } else mapa.removeLayer(capes[nom]);
+}
+
+// ── LOGOS LÍNIES ──
+const BASE_LOGO = "https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/Logo-{linia}.svg";
+
+// Mapeig complet línia -> fitxer logo
+const LOGO_LINIA = {
+  // Rodalies
+  'r1':'logo-r1','rg1':'logo-rg1','r2':'logo-r2','r2nord':'logo-r2nord',
+  'r2sud':'logo-r2sud','r3':'logo-r3','r4':'logo-r4','r7':'logo-r7',
+  'r8':'logo-r8','r11':'logo-r11','r13':'logo-r13','r14':'logo-r14',
+  'r15':'logo-r15','r16':'logo-r16','r17':'logo-r17',
+  // FGC Vallès
+  's1':'logo-s1','s2':'logo-s2',
+  // FGC Llobregat-Anoia
+  'rl2':'logo-rl2','rl3':'logo-rl3','rl4':'logo-rl4',
+  // Tram
+  't1':'logo-t1','t2':'logo-t2','t3':'logo-t3',
+  't4':'logo-t4','t5':'logo-t5','t6':'logo-t6',
+  // Altres
+  'rt1':'logo-rt1','rt2':'logo-rt2',
+};
+
+function logoLinia(linia, colorOp) {
+  const clau = linia.toLowerCase().replace(/[^a-z0-9]/g,'');
+  const nomLogo = LOGO_LINIA[clau] || null;
+  const url = nomLogo
+    ? `https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/${nomLogo}.svg`
+    : `https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/logo-${linia.toLowerCase()}.svg`;
+  return `<img src="${url}" alt="${linia}" style="height:22px;border-radius:4px;vertical-align:middle;"
+    onerror="this.replaceWith(Object.assign(document.createElement('span'),{textContent:'${linia}',style:'background:${colorOp};color:white;border-radius:4px;padding:2px 7px;font-size:11px;font-weight:700;display:inline-block;'}))">`;
+}
+
+// ── PANELL ESTACIÓ ──
+function obrirPanellEstacio(est) {
+  const prep = /^[AEIOUaeiouàèéíïóòúü]/i.test(est.nom) ? "d'" : "de ";
+  document.getElementById('panell-nom').textContent = '🚉 Estació ' + prep + est.nom;
+  document.getElementById('panell-op').textContent = est.op || '';
+  document.getElementById('panell-linies').innerHTML = (est.linies || [])
+    .map(l => logoLinia(l, est.color || '#EE7F00')).join('');
+  const n = est.rutes ? est.rutes.length : 0;
+  document.getElementById('panell-subtitol').innerHTML = `<span style="background:${est.color||'#EE7F00'};color:white;border-radius:4px;padding:1px 6px;font-size:10px;font-weight:700;margin-right:5px;">${est.op||''}</span> ${n} ruta${n===1?'':'s'}`;
+
+  const rutesHTML = (est.rutes || []).map(r => {
+    const ruta = RUTES.find(x => x.id === r.id);
+    const color = ruta ? (COLORS[ruta.dificultat] || '#888') : '#888';
+    return `<div class="ruta-mini" style="border-left-color:${color};">
+      <div style="display:flex;align-items:flex-start;gap:6px;">
+        <div style="flex:1;">
+          <div class="ruta-mini-nom">${r.nom}</div>
+          ${ruta ? `<div class="ruta-mini-dades"><span>📏 ${ruta.km} km</span><span>⬆ ${ruta.desn_txt}</span><span>⏱ ${ruta.temps}</span></div>` : ''}
+        </div>
+        <div style="display:flex;gap:4px;flex-shrink:0;margin-top:2px;">
+          <button class="btn-track" onclick="toggleTrack(${r.id},this)"
+            style="background:#f0f4ff;color:#3455a4;border:1px solid #c0cfe8;border-radius:6px;padding:3px 7px;font-size:11px;font-weight:700;cursor:pointer;">🗺️ Track</button>
+          <a href="/ruta/${r.id}"
+            style="background:#0f3460;color:white;border:none;border-radius:6px;padding:3px 7px;font-size:11px;font-weight:700;text-decoration:none;display:flex;align-items:center;gap:3px;">📋 Fitxa</a>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('panell-rutes').innerHTML = rutesHTML +
+    (n > 0 ? `<button onclick="netejarTracks()" style="display:block;width:100%;margin-top:10px;padding:7px;background:#f5f5f5;border:1px solid #e0e0e0;border-radius:8px;font-size:11px;font-weight:600;color:#888;cursor:pointer;">✕ Netejar tots els tracks</button>` : '') ||
+    '<p style="color:#bbb;font-size:13px;">Cap ruta registrada per a aquesta estació.</p>';
+
+  document.getElementById('mapa-panell').classList.add('obert');
+}
+
+function tancarPanell() {
+  document.getElementById('mapa-panell').classList.remove('obert');
+}
+
+// ── INFO RUTA ──
+function mostrarInfoRuta(r) {
+  const color = COLORS[r.dificultat] || '#888';
+  const el = document.getElementById('mapa-info-ruta');
+  el.style.borderLeftColor = color;
+  document.getElementById('mir-nom').textContent = r.nom;
+  document.getElementById('mir-dades').innerHTML =
+    `📏 ${r.km} km &nbsp;·&nbsp; ⛰ ${r.desn_txt} &nbsp;·&nbsp; ⏱ ${r.temps}`;
+  el.classList.remove('ocult');
+}
+function ocultarInfoRuta() {
+  document.getElementById('mapa-info-ruta').classList.add('ocult');
+}
+</script>
+{% endblock %}
