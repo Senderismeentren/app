@@ -28,9 +28,9 @@ body { overflow: hidden; }
 .tcapa:hover:not(.actiu) { background: #e4e8f0; }
 .mapa-sep { width: 1px; height: 22px; background: #e8e8e8; margin: 0 4px; flex-shrink: 0; }
 .mapa-recompte { font-size: 12px; color: #aaa; margin-left: auto; white-space: nowrap; }
-.op-linies-wrap { display: flex; align-items: center; gap: 6px; }
-.op-linies-label { font-size: 11px; color: rgba(255,255,255,0.75); font-weight: 700; white-space: nowrap; }
-.op-linies-grup { display: flex; gap: 2px; background: rgba(0,0,0,0.2); border-radius: 8px; padding: 2px; border: 1px solid rgba(255,255,255,0.08); }
+.op-linies-wrap { display: flex; align-items: center; gap: 5px; }
+.op-linies-label { font-size: 10px; color: rgba(255,255,255,0.55); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap; }
+.op-linies-grup { display: flex; gap: 2px; }
 .op-btn { height: 28px; min-width: 44px; padding: 2px 6px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.9); opacity: 0.55; transition: all 0.15s; }
 .op-btn:hover { opacity: 0.8; }
 .op-btn.actiu { opacity: 1; background: white; box-shadow: 0 0 0 2px #3498DB; }
@@ -108,7 +108,7 @@ body { overflow: hidden; }
     <span class="mapa-toolbar-titol">🗺️ Mapa</span>
     <span class="tcapa actiu" id="tcapa-estacions" onclick="toggleCapa('estacions', this)">🚉 Estacions</span>
     <div class="op-linies-wrap">
-      <span class="op-linies-label">🚆 Línies</span>
+      <span class="op-linies-label">Línies</span>
       <div class="op-linies-grup">
         <div class="op-btn" id="op-rodalies" onclick="toggleOperador('rodalies',this)" title="Rodalies">
           <img src="https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/logo-rodalies.svg" alt="Rodalies">
@@ -134,7 +134,7 @@ body { overflow: hidden; }
     <span class="tcapa" id="tcapa-cims" onclick="toggleCapa('cims', this)">🏔 100 Cims</span>
     <div class="mapa-sep"></div>
     <select onchange="if(this.value){const est=ESTACIONS.find(e=>e.nom===this.value);if(est){mapa.setView([est.lat,est.lng],14);obrirPanellEstacio(est);}this.value=''}"
-      style="border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.1);color:white;border-radius:6px;padding:4px 8px;font-size:12px;cursor:pointer;max-width:200px;">
+      style="border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.12);color:white;border-radius:6px;padding:4px 10px;font-size:12px;cursor:pointer;max-width:200px;height:30px;">
       <option value="">🔍 Cerca estació...</option>
       {% for op, ests in estacions_per_op.items() %}
       <optgroup label="{{ op }}">
