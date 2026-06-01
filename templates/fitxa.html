@@ -390,8 +390,9 @@ const PERFIL_DISTS = {{ perfil_dists|safe }};
 const PERFIL_ELES = {{ perfil_eles|safe }};
 const RUTA_COLOR = "{{ ruta.color_dif }}";
 const RUTA_ID = {{ ruta.id }};
-const ID_SORTIDA = "{{ ruta.sortida | replace(' ','_') }}";
-const ID_ARRIBADA = "{{ ruta.arribada | replace(' ','_') }}";
+// Per FGC usem el nom; per Rodalies (numèric) usem l'ID
+const ID_SORTIDA = "{{ ruta.id_sortida if ruta.id_sortida else ruta.sortida | replace(' ','_') }}";
+const ID_ARRIBADA = "{{ ruta.id_arribada if ruta.id_arribada else ruta.arribada | replace(' ','_') }}";
 const NOM_SORTIDA = "{{ ruta.sortida }}";
 const NOM_ARRIBADA = "{{ ruta.arribada }}";
 const LINIES_SORTIDA = {{ ruta.linies_sortida|tojson }};
