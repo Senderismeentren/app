@@ -31,7 +31,7 @@ COLORS_DIF = {
     "fàcil":       "#3498DB", "facil":       "#3498DB",
     "moderada":    "#E67E22",
     "exigent":     "#E74C3C",
-    "molt difícil":"#111111", "molt dificil":"#111111",
+    "molt exigent":"#111111",
 }
 
 def color_dif(dif):
