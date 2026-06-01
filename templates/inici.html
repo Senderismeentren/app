@@ -143,9 +143,11 @@
         <div class="hero-stat-n">{{ stats.n_cims }}</div>
         <div class="hero-stat-l">100 Cims</div>
       </div>
+    </div>
+    <div class="hero-stats" style="margin-top:8px;justify-content:center;gap:32px;">
       <div>
-        <div class="hero-stat-n">{{ stats.total_km }}+</div>
-        <div class="hero-stat-l">Quilòmetres</div>
+        <div class="hero-stat-n">+{{ stats.total_km }} km</div>
+        <div class="hero-stat-l">Quilòmetres totals</div>
       </div>
       <div>
         <div class="hero-stat-n">+{{ "{:,}".format(stats.total_desn).replace(",",".") }} m</div>
