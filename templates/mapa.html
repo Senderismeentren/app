@@ -20,20 +20,21 @@ body { overflow: hidden; }
 }
 .mapa-toolbar-titol { font-size: 15px; font-weight: 800; color: #111; margin-right: 4px; white-space: nowrap; }
 .tcapa {
-  background: #f0f2f6; border: 1px solid #ddd; border-radius: 20px;
-  padding: 4px 11px; font-size: 12px; color: #555; cursor: pointer;
+  background: white; border: 1px solid #e0e0e0; border-radius: 8px;
+  padding: 4px 12px; font-size: 12px; color: #555; cursor: pointer;
   transition: all 0.15s; white-space: nowrap; user-select: none;
+  font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,0.08);
 }
-.tcapa.actiu { background: var(--blau-fosc); color: white; border-color: var(--blau-fosc); }
-.tcapa:hover:not(.actiu) { background: #e4e8f0; }
+.tcapa.actiu { background: white; color: var(--blau); border-color: #3498DB; box-shadow: 0 0 0 2px #3498DB44; }
+.tcapa:hover:not(.actiu) { border-color: #bbb; background: #fafafa; }
 .mapa-sep { width: 1px; height: 22px; background: #e8e8e8; margin: 0 4px; flex-shrink: 0; }
 .mapa-recompte { font-size: 12px; color: #aaa; margin-left: auto; white-space: nowrap; }
-.op-linies-wrap { display: flex; align-items: center; gap: 5px; }
-.op-linies-label { font-size: 10px; color: rgba(255,255,255,0.55); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap; }
-.op-linies-grup { display: flex; gap: 2px; }
-.op-btn { height: 28px; min-width: 44px; padding: 2px 6px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.9); opacity: 0.55; transition: all 0.15s; }
-.op-btn:hover { opacity: 0.8; }
-.op-btn.actiu { opacity: 1; background: white; box-shadow: 0 0 0 2px #3498DB; }
+.op-linies-wrap { display: flex; align-items: center; gap: 6px; }
+.op-linies-label { font-size: 11px; color: #888; font-weight: 700; white-space: nowrap; }
+.op-linies-grup { display: flex; gap: 4px; }
+.op-btn { height: 30px; min-width: 46px; padding: 2px 6px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; background: white; border: 1px solid #e0e0e0; opacity: 0.6; transition: all 0.15s; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+.op-btn:hover { opacity: 0.85; border-color: #bbb; }
+.op-btn.actiu { opacity: 1; border-color: #3498DB; box-shadow: 0 0 0 2px #3498DB44; }
 .op-btn img { height: 16px; max-width: 38px; object-fit: contain; pointer-events: none; }
 
 /* ── MAPA ── */
@@ -105,8 +106,8 @@ body { overflow: hidden; }
 
   <!-- TOOLBAR -->
   <div class="mapa-toolbar">
-    <span class="mapa-toolbar-titol">🗺️ Mapa</span>
-    <span class="tcapa actiu" id="tcapa-estacions" onclick="toggleCapa('estacions', this)">🚉 Estacions</span>
+    <span class="mapa-toolbar-titol">Mapa</span>
+    <span class="tcapa actiu" id="tcapa-estacions" onclick="toggleCapa('estacions', this)">Estacions</span>
     <div class="op-linies-wrap">
       <span class="op-linies-label">Línies</span>
       <div class="op-linies-grup">
@@ -131,10 +132,10 @@ body { overflow: hidden; }
       </div>
     </div>
     <div class="mapa-sep"></div>
-    <span class="tcapa" id="tcapa-cims" onclick="toggleCapa('cims', this)">🏔 100 Cims</span>
+    <span class="tcapa" id="tcapa-cims" onclick="toggleCapa('cims', this)">100 Cims</span>
     <div class="mapa-sep"></div>
     <select onchange="if(this.value){const est=ESTACIONS.find(e=>e.nom===this.value);if(est){mapa.setView([est.lat,est.lng],14);obrirPanellEstacio(est);}this.value=''}"
-      style="border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.12);color:white;border-radius:6px;padding:4px 10px;font-size:12px;cursor:pointer;max-width:200px;height:30px;">
+      style="border:1px solid #e0e0e0;background:white;color:#555;border-radius:8px;padding:4px 10px;font-size:12px;cursor:pointer;max-width:200px;height:30px;font-weight:600;">
       <option value="">🔍 Cerca estació...</option>
       {% for op, ests in estacions_per_op.items() %}
       <optgroup label="{{ op }}">
