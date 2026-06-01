@@ -545,7 +545,21 @@ async function actualitzarHoraris(tipus, idEst, colorOp) {
       }).join('');
       if (peu) peu.textContent = 'Actualitzat fa uns moments';
     } else {
-      el.innerHTML = '<p style="font-size:12px;color:#bbb;">No hi ha horaris disponibles en aquest moment.</p>';
+      // Missatge específic per cremalleres sense GTFS públic
+      const CREMALLERES_SENSE_GTFS = ['Núria','Queralbs','Ribes de Freser','Ribes-Enllaç','La Pobla de Lillet'];
+      const nomEst = idEst.replace(/_/g,' ');
+      const esCremallera = CREMALLERES_SENSE_GTFS.some(e => nomEst.includes(e));
+      if (esCremallera) {
+        el.innerHTML = `<div style="font-size:12px;color:#888;line-height:1.5;">
+          <p>El cremallera de Núria no publica horaris en temps real.</p>
+          <a href="https://www.fgc.cat/cat/cremallera-nuria.asp" target="_blank" rel="noopener"
+            style="color:#3498DB;font-weight:600;display:inline-flex;align-items:center;gap:4px;margin-top:4px;">
+            🔗 Horaris oficials a fgc.cat
+          </a>
+        </div>`;
+      } else {
+        el.innerHTML = '<p style="font-size:12px;color:#bbb;">No hi ha horaris disponibles en aquest moment.</p>';
+      }
     }
   } catch(e) {
     el.innerHTML = '<p style="font-size:12px;color:#bbb;">No s\'han pogut carregar els horaris.</p>';
