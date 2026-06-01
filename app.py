@@ -354,11 +354,15 @@ def inici():
         for l in r["linies_sortida"]: linies_uniques.add(l)
         for l in r["linies_arribada"]: linies_uniques.add(l)
     linies_uniques = {l for l in linies_uniques if l}
+    total_km = sum(float(r["km"] or 0) for r in rutes)
+    total_desn = sum(int(r["desn_p"] or 0) for r in rutes)
     stats = {
         "n_rutes": len(rutes),
         "n_cims": sum(1 for r in rutes if r["cims"]),
         "n_estacions": len(estacions_uniques),
         "n_linies": len(linies_uniques),
+        "total_km": round(total_km),
+        "total_desn": total_desn,
     }
     return render_template("inici.html", destacades=destacades, stats=stats)
 
