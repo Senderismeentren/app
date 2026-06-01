@@ -486,12 +486,20 @@ def api_rutes():
     } for r in rutes])
 
 
+# Caché de GPX de línies (en memòria, es carrega un cop)
+_cache_gpx_linies = {}
+
 @app.route("/api/gpx/linia/<nom_linia>")
 def api_gpx_linia(nom_linia):
-    """Serveix el GPX d'una línia de tren des de GitHub (evita CORS)."""
+    """Serveix el GPX d'una línia de tren des de GitHub amb caché."""
     import re
     if not re.match(r'[a-zA-Z0-9._-]+', nom_linia):
         return jsonify({"error": "nom invàlid"}), 400
+
+    # Retornar des de caché si ja existeix
+    if nom_linia in _cache_gpx_linies:
+        return jsonify(_cache_gpx_linies[nom_linia])
+
     url = f"https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/gpx-linies/{nom_linia}.gpx"
     try:
         resp = requests.get(url, timeout=8)
@@ -504,10 +512,13 @@ def api_gpx_linia(nom_linia):
                 for p in segment.points:
                     punts.append({"lat": round(p.latitude,6), "lng": round(p.longitude,6)})
         if not punts:
-            # Intentar amb routes
             for route in gpx.routes:
                 for p in route.points:
                     punts.append({"lat": round(p.latitude,6), "lng": round(p.longitude,6)})
+        # Simplificar punts per reduir mida (cada 3 punts)
+        if len(punts) > 500:
+            punts = punts[::3]
+        _cache_gpx_linies[nom_linia] = punts
         return jsonify(punts)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
