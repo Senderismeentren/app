@@ -553,27 +553,33 @@ def api_horaris(id_estacio):
 
     try:
         # ── FGC ──────────────────────────────────────────────────────
-        # IDs FGC comencen per lletra (ex: "BC", "SB", "VL"...)
+        # IDs FGC comencen per lletra (ex: "VL", "BC", "SB"...)
         if not id_estacio.isdigit():
             from datetime import datetime
+            import urllib.parse
             hora_actual = datetime.now().strftime("%H:%M:%S")
+            # Filtrar per parent_station (ID genèric sense andana)
+            # i per hora >= ara, ordenat per hora
+            where = f"parent_station='{id_estacio}' and departure_time>='{hora_actual}'"
             url = (
                 f"https://dadesobertes.fgc.cat/api/explore/v2.1/catalog/datasets/"
-                f"viajes-de-hoy/records?"
-                f"where=stop_id like '{id_estacio}%25'"
-                f" and departure_time >= '{hora_actual}'"
-                f"&order_by=departure_time ASC"
-                f"&limit=6"
-                f"&select=departure_time,route_short_name,trip_headsign"
+                f"viajes-de-hoy/records"
+                f"?where={urllib.parse.quote(where)}"
+                f"&order_by=departure_time%20ASC"
+                f"&limit=8"
+                f"&select=departure_time%2Croute_short_name%2Ctrip_headsign%2Cstop_name"
             )
-            resp = requests.get(url, timeout=5)
+            resp = requests.get(url, timeout=6)
             data = resp.json()
             horaris = []
+            vists = set()  # evitar duplicats per andana
             for rec in data.get("results", []):
                 hora = rec.get("departure_time", "")[:5]
                 linia = rec.get("route_short_name", "")
                 dest = rec.get("trip_headsign", "")
-                if hora and linia:
+                clau = f"{hora}_{linia}_{dest}"
+                if hora and linia and clau not in vists:
+                    vists.add(clau)
                     horaris.append({
                         "hora": hora,
                         "linia": linia,
@@ -581,7 +587,7 @@ def api_horaris(id_estacio):
                         "retard": 0,
                         "ara": False
                     })
-            return jsonify({"horaris": horaris, "operador": "FGC"})
+            return jsonify({"horaris": horaris[:6], "operador": "FGC"})
 
         # ── RODALIES ─────────────────────────────────────────────────
         # IDs Rodalies són numèrics
