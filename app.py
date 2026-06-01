@@ -342,11 +342,23 @@ def get_filtres(rutes):
 @app.route("/")
 def inici():
     rutes = get_rutes()
-    # Rutes destacades: les primeres 3 amb fotos
     destacades = rutes[:3]
+    # Estacions úniques (sense duplicats)
+    estacions_uniques = set()
+    for r in rutes:
+        if r["sortida"]: estacions_uniques.add(r["sortida"])
+        if r["arribada"]: estacions_uniques.add(r["arribada"])
+    # Línies úniques (sense duplicats)
+    linies_uniques = set()
+    for r in rutes:
+        for l in r["linies_sortida"]: linies_uniques.add(l)
+        for l in r["linies_arribada"]: linies_uniques.add(l)
+    linies_uniques = {l for l in linies_uniques if l}
     stats = {
         "n_rutes": len(rutes),
         "n_cims": sum(1 for r in rutes if r["cims"]),
+        "n_estacions": len(estacions_uniques),
+        "n_linies": len(linies_uniques),
     }
     return render_template("inici.html", destacades=destacades, stats=stats)
 
