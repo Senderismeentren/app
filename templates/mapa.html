@@ -326,6 +326,12 @@ const COLORS_LINIA = {
   // Tram
   'tram-t1':'#78BE20','tram-t2':'#78BE20','tram-t3':'#78BE20',
   'tram-t4':'#78BE20','tram-t5':'#78BE20','tram-t6':'#78BE20',
+  // TMB Metro
+  'tmb-l1':'#E30613','tmb-l2':'#9B2743','tmb-l3':'#009A44',
+  'tmb-l4':'#F5A800','tmb-l5':'#0072BC',
+  'tmb-l9nord':'#F05223','tmb-l9sud':'#F05223',
+  'tmb-l10nord':'#009BDE','tmb-l10sud':'#009BDE',
+  'tmb-l11':'#8DC63F','tmb-funicular':'#A05000',
 };
 
 function colorLinia(nomFitxer) {
@@ -340,16 +346,27 @@ function colorLinia(nomFitxer) {
   if (clau.startsWith('rodalies-r3')) return '#4DAF4A';
   if (clau.startsWith('rodalies-r4')) return '#F15A24';
   if (clau.startsWith('rodalies'))    return '#EE7F00';
+  if (clau === 'tmb-l1') return '#E30613';
+  if (clau.startsWith('tmb-l2')) return '#9B2743';
+  if (clau.startsWith('tmb-l3')) return '#009A44';
+  if (clau.startsWith('tmb-l4')) return '#F5A800';
+  if (clau.startsWith('tmb-l5')) return '#0072BC';
+  if (clau.startsWith('tmb-l9')) return '#F05223';
+  if (clau.startsWith('tmb-l10')) return '#009BDE';
+  if (clau.startsWith('tmb-l11')) return '#8DC63F';
+  if (clau.startsWith('tmb')) return '#E30613';
   return '#888888';
 }
 
 async function carregarLiniesGPX() {
   // Llista de fitxers GPX de línies coneguts
   const linies = [
-    'fgc-FC','fgc-L12','fgc-L6','fgc-L7','fgc-L8','fgc-MM','fgc-NU',
-    'fgc-R5','fgc-R50','fgc-R6','fgc-R60','fgc-RL2',
-    'fgc-S1','fgc-S2','fgc-S3','fgc-S4','fgc-S8','fgc-S9',
-    'fgc.RL2','rodalies-R2Nord'
+    'fgc-fc','fgc-l12','fgc-l6','fgc-l7','fgc-l8','fgc-mm','fgc-nu',
+    'fgc-r5','fgc-r50','fgc-r6','fgc-r60','fgc-rl2',
+    'fgc-s1','fgc-s2','fgc-s3','fgc-s4','fgc-s8','fgc-s9',
+    'rodalies-r2nord',
+    'tmb-l1','tmb-l2','tmb-l3','tmb-l4','tmb-l5',
+    'tmb-l9nord','tmb-l9sud','tmb-l10nord','tmb-l10sud','tmb-l11','tmb-funicular'
   ];
   for (const nom of linies) {
     const color = colorLinia(nom + '.gpx');
@@ -377,13 +394,16 @@ const capesOperador = {};
 const operadorsActius = {};
 
 const LINIES_PER_OP = {
-  'rodalies': ['rodalies-R2Nord'],
-  'fgc':      ['fgc-FC','fgc-L12','fgc-L6','fgc-L7','fgc-L8','fgc-MM','fgc-NU',
-               'fgc-R5','fgc-R50','fgc-R6','fgc-R60','fgc-RL2',
-               'fgc-S1','fgc-S2','fgc-S3','fgc-S4','fgc-S8','fgc-S9','fgc.RL2'],
-  'tram':     [],
-  'cremallera':['fgc-NU','fgc-MM'],
-  'sncf':     [],
+  'rodalies':   ['rodalies-r2nord'],
+  'fgc':        ['fgc-fc','fgc-l12','fgc-l6','fgc-l7','fgc-l8','fgc-mm','fgc-nu',
+                 'fgc-r5','fgc-r50','fgc-r6','fgc-r60','fgc-rl2',
+                 'fgc-s1','fgc-s2','fgc-s3','fgc-s4','fgc-s8','fgc-s9'],
+  'tmb':        ['tmb-l1','tmb-l2','tmb-l3','tmb-l4','tmb-l5',
+                 'tmb-l9nord','tmb-l9sud','tmb-l10nord','tmb-l10sud',
+                 'tmb-l11','tmb-funicular'],
+  'tram':       [],
+  'cremallera': ['fgc-nu','fgc-mm'],
+  'sncf':       [],
 };
 
 async function toggleOperador(op, imgEl) {
