@@ -545,41 +545,28 @@ def api_estacio(nom_estacio):
     } for r in rutes_est])
 
 
-@app.route("/api/horaris/<id_estacio>")
+@app.route("/api/horaris/<path:id_estacio>")
 def api_horaris(id_estacio):
-    """Horaris en temps real. Detecta operador pel prefix de l'ID."""
+    """Horaris en temps real FGC (per nom estació) i Rodalies (per ID numèric)."""
     from datetime import datetime
     ara = datetime.now()
 
     try:
         # ── FGC ──────────────────────────────────────────────────────
-        # IDs FGC comencen per lletra (ex: "VL", "BC", "SB"...)
         if not id_estacio.isdigit():
-            from datetime import datetime
-            import urllib.parse
-            hora_actual = datetime.now().strftime("%H:%M:%S")
-            # Filtrar per parent_station i hora actual
+            hora_actual = ara.strftime("%H:%M:%S")
             base = "https://dadesobertes.fgc.cat/api/explore/v2.1/catalog/datasets/viajes-de-hoy/records"
+            # L'ID pot ser un codi (VL) o un nom d'estació
+            # Provem primer per stop_name (funciona segur)
+            nom_estacio = id_estacio.replace("_", " ")
             params = {
-                "where": f"parent_station='{id_estacio}' and departure_time>='{hora_actual}'",
+                "where": f"stop_name='{nom_estacio}' and departure_time>='{hora_actual}'",
                 "order_by": "departure_time ASC",
-                "limit": "10",
+                "limit": "20",
                 "select": "departure_time,route_short_name,trip_headsign",
             }
-            resp = requests.get(base, params=params, timeout=6)
-            # Si no retorna res, provar amb stop_name
+            resp = requests.get(base, params=params, timeout=8)
             data = resp.json()
-            if not data.get("results"):
-                # Fallback: buscar per stop_id directe
-                params2 = {
-                    "where": f"stop_id like '{id_estacio}%' and departure_time>='{hora_actual}'",
-                    "order_by": "departure_time ASC",
-                    "limit": "10",
-                    "select": "departure_time,route_short_name,trip_headsign",
-                }
-                resp = requests.get(base, params=params2, timeout=6)
-                data = resp.json()
-            debug_url = resp.url
             horaris = []
             vists = set()
             for rec in data.get("results", []):
@@ -596,7 +583,7 @@ def api_horaris(id_estacio):
                         "retard": 0,
                         "ara": False
                     })
-            return jsonify({"horaris": horaris[:6], "operador": "FGC", "debug_url": debug_url, "total": data.get("total_count", 0)})
+            return jsonify({"horaris": horaris[:8], "operador": "FGC"})
 
         # ── RODALIES ─────────────────────────────────────────────────
         # IDs Rodalies són numèrics
