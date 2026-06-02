@@ -201,24 +201,15 @@
       <p>Rutes agrupades per experiències i destinacions</p>
     </div>
     <div class="grid-4">
-      {% set colleccions = [
-        {"titol": "⛰️ Pujades a Montserrat", "n": 8, "desc": "Ascensions a la muntanya de Montserrat des de les línies R5 i FGC.", "img": "https://images.unsplash.com/photo-1569880153113-76e33fc52d5f?w=400&q=80"},
-        {"titol": "🏔️ Travesses des de Núria", "n": 5, "desc": "Rutes d'alta muntanya que parteixen del santuari de Núria en cremallera.", "img": "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=400&q=80"},
-        {"titol": "🌊 Camins de Costa Brava", "n": 12, "desc": "El Camí de Ronda i rutes litorals de la línia R11.", "img": "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=400&q=80"},
-        {"titol": "🎿 Pirineu per tren", "n": 7, "desc": "Alta muntanya al Ripollès i la Cerdanya per la línia R3.", "img": "https://images.unsplash.com/photo-1516912481808-3406841bd33c?w=400&q=80"},
-      ] %}
       {% for c in colleccions %}
       <a class="card" href="/millors_rutes" style="text-decoration:none;">
-        <div class="col-card-img">
-          <img src="{{ c.img }}" alt="{{ c.titol }}" loading="lazy">
-          <div class="col-card-overlay"></div>
-          <div class="col-card-n">{{ c.n }} rutes</div>
-        </div>
-        <div class="col-card-cos">
-          <div class="col-card-titol">{{ c.titol }}</div>
-          <div class="col-card-desc">{{ c.desc }}</div>
+        <div class="col-card-cos" style="padding:20px;">
+          <div class="col-card-titol">{{ c.nom }}</div>
+          <div class="col-card-desc" style="margin-top:8px;font-size:13px;color:#888;">{{ c.n }} ruta{{ 's' if c.n != 1 else '' }}</div>
         </div>
       </a>
+      {% else %}
+      <p style="color:#bbb;">Sense col·leccions.</p>
       {% endfor %}
     </div>
   </div>
@@ -232,23 +223,16 @@
       <p>Ferrocarril, muntanya i tot el que els envolta</p>
     </div>
     <div class="grid-3">
-      {% set articles = [
-        {"cat": "Ferrocarril", "titol": "El tren de Núria, una joia de la muntanya catalana", "desc": "La cremallera de Núria és un dels trens de muntanya més antics d'Europa. La seva història i curiositats.", "data": "12 de maig, 2025", "img": "https://images.unsplash.com/photo-1474487548417-781cb71495f3?w=500&q=80"},
-        {"cat": "Material", "titol": "Què portar a la motxilla per a rutes de mitja i llarga distància", "desc": "Guia pràctica del material essencial per a excursions d'un dia des de l'estació fins al cim.", "data": "3 d'abril, 2025", "img": "https://images.unsplash.com/photo-1551632811-561732d1e306?w=500&q=80"},
-        {"cat": "Trens del món", "titol": "Els trens de muntanya més espectaculars d'Europa", "desc": "Del Bernina Express als trens dels Pirineus: els ferrocarrils de muntanya més impressionants del continent.", "data": "18 de març, 2025", "img": "https://images.unsplash.com/photo-1516912481808-3406841bd33c?w=500&q=80"},
-      ] %}
-      {% for a in articles %}
-      <a class="card" href="/articles" style="text-decoration:none;">
-        <div class="art-img">
-          <img src="{{ a.img }}" alt="{{ a.titol }}" loading="lazy">
-        </div>
-        <div class="art-cos">
-          <div class="art-cat">{{ a.cat }}</div>
-          <div class="art-titol">{{ a.titol }}</div>
-          <div class="art-desc">{{ a.desc }}</div>
+      {% for a in articles_recents %}
+      <a class="card" href="/article/{{ a.id }}" style="text-decoration:none;">
+        <div class="art-cos" style="padding:20px;">
           <div class="art-meta">{{ a.data }}</div>
+          <div class="art-titol">{{ a.titol }}</div>
+          <div class="art-desc">{{ a.extracte | striptags | truncate(120) }}</div>
         </div>
       </a>
+      {% else %}
+      <p style="color:#bbb;">Sense articles recents.</p>
       {% endfor %}
     </div>
     <div style="text-align:center;margin-top:32px;">
