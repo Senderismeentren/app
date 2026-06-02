@@ -526,9 +526,14 @@ def api_resseny():
         # Intentar extreure solo la secció "LA RESSENYA" si existeix
         # Busca el heading amb id="la-ressenya" o similar
         m_resseny = re.search(
-            r'<h[2-5][^>]*id=["']la-ressenya["'][^>]*>.*?</h[2-5]>(.*?)(?=<h[2-5]|$)',
+            r'<h[2-5][^>]*id="la-ressenya"[^>]*>.*?</h[2-5]>(.*?)(?=<h[2-5]|$)',
             contingut_html, flags=re.DOTALL | re.IGNORECASE
         )
+        if not m_resseny:
+            m_resseny = re.search(
+                r"<h[2-5][^>]*id='la-ressenya'[^>]*>.*?</h[2-5]>(.*?)(?=<h[2-5]|$)",
+                contingut_html, flags=re.DOTALL | re.IGNORECASE
+            )
         if m_resseny:
             contingut_html = m_resseny.group(1)
 
@@ -541,10 +546,7 @@ def api_resseny():
         contingut = re.sub(r'<figure[^>]*>.*?</figure>', '', contingut, flags=re.DOTALL)
         contingut = re.sub(r'<img[^>]*>', '', contingut)
         contingut = re.sub(r' style="[^"]*"', '', contingut)
-        contingut = re.sub(r'
-{3,}', '
-
-', contingut)
+        contingut = re.sub("\n{3,}", "\n\n", contingut)
         contingut = contingut.strip()
 
         return jsonify({
