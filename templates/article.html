@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block titol %}{{ titol }}{% endblock %}
+
+{% block estils_extra %}
+<style>
+.article-page { max-width: 720px; margin: 0 auto; padding: 32px 20px 64px; }
+.article-back { display: inline-flex; align-items: center; gap: 5px; font-size: 13px; color: #888; text-decoration: none; margin-bottom: 20px; }
+.article-back:hover { color: #3498DB; }
+.article-data { font-size: 11px; color: #bbb; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; }
+.article-titol { font-size: 26px; font-weight: 800; color: #111; line-height: 1.25; margin-bottom: 24px; border-bottom: 2px solid #f0f0f0; padding-bottom: 16px; }
+.article-cos { font-size: 15px; color: #333; line-height: 1.8; }
+.article-cos p { margin-bottom: 14px; }
+.article-cos h2, .article-cos h3, .article-cos h4 { font-weight: 700; color: #111; margin: 22px 0 10px; }
+.article-cos h4 { font-size: 16px; }
+.article-cos a { color: #3498DB; text-decoration: underline; }
+.article-cos a:hover { color: #1a6ea8; }
+.article-cos img { max-width: 100%; border-radius: 8px; margin: 12px 0; }
+.article-cos ul, .article-cos ol { padding-left: 22px; margin-bottom: 14px; }
+.article-cos li { margin-bottom: 5px; }
+.article-cos blockquote { border-left: 3px solid #3498DB; padding-left: 16px; color: #555; font-style: italic; margin: 16px 0; }
+.article-cos figure { margin: 16px 0; }
+.article-cos figcaption { font-size: 12px; color: #aaa; text-align: center; margin-top: 6px; }
+</style>
+{% endblock %}
+
+{% block contingut %}
+<div class="article-page">
+  <a class="article-back" href="/articles">← Tornar als articles</a>
+  <div class="article-data">{{ data_pub }}</div>
+  <h1 class="article-titol">{{ titol }}</h1>
+  {% if contingut %}
+  <div class="article-cos">{{ contingut | safe }}</div>
+  {% else %}
+  <p style="color:#bbb;">Article no disponible.</p>
+  {% endif %}
+</div>
+{% endblock %}
