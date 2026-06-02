@@ -164,6 +164,7 @@ def ruta_a_dict(row):
         "op_sortida":   v("Operador_sortida"),
         "id_sortida":   v("ID_estació_sortida"),
         "enllaç_wp":    v("Enllaç_WP"),
+        "destacada":    v("Destacada", "").strip().lower() in ("sí", "si", "yes", "1", "x"),
         "lat_sortida":  vf("Lat_sortida"),
         "lng_sortida":  vf("Lon_sortida"),
         "linies_sortida": [l.strip() for l in v("Linies_sortida").split(";") if l.strip()],
@@ -343,13 +344,42 @@ def get_filtres(rutes):
 @app.route("/")
 def inici():
     rutes = get_rutes()
-    destacades = rutes[:3]
-    # Estacions úniques (sense duplicats)
+
+    # Rutes destacades (columna "Destacada" = Sí)
+    destacades = [r for r in rutes if r.get("destacada")][:6]
+    if not destacades:
+        destacades = rutes[:3]  # fallback
+
+    # Millors rutes temàtiques (primeres 4 col·leccions)
+    grups = {}
+    for r in rutes:
+        cat = r.get("millors", "")
+        if not cat: continue
+        grups.setdefault(cat, []).append(r)
+    colleccions = [{"nom": k, "n": len(v)} for k, v in sorted(grups.items())][:4]
+
+    # Articles recents del WP
+    articles_recents = []
+    try:
+        resp = requests.get("https://senderismeentren.cat/wp-json/wp/v2/posts",
+            params={"categories": CAT_ARTICLES, "per_page": 3,
+                    "_fields": "id,title,excerpt,date"},
+            timeout=5)
+        for a in resp.json():
+            articles_recents.append({
+                "id": a.get("id"),
+                "titol": a.get("title", {}).get("rendered", ""),
+                "extracte": a.get("excerpt", {}).get("rendered", ""),
+                "data": a.get("date", "")[:10],
+            })
+    except Exception:
+        pass
+
+    # Stats
     estacions_uniques = set()
     for r in rutes:
         if r["sortida"]: estacions_uniques.add(r["sortida"])
         if r["arribada"]: estacions_uniques.add(r["arribada"])
-    # Línies úniques (sense duplicats)
     linies_uniques = set()
     for r in rutes:
         for l in r["linies_sortida"]: linies_uniques.add(l)
@@ -365,7 +395,11 @@ def inici():
         "total_km": round(total_km),
         "total_desn": total_desn,
     }
-    return render_template("inici.html", destacades=destacades, stats=stats)
+    return render_template("inici.html",
+        destacades=destacades,
+        colleccions=colleccions,
+        articles_recents=articles_recents,
+        stats=stats)
 
 
 @app.route("/rutes")
