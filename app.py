@@ -494,6 +494,62 @@ def api_rutes():
 # Caché de GPX de línies (en memòria, es carrega un cop)
 _cache_gpx_linies = {}
 
+@app.route("/api/resseny")
+def api_resseny():
+    """Llegeix el contingut d'un post de WP via la seva URL."""
+    import re
+    url_wp = request.args.get("url", "")
+    if not url_wp:
+        return jsonify({"error": "cal url"}), 400
+    try:
+        # Extreure l'ID del post de la URL
+        m = re.search(r'/(\d+)/?$', url_wp)
+        if not m:
+            # Provar amb slug
+            slug = url_wp.rstrip('/').split('/')[-1]
+            base = url_wp.rstrip('/').rsplit('/', 1)[0]
+            api_url = f"https://senderismeentren.cat/wp-json/wp/v2/posts?slug={slug}"
+        else:
+            post_id = m.group(1)
+            api_url = f"https://senderismeentren.cat/wp-json/wp/v2/posts/{post_id}"
+
+        resp = requests.get(api_url, timeout=8)
+        data = resp.json()
+
+        # Si és llista, agafar el primer
+        if isinstance(data, list):
+            if not data:
+                return jsonify({"error": "no trobat"}), 404
+            data = data[0]
+
+        titol = data.get("title", {}).get("rendered", "")
+        contingut_html = data.get("content", {}).get("rendered", "")
+        extracte = data.get("excerpt", {}).get("rendered", "")
+
+        # Netejar HTML: treure galeries, imatges, spacers
+        contingut = re.sub(r'<div[^>]*tiled-gallery[^>]*>.*?</div>\s*</div>\s*</div>\s*</div>\s*</div>', '', contingut_html, flags=re.DOTALL)
+        contingut = re.sub(r'<div[^>]*wp-block-image[^>]*>.*?</div>', '', contingut, flags=re.DOTALL)
+        contingut = re.sub(r'<div[^>]*wp-block-spacer[^>]*>.*?</div>', '', contingut, flags=re.DOTALL)
+        contingut = re.sub(r'<figure[^>]*>.*?</figure>', '', contingut, flags=re.DOTALL)
+        contingut = re.sub(r'<img[^>]*>', '', contingut)
+        # Netejar atributs d'estil de color
+        contingut = re.sub(r' style="[^"]*color[^"]*"', '', contingut)
+        # Treure línies buides múltiples
+        contingut = re.sub(r'
+{3,}', '
+
+', contingut)
+        contingut = contingut.strip()
+
+        return jsonify({
+            "titol": titol,
+            "contingut": contingut,
+            "extracte": extracte,
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route("/api/gpx/linia/<nom_linia>")
 def api_gpx_linia(nom_linia):
     """Serveix el GPX d'una línia de tren des de GitHub amb caché."""
