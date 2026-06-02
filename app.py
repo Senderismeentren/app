@@ -164,7 +164,7 @@ def ruta_a_dict(row):
         "op_sortida":   v("Operador_sortida"),
         "id_sortida":   v("ID_estació_sortida"),
         "enllaç_wp":    v("Enllaç_WP"),
-        "destacada":    v("Destacada", "").strip().lower() in ("sí", "si", "yes", "1", "x"),
+        "destacada":    (v("Destacada") or "").strip().lower() in ("sí", "si", "yes", "1", "x"),
         "lat_sortida":  vf("Lat_sortida"),
         "lng_sortida":  vf("Lon_sortida"),
         "linies_sortida": [l.strip() for l in v("Linies_sortida").split(";") if l.strip()],
