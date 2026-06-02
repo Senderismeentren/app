@@ -189,6 +189,7 @@
 }
 .btn-flotant:hover { transform: translateY(-1px); box-shadow: 0 5px 16px rgba(0,0,0,0.25); }
 .btn-fl-wiki { background: #2d9e6b; color: white; }
+.btn-fl-resseny { background: #e67e22; color: white; }
 .btn-fl-mapa { background: var(--blau); color: white; }
 
 /* ── RESPONSIVE ──────────────────────────────────────────────────── */
@@ -377,6 +378,9 @@
 <div class="btns-flotants">
   {% if ruta.wiki %}
   <a class="btn-flotant btn-fl-wiki" href="{{ ruta.wiki }}" target="_blank" rel="noopener">🔗 Wikiloc</a>
+  {% endif %}
+  {% if ruta.enllaç_wp %}
+  <a class="btn-flotant btn-fl-resseny" href="{{ ruta.enllaç_wp }}" target="_blank" rel="noopener">📖 Ressenya</a>
   {% endif %}
 </div>
 
