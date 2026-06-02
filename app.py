@@ -494,6 +494,55 @@ def api_rutes():
 # Caché de GPX de línies (en memòria, es carrega un cop)
 _cache_gpx_linies = {}
 
+# ── ARTICLES ─────────────────────────────────────────────────────
+WP_BASE = "https://senderismeentren.cat/wp-json/wp/v2"
+CAT_ARTICLES = 208
+
+@app.route("/articles")
+def articles_pagina():
+    """Llista d'articles del WP."""
+    try:
+        resp = requests.get(f"{WP_BASE}/posts",
+            params={"categories": CAT_ARTICLES, "per_page": 20,
+                    "_fields": "id,title,excerpt,date,slug,link"},
+            timeout=8)
+        articles = resp.json()
+        if not isinstance(articles, list):
+            articles = []
+        for a in articles:
+            a["titol"] = a.get("title", {}).get("rendered", "")
+            a["extracte"] = a.get("excerpt", {}).get("rendered", "")
+            a["data"] = a.get("date", "")[:10]
+    except Exception:
+        articles = []
+    return render_template("articles.html", articles=articles)
+
+@app.route("/article/<int:post_id>")
+def article_pagina(post_id):
+    """Mostra un article del WP."""
+    import re
+    try:
+        resp = requests.get(f"{WP_BASE}/posts/{post_id}",
+            params={"_fields": "id,title,content,excerpt,date"},
+            timeout=8)
+        data = resp.json()
+        titol = data.get("title", {}).get("rendered", "")
+        contingut_html = data.get("content", {}).get("rendered", "")
+        data_pub = data.get("date", "")[:10]
+
+        # Netejar HTML: treure social links, spacers, però mantenir imatges
+        contingut = re.sub(r'<ul[^>]*wp-block-social-links[^>]*>.*?</ul>', '', contingut_html, flags=re.DOTALL)
+        contingut = re.sub(r'<div[^>]*wp-block-spacer[^>]*>.*?</div>', '', contingut, flags=re.DOTALL)
+        contingut = re.sub(r' style="[^"]*color[^"]*"', '', contingut)
+        contingut = contingut.strip()
+    except Exception as e:
+        titol = "Article no trobat"
+        contingut = ""
+        data_pub = ""
+    return render_template("article.html", titol=titol, contingut=contingut,
+                           data_pub=data_pub, post_id=post_id)
+
+
 @app.route("/api/resseny")
 def api_resseny():
     """Llegeix el contingut d'un post de WP via la seva URL."""
