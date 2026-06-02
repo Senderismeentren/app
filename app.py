@@ -436,9 +436,9 @@ def rutes_pagina():
     filtres_actius = {k: v for k, v in {
         "dificultat": dif, "comarca": comarca,
         "operador": operador, "espai": espai,
-        "cims": cims, "millors": millors,
+        "cims": cims,
         "estacio": estacio,
-        "millors_filtre": millors_filtre,
+        "millors": millors_filtre or millors,
     }.items() if v}
 
     # Afegir estacions al diccionari de filtres
