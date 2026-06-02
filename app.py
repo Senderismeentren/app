@@ -502,16 +502,13 @@ def api_resseny():
     if not url_wp:
         return jsonify({"error": "cal url"}), 400
     try:
-        # Extreure l'ID del post de la URL
-        m = re.search(r'/(\d+)/?$', url_wp)
-        if not m:
-            # Provar amb slug
-            slug = url_wp.rstrip('/').split('/')[-1]
-            base = url_wp.rstrip('/').rsplit('/', 1)[0]
-            api_url = f"https://senderismeentren.cat/wp-json/wp/v2/posts?slug={slug}"
+        # Extreure l'ID de la URL (pot ser numèric o slug)
+        import re as _re
+        segment = url_wp.rstrip('/').split('/')[-1]
+        if segment.isdigit():
+            api_url = f"https://senderismeentren.cat/wp-json/wp/v2/posts/{segment}?_fields=title,content,excerpt"
         else:
-            post_id = m.group(1)
-            api_url = f"https://senderismeentren.cat/wp-json/wp/v2/posts/{post_id}"
+            api_url = f"https://senderismeentren.cat/wp-json/wp/v2/posts?slug={segment}&_fields=title,content,excerpt"
 
         resp = requests.get(api_url, timeout=8)
         data = resp.json()
@@ -526,15 +523,24 @@ def api_resseny():
         contingut_html = data.get("content", {}).get("rendered", "")
         extracte = data.get("excerpt", {}).get("rendered", "")
 
-        # Netejar HTML: treure galeries, imatges, spacers
-        contingut = re.sub(r'<div[^>]*tiled-gallery[^>]*>.*?</div>\s*</div>\s*</div>\s*</div>\s*</div>', '', contingut_html, flags=re.DOTALL)
+        # Intentar extreure solo la secció "LA RESSENYA" si existeix
+        # Busca el heading amb id="la-ressenya" o similar
+        m_resseny = re.search(
+            r'<h[2-5][^>]*id=["']la-ressenya["'][^>]*>.*?</h[2-5]>(.*?)(?=<h[2-5]|$)',
+            contingut_html, flags=re.DOTALL | re.IGNORECASE
+        )
+        if m_resseny:
+            contingut_html = m_resseny.group(1)
+
+        # Netejar HTML: treure galeries, imatges, spacers, social links
+        contingut = re.sub(r'<ul[^>]*wp-block-social-links[^>]*>.*?</ul>', '', contingut_html, flags=re.DOTALL)
+        contingut = re.sub(r'<ol[^>]*wp-block-table-of-contents[^>]*>.*?</ol>', '', contingut, flags=re.DOTALL)
+        contingut = re.sub(r'<div[^>]*tiled-gallery[^>]*>.*?</div>\s*</div>\s*</div>\s*</div>\s*</div>', '', contingut, flags=re.DOTALL)
         contingut = re.sub(r'<div[^>]*wp-block-image[^>]*>.*?</div>', '', contingut, flags=re.DOTALL)
         contingut = re.sub(r'<div[^>]*wp-block-spacer[^>]*>.*?</div>', '', contingut, flags=re.DOTALL)
         contingut = re.sub(r'<figure[^>]*>.*?</figure>', '', contingut, flags=re.DOTALL)
         contingut = re.sub(r'<img[^>]*>', '', contingut)
-        # Netejar atributs d'estil de color
-        contingut = re.sub(r' style="[^"]*color[^"]*"', '', contingut)
-        # Treure línies buides múltiples
+        contingut = re.sub(r' style="[^"]*"', '', contingut)
         contingut = re.sub(r'
 {3,}', '
 
