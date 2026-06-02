@@ -100,9 +100,15 @@
         {% for r in rutes %}
         <a class="col-rcard" href="/ruta/{{ r.id }}"
            style="border-left-color:{{ r.color_dif }};">
+          <div style="position:relative;height:110px;overflow:hidden;border-radius:8px 8px 0 0;">
+            <img src="https://raw.githubusercontent.com/Senderismeentren/imatges/main/ruta-{{ '%03d'|format(r.id) }}/foto1.jpg"
+                 alt="{{ r.nom }}" loading="lazy"
+                 style="width:100%;height:100%;object-fit:cover;"
+                 onerror="this.parentElement.style.display='none'">
+            <div style="position:absolute;top:8px;left:8px;width:24px;height:24px;border-radius:50%;background:{{ r.color_dif }};color:white;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 4px rgba(0,0,0,0.3);">{{ r.id }}</div>
+          </div>
           <div class="col-rcard-cap" style="background:{{ r.color_dif }}08;">
             <div class="col-rcard-fila">
-              <div class="col-rcard-num" style="background:{{ r.color_dif }};">{{ r.id }}</div>
               <div class="col-rcard-nom">{{ r.nom }}</div>
             </div>
             <div class="badge-dif" style="background:{{ r.color_dif }}18;border-color:{{ r.color_dif }}44;">
