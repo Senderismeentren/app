@@ -164,7 +164,7 @@ def ruta_a_dict(row):
         "op_sortida":   v("Operador_sortida"),
         "id_sortida":   v("ID_estació_sortida"),
         "enllaç_wp":    v("Enllaç_WP"),
-        "destacada":    (v("Destacada") or "").strip().lower() in ("sí", "si", "yes", "1", "x"),
+        "destacada":    (v("Destacades") or "").strip().lower() in ("sí", "si", "yes", "1", "x"),
         "lat_sortida":  vf("Lat_sortida"),
         "lng_sortida":  vf("Lon_sortida"),
         "linies_sortida": [l.strip() for l in v("Linies_sortida").split(";") if l.strip()],
@@ -356,7 +356,12 @@ def inici():
         cat = r.get("millors", "")
         if not cat: continue
         grups.setdefault(cat, []).append(r)
-    colleccions = [{"nom": k, "n": len(v)} for k, v in sorted(grups.items())][:4]
+    colleccions = []
+    for k, v_list in sorted(grups.items()):
+        primera = v_list[0] if v_list else None
+        foto = f"https://raw.githubusercontent.com/Senderismeentren/imatges/main/ruta-{str(primera['id']).zfill(3)}/foto1.jpg" if primera else ""
+        colleccions.append({"nom": k, "n": len(v_list), "foto": foto, "url": f"/rutes?millors={k}"})
+    colleccions = colleccions[:4]
 
     # Articles recents del WP
     articles_recents = []
@@ -425,12 +430,15 @@ def rutes_pagina():
     if cims:    rutes = [r for r in rutes if r["cims"]]
     if millors: rutes = [r for r in rutes if r["millors"] == millors]
     if estacio: rutes = [r for r in rutes if estacio in [r["sortida"], r["arribada"]]]
+    millors_filtre = request.args.get("millors", "")
+    if millors_filtre: rutes = [r for r in rutes if r.get("millors") == millors_filtre]
 
     filtres_actius = {k: v for k, v in {
         "dificultat": dif, "comarca": comarca,
         "operador": operador, "espai": espai,
         "cims": cims, "millors": millors,
         "estacio": estacio,
+        "millors_filtre": millors_filtre,
     }.items() if v}
 
     # Afegir estacions al diccionari de filtres
