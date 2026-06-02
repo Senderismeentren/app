@@ -361,7 +361,7 @@ def inici():
         primera = v_list[0] if v_list else None
         foto = f"https://raw.githubusercontent.com/Senderismeentren/imatges/main/ruta-{str(primera['id']).zfill(3)}/foto1.jpg" if primera else ""
         colleccions.append({"nom": k, "n": len(v_list), "foto": foto, "url": f"/rutes?millors={k}"})
-    colleccions = colleccions[:4]
+    # Totes les col·leccions (inici.html en mostra 4 i la resta amb botó)
 
     # Articles recents del WP
     articles_recents = []
