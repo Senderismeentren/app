@@ -515,7 +515,7 @@ def articles_pagina():
             a["data"] = a.get("date", "")[:10]
     except Exception:
         articles = []
-    return render_template("articles.html", articles=articles)
+    return render_template("llista_articles.html", articles=articles)
 
 @app.route("/article/<int:post_id>")
 def article_pagina(post_id):
@@ -539,7 +539,7 @@ def article_pagina(post_id):
         titol = "Article no trobat"
         contingut = ""
         data_pub = ""
-    return render_template("article.html", titol=titol, contingut=contingut,
+    return render_template("fitxa_article.html", titol=titol, contingut=contingut,
                            data_pub=data_pub, post_id=post_id)
 
 
