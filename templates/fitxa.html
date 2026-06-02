@@ -287,6 +287,30 @@
       </div>
     </div>
 
+    <!-- RESSENYA WP -->
+    {% if ruta.enllaç_wp %}
+    <div class="bloc" id="bloc-resseny">
+      <div class="bloc-cap"><span class="bloc-icon">📰</span><span class="bloc-titol">Ressenya</span></div>
+      <div class="bloc-cos">
+        <div id="resseny-contingut" style="color:#444;line-height:1.7;font-size:14px;">
+          <p style="color:#ccc;font-size:13px;">Carregant...</p>
+        </div>
+        <div id="resseny-llegir-mes" style="display:none;margin-top:10px;">
+          <button onclick="expandirResseny()"
+            style="background:none;border:1px solid #ddd;border-radius:6px;padding:6px 14px;font-size:12px;color:#888;cursor:pointer;">
+            Llegir ressenya completa ↓
+          </button>
+        </div>
+        <div id="resseny-tancar" style="display:none;margin-top:12px;text-align:center;">
+          <button onclick="tancarResseny()"
+            style="background:none;border:1px solid #ddd;border-radius:6px;padding:6px 14px;font-size:12px;color:#888;cursor:pointer;">
+            ↑ Tancar ressenya
+          </button>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
     <!-- SENDERS -->
     {% if ruta.senders %}
     <div class="bloc">
@@ -447,6 +471,16 @@ function expandirResseny() {
   if (rest) rest.style.display = 'block';
   const btn = document.getElementById('resseny-llegir-mes');
   if (btn) btn.style.display = 'none';
+  const tancar = document.getElementById('resseny-tancar');
+  if (tancar) tancar.style.display = 'block';
+}
+function tancarResseny() {
+  const rest = document.getElementById('resseny-rest');
+  if (rest) rest.style.display = 'none';
+  const btn = document.getElementById('resseny-llegir-mes');
+  if (btn) btn.style.display = 'block';
+  const tancar = document.getElementById('resseny-tancar');
+  if (tancar) tancar.style.display = 'none';
 }
 // Per FGC usem el nom; per Rodalies (numèric) usem l'ID
 // Rodalies: ID numèric. FGC: nom de l'estació
