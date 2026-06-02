@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block titol %}Articles{% endblock %}
+
+{% block estils_extra %}
+<style>
+.articles-page { max-width: 900px; margin: 0 auto; padding: 32px 20px 64px; }
+.articles-cap { margin-bottom: 28px; }
+.articles-cap h1 { font-size: 24px; font-weight: 800; color: #111; margin-bottom: 6px; }
+.articles-cap p { font-size: 14px; color: #888; }
+.articles-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 20px; }
+.article-card {
+  background: white; border-radius: var(--radius); border: 1px solid #eee;
+  padding: 20px; text-decoration: none; color: inherit; display: block;
+  transition: all 0.2s;
+}
+.article-card:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); }
+.article-data { font-size: 11px; color: #bbb; font-weight: 600; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+.article-titol { font-size: 16px; font-weight: 700; color: #111; line-height: 1.35; margin-bottom: 10px; }
+.article-extracte { font-size: 13px; color: #666; line-height: 1.6; }
+.article-extracte p { margin: 0; }
+.article-extracte a { display: none; }
+</style>
+{% endblock %}
+
+{% block contingut %}
+<div class="articles-page">
+  <div class="articles-cap">
+    <h1>📰 Articles</h1>
+    <p>Reflexions, col·leccions i contingut sobre senderisme i tren.</p>
+  </div>
+  {% if articles %}
+  <div class="articles-grid">
+    {% for a in articles %}
+    <a class="article-card" href="/article/{{ a.id }}">
+      <div class="article-data">{{ a.data }}</div>
+      <div class="article-titol">{{ a.titol }}</div>
+      <div class="article-extracte">{{ a.extracte | safe }}</div>
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p style="color:#bbb;text-align:center;padding:60px 0;">No hi ha articles disponibles.</p>
+  {% endif %}
+</div>
+{% endblock %}
