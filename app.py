@@ -163,6 +163,7 @@ def ruta_a_dict(row):
         "sortida":      v("Estació_sortida"),
         "op_sortida":   v("Operador_sortida"),
         "id_sortida":   v("ID_estació_sortida"),
+        "enllaç_wp":    v("Enllaç_WP"),
         "lat_sortida":  vf("Lat_sortida"),
         "lng_sortida":  vf("Lon_sortida"),
         "linies_sortida": [l.strip() for l in v("Linies_sortida").split(";") if l.strip()],
@@ -614,8 +615,17 @@ def api_horaris(id_estacio):
             hora = entry.get("theoreticalDeparture", "")[:5]
             hora_est = entry.get("estimatedDeparture", "")[:5]
             linia = entry.get("lineId", "")
-            # headsign és la destinació concreta del tren
-            dest = entry.get("headsign") or entry.get("lineName", "")
+            # headsign és la destinació concreta; si és null, usem la segona part del lineName
+            headsign = entry.get("headsign")
+            line_name = entry.get("lineName", "")
+            if headsign:
+                dest = headsign
+            elif " - " in line_name:
+                # Ex: "Sant Vicenç - Maçanet-Massanes" -> agafem la part correcta
+                # segons la direcció del tren (no ho sabem, mostrem les dues parts)
+                dest = line_name
+            else:
+                dest = line_name
             retard = int(entry.get("currentDelay", 0) or 0)
             clau = f"{hora}_{linia}_{dest}"
             if hora and linia and clau not in vists:
