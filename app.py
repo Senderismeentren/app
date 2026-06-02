@@ -614,9 +614,10 @@ def api_horaris(id_estacio):
             hora = entry.get("theoreticalDeparture", "")[:5]
             hora_est = entry.get("estimatedDeparture", "")[:5]
             linia = entry.get("lineId", "")
-            dest = entry.get("lineName", "")
+            # headsign és la destinació concreta del tren
+            dest = entry.get("headsign") or entry.get("lineName", "")
             retard = int(entry.get("currentDelay", 0) or 0)
-            clau = f"{hora}_{linia}"
+            clau = f"{hora}_{linia}_{dest}"
             if hora and linia and clau not in vists:
                 vists.add(clau)
                 horaris.append({
