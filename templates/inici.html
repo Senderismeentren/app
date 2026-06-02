@@ -198,7 +198,7 @@
 <section class="seccio-fons-gris">
   <div class="container">
     <div class="seccio-cap">
-      <h2>Millors rutes temàtiques</h2>
+      <h2>Rutes temàtiques</h2>
       <p>Rutes agrupades per experiències i destinacions</p>
     </div>
     <div class="grid-4">
@@ -222,17 +222,26 @@
     {% if colleccions|length > 4 %}
     <div style="text-align:center;margin-top:20px;" id="col-mes-wrap">
       <div id="col-mes-llista" style="display:none;margin-bottom:16px;">
-        <div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:12px;">
+        <div class="grid-4" style="margin-top:16px;">
           {% for c in colleccions[4:] %}
-          <a href="{{ c.url }}" style="background:white;border:1px solid #ddd;border-radius:20px;padding:6px 16px;font-size:13px;font-weight:600;color:#333;text-decoration:none;display:inline-flex;align-items:center;gap:6px;">
-            {{ c.nom }} <span style="color:#bbb;font-size:11px;">{{ c.n }}</span>
+          <a class="card" href="{{ c.url }}" style="text-decoration:none;">
+            {% if c.foto %}
+            <div class="col-card-img">
+              <img src="{{ c.foto }}" alt="{{ c.nom }}" loading="lazy" onerror="this.parentElement.style.background='#e8eaf0';this.style.display='none'">
+              <div class="col-card-overlay"></div>
+              <div class="col-card-n">{{ c.n }} ruta{{ 's' if c.n != 1 else '' }}</div>
+            </div>
+            {% endif %}
+            <div class="col-card-cos">
+              <div class="col-card-titol">{{ c.nom }}</div>
+            </div>
           </a>
           {% endfor %}
         </div>
       </div>
       <button id="col-mes-btn"
         onclick="var el=document.getElementById('col-mes-llista');var btn=document.getElementById('col-mes-btn');var obert=el.style.display!=='none';el.style.display=obert?'none':'block';btn.textContent=obert?'Veure totes les col·leccions ↓':'Amagar ↑';"
-        style="background:none;border:1px solid #ddd;border-radius:20px;padding:8px 20px;font-size:13px;font-weight:600;color:#555;cursor:pointer;">
+        class="btn btn-primari" style="border:none;cursor:pointer;">
         Veure totes les col·leccions ↓
       </button>
     </div>
@@ -261,7 +270,7 @@
       {% endfor %}
     </div>
     <div style="text-align:center;margin-top:32px;">
-      <a class="btn btn-blanc" href="/articles">Veure tots els articles →</a>
+      <a class="btn btn-primari" href="/articles">Veure tots els articles →</a>
     </div>
   </div>
 </section>
