@@ -289,12 +289,7 @@
             Llegir ressenya completa ↓
           </button>
         </div>
-        <div id="resseny-toggle-baix" style="display:none;margin-top:12px;text-align:center;">
-          <button onclick="toggleResseny()"
-            style="background:none;border:1px solid #ddd;border-radius:6px;padding:6px 14px;font-size:12px;color:#888;cursor:pointer;">
-            ↑ Tancar ressenya
-          </button>
-        </div>
+
       </div>
     </div>
     {% endif %}
@@ -459,10 +454,8 @@ function toggleResseny() {
   _ressenyExpandida = !_ressenyExpandida;
   const rest = document.getElementById('resseny-rest');
   const btn = document.getElementById('resseny-toggle-btn');
-  const baix = document.getElementById('resseny-toggle-baix');
   if (rest) rest.style.display = _ressenyExpandida ? 'block' : 'none';
-  if (btn) btn.textContent = _ressenyExpandida ? '↑ Tancar ressenya' : 'Llegir ressenya completa ↓';
-  if (baix) baix.style.display = _ressenyExpandida ? 'block' : 'none';
+  if (btn) btn.textContent = _ressenyExpandida ? '↑ Amagar ressenya' : 'Llegir ressenya completa ↓';
 }
 // Per FGC usem el nom; per Rodalies (numèric) usem l'ID
 // Rodalies: ID numèric. FGC: nom de l'estació
