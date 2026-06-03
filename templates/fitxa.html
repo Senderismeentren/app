@@ -78,11 +78,6 @@
 
 /* ── DESCRIPCIÓ ─────────────────────────────────────────────────── */
 .fitxa-desc { font-size: 14px; color: #333; line-height: 1.78; }
-#resseny-contingut a { color: #3498DB; text-decoration: underline; }
-#resseny-contingut a:hover { color: #1a6ea8; }
-#resseny-contingut h4, #resseny-contingut h5 { color: #111; font-weight: 700; margin: 12px 0 6px; font-size: 14px; }
-#resseny-contingut ul, #resseny-contingut ol { padding-left: 20px; margin: 8px 0; }
-#resseny-contingut blockquote { border-left: 3px solid #ddd; padding-left: 12px; color: #666; font-style: italic; margin: 10px 0; }
 
 /* ── ADVERTIMENT ────────────────────────────────────────────────── */
 .fitxa-adv {
@@ -194,7 +189,6 @@
 }
 .btn-flotant:hover { transform: translateY(-1px); box-shadow: 0 5px 16px rgba(0,0,0,0.25); }
 .btn-fl-wiki { background: #2d9e6b; color: white; }
-.btn-fl-resseny { background: #e67e22; color: white; }
 .btn-fl-mapa { background: var(--blau); color: white; }
 
 /* ── RESPONSIVE ──────────────────────────────────────────────────── */
@@ -264,11 +258,36 @@
       <div class="bloc-cap"><span class="bloc-icon">📊</span><span class="bloc-titol">Dades tècniques</span></div>
       <div class="bloc-cos" style="padding-top:6px;">
         <div class="dades-tec">
+          {% set BASE = "https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/" %}
+          {% macro logo_fitxa(op) %}{% if op %}{% set o = op.lower() %}{% if 'fgc' in o %}logo-fgc{% elif 'cremallera' in o %}logo-cremalleranuria{% elif 'tmb' in o or 'metro' in o %}logo-tmb{% elif 'tram' in o %}logo-tram{% elif 'sncf' in o or 'groc' in o %}logo-sncf{% elif 'alta' in o or 'adif' in o %}logo-altavelocitat{% elif 'renfe' in o %}logo-renfe{% else %}logo-rodalies{% endif %}{% endif %}{% endmacro %}
+          {% macro linies_fitxa(linies) %}{% for l in linies %}<span style="background:#1a1a2e;color:white;border-radius:4px;padding:2px 6px;font-size:10px;font-weight:700;margin:1px;display:inline-block;">{{ l }}</span>{% endfor %}{% endmacro %}
+
           {% if ruta.sortida == ruta.arribada %}
-          <div class="dt-item"><div class="dt-icon">🚉</div><div><div class="dt-label">Estació de sortida/arribada</div><div class="dt-val">{{ ruta.sortida }}</div></div></div>
+          <div class="dt-item"><div class="dt-icon">🚉</div><div>
+            <div class="dt-label">Estació de sortida/arribada</div>
+            <div class="dt-val">{{ ruta.sortida }}</div>
+            <div style="display:flex;align-items:center;gap:6px;margin-top:5px;flex-wrap:wrap;">
+              <img src="{{ BASE }}{{ logo_fitxa(ruta.op_sortida) }}.svg" style="height:18px;max-width:44px;object-fit:contain;" onerror="this.style.display='none'">
+              {{ linies_fitxa(ruta.linies_sortida) }}
+            </div>
+          </div></div>
           {% else %}
-          <div class="dt-item"><div class="dt-icon">🚉</div><div><div class="dt-label">Estació de sortida</div><div class="dt-val">{{ ruta.sortida }}</div></div></div>
-          <div class="dt-item"><div class="dt-icon">🏁</div><div><div class="dt-label">Estació d'arribada</div><div class="dt-val">{{ ruta.arribada }}</div></div></div>
+          <div class="dt-item"><div class="dt-icon">🚉</div><div>
+            <div class="dt-label">Estació de sortida</div>
+            <div class="dt-val">{{ ruta.sortida }}</div>
+            <div style="display:flex;align-items:center;gap:6px;margin-top:5px;flex-wrap:wrap;">
+              <img src="{{ BASE }}{{ logo_fitxa(ruta.op_sortida) }}.svg" style="height:18px;max-width:44px;object-fit:contain;" onerror="this.style.display='none'">
+              {{ linies_fitxa(ruta.linies_sortida) }}
+            </div>
+          </div></div>
+          <div class="dt-item"><div class="dt-icon">🏁</div><div>
+            <div class="dt-label">Estació d'arribada</div>
+            <div class="dt-val">{{ ruta.arribada }}</div>
+            <div style="display:flex;align-items:center;gap:6px;margin-top:5px;flex-wrap:wrap;">
+              <img src="{{ BASE }}{{ logo_fitxa(ruta.op_arribada) }}.svg" style="height:18px;max-width:44px;object-fit:contain;" onerror="this.style.display='none'">
+              {{ linies_fitxa(ruta.linies_arribada) }}
+            </div>
+          </div></div>
           {% endif %}
           {% if ruta.comarca_sortida %}<div class="dt-item"><div class="dt-icon">🗺</div><div><div class="dt-label">Comarca sortida</div><div class="dt-val">{{ ruta.comarca_sortida }}</div></div></div>{% endif %}
           {% if ruta.comarca_arribada %}<div class="dt-item"><div class="dt-icon">🗺</div><div><div class="dt-label">Comarca arribada</div><div class="dt-val">{{ ruta.comarca_arribada }}</div></div></div>{% endif %}
@@ -277,26 +296,6 @@
         </div>
       </div>
     </div>
-
-    <!-- RESSENYA WP -->
-    {% if ruta.enllaç_wp %}
-    <div class="bloc" id="bloc-resseny">
-      <div class="bloc-cap"><span class="bloc-icon">📰</span><span class="bloc-titol">Ressenya</span></div>
-      <div class="bloc-cos">
-        <div id="resseny-contingut" style="color:#444;line-height:1.7;font-size:14px;padding-left:4px;">
-          <p style="color:#ccc;font-size:13px;">Carregant...</p>
-        </div>
-        <div id="resseny-toggle" style="display:none;margin-top:10px;">
-          <button onclick="toggleResseny()"
-            id="resseny-toggle-btn"
-            style="background:none;border:1px solid #ddd;border-radius:6px;padding:6px 14px;font-size:12px;color:#888;cursor:pointer;">
-            Llegir ressenya ↓
-          </button>
-        </div>
-
-      </div>
-    </div>
-    {% endif %}
 
     <!-- SENDERS -->
     {% if ruta.senders %}
@@ -408,9 +407,6 @@
   {% if ruta.wiki %}
   <a class="btn-flotant btn-fl-wiki" href="{{ ruta.wiki }}" target="_blank" rel="noopener">🔗 Wikiloc</a>
   {% endif %}
-  {% if ruta.enllaç_wp %}
-  <a class="btn-flotant btn-fl-resseny" href="{{ ruta.enllaç_wp }}" target="_blank" rel="noopener">📖 Ressenya</a>
-  {% endif %}
 </div>
 
 {% endblock %}
@@ -423,44 +419,6 @@ const PERFIL_DISTS = {{ perfil_dists|safe }};
 const PERFIL_ELES = {{ perfil_eles|safe }};
 const RUTA_COLOR = "{{ ruta.color_dif }}";
 const RUTA_ID = {{ ruta.id }};
-const ENLLAÇ_WP = "{{ ruta.enllaç_wp or '' }}";
-
-if (ENLLAÇ_WP) {
-  fetch('/api/resseny?url=' + encodeURIComponent(ENLLAÇ_WP))
-    .then(r => r.json())
-    .then(data => {
-      const div = document.getElementById('resseny-contingut');
-      if (!div) return;
-      if (data.error || !data.contingut) {
-        div.innerHTML = '<p style="color:#bbb;font-size:13px;">Ressenya no disponible.</p>';
-        return;
-      }
-      const temp = document.createElement('div');
-      temp.innerHTML = data.contingut;
-      const parags = Array.from(temp.querySelectorAll('p, h4, blockquote, ul'));
-      if (parags.length > 3) {
-        let preview = parags.slice(0, 3).map(p => p.outerHTML).join('');
-        let rest = parags.slice(3).map(p => p.outerHTML).join('');
-        div.innerHTML = `<div>${preview}</div><div id="resseny-rest" style="display:none">${rest}</div>`;
-        document.getElementById('resseny-toggle').style.display = 'block';
-      } else {
-        div.innerHTML = data.contingut;
-      }
-    })
-    .catch(() => {
-      const div = document.getElementById('resseny-contingut');
-      if (div) div.innerHTML = '<p style="color:#bbb;font-size:13px;">Ressenya no disponible.</p>';
-    });
-}
-
-let _ressenyExpandida = false;
-function toggleResseny() {
-  _ressenyExpandida = !_ressenyExpandida;
-  const rest = document.getElementById('resseny-rest');
-  const btn = document.getElementById('resseny-toggle-btn');
-  if (rest) rest.style.display = _ressenyExpandida ? 'block' : 'none';
-  if (btn) btn.textContent = _ressenyExpandida ? '↑ Amagueu ressenya' : 'Llegir ressenya completa ↓';
-}
 // Per FGC usem el nom; per Rodalies (numèric) usem l'ID
 // Rodalies: ID numèric. FGC: nom de l'estació
 const ID_SORTIDA = "{{ ruta.id_sortida if ruta.id_sortida and ruta.id_sortida|string|first|int(default=-1) >= 0 else ruta.sortida | replace(' ','_') }}";
