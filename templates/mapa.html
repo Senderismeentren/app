@@ -693,10 +693,8 @@ function fpAplicar() {
 
 function fpNetejar() {
   fpActius.dif.clear(); fpActius.espai.clear(); fpActius.dist = null;
-  document.querySelectorAll('.fp-pill.actiu').forEach(el => {
-    el.classList.remove('actiu');
-    if (el.dataset.grup === 'dif') { el.style.color = el.style.borderColor; el.style.background = 'white'; }
-  });
+  const sel = document.getElementById('fp-espai-sel');
+  if (sel) sel.value = '';
   document.querySelectorAll('.fp-dist span').forEach(s => s.classList.remove('actiu'));
   fpAplicar();
 }
