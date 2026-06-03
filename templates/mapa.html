@@ -149,6 +149,34 @@ body { overflow: hidden; }
     <span class="mapa-recompte" id="mapa-recompte">{{ rutes|length }} rutes · {{ estacions|length }} estacions</span>
   </div>
 
+  <!-- FILTRES -->
+  <button id="filtres-btn" onclick="document.getElementById('filtres-panel').style.display=document.getElementById('filtres-panel').style.display==='block'?'none':'block'">
+    ⚙️ Filtres <span id="filtres-badge">0</span>
+  </button>
+  <div id="filtres-panel">
+    <div class="fp-seccio">Dificultat</div>
+    <div class="fp-pills">
+      <span class="fp-pill" style="color:#2ECC71;border-color:#2ECC71" data-grup="dif" data-val="Molt fàcil" onclick="fpToggle(this)">Molt fàcil</span>
+      <span class="fp-pill" style="color:#3498DB;border-color:#3498DB" data-grup="dif" data-val="Fàcil" onclick="fpToggle(this)">Fàcil</span>
+      <span class="fp-pill" style="color:#E67E22;border-color:#E67E22" data-grup="dif" data-val="Moderada" onclick="fpToggle(this)">Moderada</span>
+      <span class="fp-pill" style="color:#E74C3C;border-color:#E74C3C" data-grup="dif" data-val="Exigent" onclick="fpToggle(this)">Exigent</span>
+      <span class="fp-pill" style="color:#111;border-color:#111" data-grup="dif" data-val="Molt exigent" onclick="fpToggle(this)">Molt exigent</span>
+    </div>
+    <div class="fp-seccio">Distància</div>
+    <div class="fp-dist">
+      <span data-val="0-10" onclick="fpDist(this)">< 10 km</span>
+      <span data-val="10-20" onclick="fpDist(this)">10–20 km</span>
+      <span data-val="20+" onclick="fpDist(this)">> 20 km</span>
+    </div>
+    <div class="fp-seccio">Espai natural</div>
+    <div class="fp-pills">
+      {% for espai in espais_mapa %}
+      <span class="fp-pill fp-espai" data-grup="espai" data-val="{{ espai }}" onclick="fpToggle(this)">{{ espai }}</span>
+      {% endfor %}
+    </div>
+    <button id="filtres-netejar" onclick="fpNetejar()">✕ Netejar filtres</button>
+  </div>
+
   <!-- MAPA -->
   <div id="mapa-general"></div>
 
