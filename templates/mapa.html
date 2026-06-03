@@ -97,6 +97,47 @@ body { overflow: hidden; }
   .mapa-recompte { display: none; }
   .mapa-panell { width: 100%; border-radius: 16px 16px 0 0; top: auto; bottom: 0; right: 0; left: 0; max-height: 60vh; transform: translateY(100%); }
   .mapa-panell.obert { transform: translateY(0); }
+
+/* ── FILTRE MAPA ──────────────────────────────────────────── */
+.mapa-filtres-btn {
+  position: absolute; top: 60px; right: 12px; z-index: 500;
+  background: white; border: 1px solid #ddd; border-radius: 10px;
+  padding: 8px 14px; font-size: 12px; font-weight: 700; color: #333;
+  cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+  display: flex; align-items: center; gap: 6px;
+}
+.mapa-filtres-btn:hover { background: #f5f5f5; }
+.mapa-filtres-btn .n-actius {
+  background: #3498DB; color: white; border-radius: 10px;
+  padding: 1px 7px; font-size: 11px; display: none;
+}
+.mapa-filtres-panel {
+  position: absolute; top: 100px; right: 12px; z-index: 500;
+  background: white; border: 1px solid #ddd; border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+  width: 260px; padding: 16px; display: none;
+}
+.mapa-filtres-panel.obert { display: block; }
+.mfp-titol { font-size: 11px; font-weight: 800; color: #aaa; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; margin-top: 12px; }
+.mfp-titol:first-child { margin-top: 0; }
+.mfp-pills { display: flex; flex-wrap: wrap; gap: 5px; }
+.mfp-pill {
+  padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600;
+  border: 2px solid transparent; cursor: pointer; transition: all 0.15s;
+  background: #f5f5f5; color: #555;
+}
+.mfp-pill.actiu { color: white; }
+.mfp-pill-espai { background: #f0f0f0; color: #444; border: 1px solid #ddd; }
+.mfp-pill-espai.actiu { background: #2c3e50; color: white; border-color: #2c3e50; }
+.mfp-dist { display: flex; gap: 5px; }
+.mfp-dist-btn {
+  flex: 1; padding: 5px 4px; border-radius: 8px; font-size: 11px; font-weight: 700;
+  border: 1px solid #ddd; background: #f5f5f5; color: #555; cursor: pointer; text-align: center;
+}
+.mfp-dist-btn.actiu { background: #2c3e50; color: white; border-color: #2c3e50; }
+.mfp-netejar { width: 100%; margin-top: 12px; padding: 7px; border-radius: 8px; border: none;
+  background: #f5f5f5; color: #888; font-size: 12px; font-weight: 700; cursor: pointer; }
+.mfp-netejar:hover { background: #eee; }
 }
 </style>
 {% endblock %}
@@ -147,6 +188,34 @@ body { overflow: hidden; }
       {% endfor %}
     </select>
     <span class="mapa-recompte" id="mapa-recompte">{{ rutes|length }} rutes · {{ estacions|length }} estacions</span>
+  </div>
+
+  <!-- FILTRE MAPA -->
+  <button class="mapa-filtres-btn" onclick="toggleFiltresPanel()" id="filtres-btn">
+    ⚙️ Filtres <span class="n-actius" id="filtres-n-actius">0</span>
+  </button>
+  <div class="mapa-filtres-panel" id="filtres-panel">
+    <div class="mfp-titol">Dificultat</div>
+    <div class="mfp-pills" id="filt-dif">
+      <span class="mfp-pill" data-color="#2ECC71" onclick="toggleFiltPill(this,'dif','Molt fàcil')" data-val="Molt fàcil" style="border-color:#2ECC71;color:#2ECC71;">Molt fàcil</span>
+      <span class="mfp-pill" data-color="#3498DB" onclick="toggleFiltPill(this,'dif','Fàcil')" data-val="Fàcil" style="border-color:#3498DB;color:#3498DB;">Fàcil</span>
+      <span class="mfp-pill" data-color="#E67E22" onclick="toggleFiltPill(this,'dif','Moderada')" data-val="Moderada" style="border-color:#E67E22;color:#E67E22;">Moderada</span>
+      <span class="mfp-pill" data-color="#E74C3C" onclick="toggleFiltPill(this,'dif','Exigent')" data-val="Exigent" style="border-color:#E74C3C;color:#E74C3C;">Exigent</span>
+      <span class="mfp-pill" data-color="#111111" onclick="toggleFiltPill(this,'dif','Molt exigent')" data-val="Molt exigent" style="border-color:#111;color:#111;">Molt exigent</span>
+    </div>
+    <div class="mfp-titol">Distància</div>
+    <div class="mfp-dist">
+      <div class="mfp-dist-btn" onclick="toggleFiltDist(this,'0-10')" data-val="0-10">< 10 km</div>
+      <div class="mfp-dist-btn" onclick="toggleFiltDist(this,'10-20')" data-val="10-20">10–20 km</div>
+      <div class="mfp-dist-btn" onclick="toggleFiltDist(this,'20+')" data-val="20+">> 20 km</div>
+    </div>
+    <div class="mfp-titol">Espai natural</div>
+    <div class="mfp-pills" id="filt-espai">
+      {% for espai in espais_mapa %}
+      <span class="mfp-pill mfp-pill-espai" onclick="toggleFiltPill(this,'espai','{{ espai }}')" data-val="{{ espai }}">{{ espai }}</span>
+      {% endfor %}
+    </div>
+    <button class="mfp-netejar" onclick="netejarFiltres()">✕ Netejar filtres</button>
   </div>
 
   <!-- MAPA -->
@@ -573,5 +642,90 @@ function mostrarInfoRuta(r) {
 function ocultarInfoRuta() {
   document.getElementById('mapa-info-ruta').classList.add('ocult');
 }
+
+// ── FILTRES MAPA ──────────────────────────────────────────────
+const filtresActius = { dif: new Set(), espai: new Set(), dist: null };
+
+function toggleFiltresPanel() {
+  document.getElementById('filtres-panel').classList.toggle('obert');
+}
+
+function toggleFiltPill(el, tipus, val) {
+  const actiu = el.classList.toggle('actiu');
+  if (actiu) {
+    const c = el.dataset.color || '#2c3e50';
+    el.style.background = c; el.style.color = 'white'; el.style.borderColor = c;
+    filtresActius[tipus].add(val);
+  } else {
+    el.style.background = ''; el.style.color = ''; el.style.borderColor = '';
+    filtresActius[tipus].delete(val);
+  }
+  aplicarFiltres();
+}
+
+function toggleFiltDist(el, val) {
+  const eraActiu = el.classList.contains('actiu');
+  document.querySelectorAll('.mfp-dist-btn').forEach(b => { b.classList.remove('actiu'); });
+  filtresActius.dist = eraActiu ? null : val;
+  if (!eraActiu) el.classList.add('actiu');
+  aplicarFiltres();
+}
+
+function rutaCompleixFiltres(ruta) {
+  if (filtresActius.dif.size > 0 && !filtresActius.dif.has(ruta.dificultat)) return false;
+  if (filtresActius.espai.size > 0) {
+    const espaiRuta = ruta.espai || '';
+    if (![...filtresActius.espai].some(e => espaiRuta.includes(e))) return false;
+  }
+  if (filtresActius.dist) {
+    const km = parseFloat(ruta.km) || 0;
+    if (filtresActius.dist === '0-10' && km >= 10) return false;
+    if (filtresActius.dist === '10-20' && (km < 10 || km > 20)) return false;
+    if (filtresActius.dist === '20+' && km <= 20) return false;
+  }
+  return true;
+}
+
+function aplicarFiltres() {
+  const hayFiltres = filtresActius.dif.size > 0 || filtresActius.espai.size > 0 || filtresActius.dist;
+  const n = filtresActius.dif.size + filtresActius.espai.size + (filtresActius.dist ? 1 : 0);
+  const badge = document.getElementById('filtres-n-actius');
+  badge.style.display = n > 0 ? 'inline' : 'none';
+  badge.textContent = n;
+
+  capes.rutes.clearLayers();
+  RUTES.forEach(ruta => {
+    if (!ruta.lat_sortida || !ruta.lng_sortida) return;
+    if (hayFiltres && !rutaCompleixFiltres(ruta)) return;
+    const color = COLORS[ruta.dificultat] || '#888';
+    const icon = L.divIcon({
+      className: '',
+      html: `<div style="width:22px;height:22px;border-radius:50%;background:${color};border:2px solid white;box-shadow:0 1px 4px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:white;">${ruta.id}</div>`,
+      iconSize: [22, 22], iconAnchor: [11, 11]
+    });
+    L.marker([ruta.lat_sortida, ruta.lng_sortida], {icon})
+      .addTo(capes.rutes)
+      .on('click', () => carregarTrack(ruta.id));
+  });
+
+  const visibles = hayFiltres ? RUTES.filter(rutaCompleixFiltres).length : RUTES.length;
+  document.getElementById('mapa-recompte').textContent = `${visibles} rutes · ${ESTACIONS.length} estacions`;
+}
+
+function netejarFiltres() {
+  filtresActius.dif.clear(); filtresActius.espai.clear(); filtresActius.dist = null;
+  document.querySelectorAll('.mfp-pill.actiu, .mfp-dist-btn.actiu').forEach(el => {
+    el.classList.remove('actiu'); el.style.background = ''; el.style.color = ''; el.style.borderColor = '';
+  });
+  aplicarFiltres();
+}
+
+document.addEventListener('click', e => {
+  const panel = document.getElementById('filtres-panel');
+  const btn = document.getElementById('filtres-btn');
+  if (panel && btn && !panel.contains(e.target) && !btn.contains(e.target)) {
+    panel.classList.remove('obert');
+  }
+});
 </script>
 {% endblock %}
