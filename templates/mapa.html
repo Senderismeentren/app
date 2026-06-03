@@ -116,29 +116,20 @@ body { overflow: hidden; }
   background: white; border: 1px solid #ddd; border-radius: 12px;
   box-shadow: 0 4px 20px rgba(0,0,0,0.15);
   width: 260px; padding: 16px; display: none;
+  max-height: calc(100vh - 160px); overflow-y: auto;
 }
 .mapa-filtres-panel.obert { display: block; }
 .mfp-titol { font-size: 11px; font-weight: 800; color: #aaa; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; margin-top: 12px; }
 .mfp-titol:first-child { margin-top: 0; }
 .mfp-pills { display: flex; flex-wrap: wrap; gap: 5px; }
-.mfp-pill {
-  padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600;
-  border: 2px solid transparent; cursor: pointer; transition: all 0.15s;
-  background: #f5f5f5; color: #555;
-}
-.mfp-pill.actiu { color: white; }
+.mfp-pill { padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; border: 2px solid; cursor: pointer; transition: all 0.15s; background: white; }
 .mfp-pill-espai { background: #f0f0f0; color: #444; border: 1px solid #ddd; }
 .mfp-pill-espai.actiu { background: #2c3e50; color: white; border-color: #2c3e50; }
 .mfp-dist { display: flex; gap: 5px; }
-.mfp-dist-btn {
-  flex: 1; padding: 5px 4px; border-radius: 8px; font-size: 11px; font-weight: 700;
-  border: 1px solid #ddd; background: #f5f5f5; color: #555; cursor: pointer; text-align: center;
-}
+.mfp-dist-btn { flex: 1; padding: 5px 4px; border-radius: 8px; font-size: 11px; font-weight: 700; border: 1px solid #ddd; background: #f5f5f5; color: #555; cursor: pointer; text-align: center; }
 .mfp-dist-btn.actiu { background: #2c3e50; color: white; border-color: #2c3e50; }
-.mfp-netejar { width: 100%; margin-top: 12px; padding: 7px; border-radius: 8px; border: none;
-  background: #f5f5f5; color: #888; font-size: 12px; font-weight: 700; cursor: pointer; }
+.mfp-netejar { width: 100%; margin-top: 12px; padding: 7px; border-radius: 8px; border: none; background: #f5f5f5; color: #888; font-size: 12px; font-weight: 700; cursor: pointer; }
 .mfp-netejar:hover { background: #eee; }
-}
 </style>
 {% endblock %}
 
@@ -257,10 +248,29 @@ const COLORS = {
 };
 
 // ── MAPA ──
-const mapa = L.map('mapa-general', {zoomControl: true}).setView([41.8, 2.0], 7);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+const mapa = L.map('mapa-general', {zoomControl: true}).setView([41.8, 2.0], 8);
+// Capes base
+const capaOSM = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   attribution: '© OpenStreetMap', maxZoom: 22
-}).addTo(mapa);
+});
+const capaICGC = L.tileLayer.wms('https://geoserveis.icgc.cat/icc_mapesmultibase/wms', {
+  layers: 'mtc25m', format: 'image/png', transparent: false,
+  attribution: '© ICGC', maxZoom: 20
+});
+const capaOrtofoto = L.tileLayer.wms('https://geoserveis.icgc.cat/icgc_orto_territorial/wms', {
+  layers: 'ortofoto_color_vigent', format: 'image/jpeg', transparent: false,
+  attribution: '© ICGC', maxZoom: 20
+});
+
+capaOSM.addTo(mapa);
+
+// Control de capes base
+const capaBase = {
+  'Mapa (OSM)': capaOSM,
+  'Topogràfic (ICGC)': capaICGC,
+  'Ortofoto (ICGC)': capaOrtofoto,
+};
+L.control.layers(capaBase, {}, {position: 'topright', collapsed: false}).addTo(mapa);
 
 // ── CAPES ──
 const capes = {
