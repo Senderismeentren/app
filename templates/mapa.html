@@ -142,6 +142,8 @@ body { overflow: hidden; }
     <span class="mapa-toolbar-titol">Mapa</span>
     <span class="tcapa actiu" id="tcapa-estacions" onclick="toggleCapa('estacions', this)">Estacions</span>
     <div class="mapa-sep"></div>
+    <span class="tcapa" id="tcapa-cims" onclick="toggleCapa('cims', this)">100 Cims</span>
+    <div class="mapa-sep"></div>
     <div class="op-linies-wrap">
       <span class="op-linies-label">Línies</span>
       <div class="op-linies-grup">
@@ -165,8 +167,6 @@ body { overflow: hidden; }
         </div>
       </div>
     </div>
-    <div class="mapa-sep"></div>
-    <span class="tcapa" id="tcapa-cims" onclick="toggleCapa('cims', this)">100 Cims</span>
     <div class="mapa-sep"></div>
     <select onchange="if(this.value){const est=ESTACIONS.find(e=>e.nom===this.value);if(est){mapa.setView([est.lat,est.lng],14);obrirPanellEstacio(est);}this.value=''}"
       style="border:1px solid #e0e0e0;background:white;color:#555;border-radius:8px;padding:4px 10px;font-size:12px;cursor:pointer;max-width:200px;height:30px;font-weight:600;">
@@ -251,8 +251,16 @@ const COLORS = {
 // ── MAPA ──
 const mapa = L.map('mapa-general', {zoomControl: true}).setView([41.8, 2.0], 8);
 const capaOSM = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {attribution:'© OpenStreetMap', maxZoom:18});
-const capaICGC = L.tileLayer.wms('https://geoserveis.icgc.cat/icc_mapesmultibase/wms', {layers:'mtc25m', format:'image/png', transparent:false, attribution:'© ICGC', maxZoom:20});
-const capaOrtofoto = L.tileLayer.wms('https://geoserveis.icgc.cat/icgc_orto_territorial/wms', {layers:'ortofoto_color_vigent', format:'image/jpeg', transparent:false, attribution:'© ICGC', maxZoom:20});
+const crs25831 = new L.Proj.CRS('EPSG:25831',
+  '+proj=utm +zone=31 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs',
+  {resolutions:[1100,550,275,100,50,25,10,5,2,1,0.5,0.25]}
+);
+const capaICGC = L.tileLayer.wms('https://geoserveis.icgc.cat/icc_mapesmultibase/utm/wms/service?', {
+  layers:'topo', format:'image/jpeg', crs:crs25831, continuousWorld:true, attribution:'© ICGC'
+});
+const capaOrtofoto = L.tileLayer.wms('https://geoserveis.icgc.cat/icc_mapesmultibase/utm/wms/service?', {
+  layers:'orto', format:'image/jpeg', crs:crs25831, continuousWorld:true, attribution:'© ICGC'
+});
 capaOSM.addTo(mapa);
 L.control.layers({'Mapa (OSM)': capaOSM, 'Topogràfic ICGC': capaICGC, 'Ortofoto ICGC': capaOrtofoto}, {}, {position:'bottomright', collapsed:true}).addTo(mapa);
 
