@@ -98,39 +98,6 @@ body { overflow: hidden; }
   .mapa-panell { width: 100%; border-radius: 16px 16px 0 0; top: auto; bottom: 0; right: 0; left: 0; max-height: 60vh; transform: translateY(100%); }
   .mapa-panell.obert { transform: translateY(0); }
 }
-
-/* ── FILTRES ──────────────────────────────────────────────── */
-#filtres-btn {
-  position: absolute; top: 62px; left: 12px; z-index: 500;
-  background: white; border: 1px solid #ddd; border-radius: 8px;
-  padding: 6px 12px; font-size: 12px; font-weight: 700; cursor: pointer;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.12); display: flex; align-items: center; gap: 5px;
-}
-#filtres-btn:hover { background: #f5f5f5; }
-#filtres-badge { background:#3498DB; color:white; border-radius:10px; padding:1px 6px; font-size:11px; display:none; }
-#filtres-panel {
-  position: absolute; top: 100px; left: 12px; z-index: 500;
-  background: white; border: 1px solid #ddd; border-radius: 12px;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.15); width: 260px;
-  padding: 14px; display: none;
-  max-height: calc(100vh - 160px); overflow-y: auto;
-}
-.fp-seccio { font-size: 10px; font-weight: 800; color: #bbb; text-transform: uppercase;
-  letter-spacing: 0.8px; margin: 10px 0 6px; }
-.fp-seccio:first-child { margin-top: 0; }
-.fp-pills { display: flex; flex-wrap: wrap; gap: 4px; }
-.fp-pill { padding: 3px 9px; border-radius: 20px; font-size: 12px; font-weight: 600;
-  border: 2px solid; cursor: pointer; background: white; transition: all 0.12s; }
-.fp-pill.actiu { color: white !important; }
-.fp-espai { background: #f5f5f5; color: #555; border-color: #ddd !important; font-size: 11px; }
-.fp-espai.actiu { background: #34495e !important; border-color: #34495e !important; color: white !important; }
-.fp-dist { display: flex; gap: 4px; margin-top: 2px; }
-.fp-dist span { flex:1; text-align:center; padding: 5px 2px; border-radius: 7px; font-size: 11px;
-  font-weight: 700; border: 1px solid #ddd; background: #f5f5f5; color: #555; cursor: pointer; }
-.fp-dist span.actiu { background: #34495e; color: white; border-color: #34495e; }
-#filtres-netejar { width:100%; margin-top:10px; padding:6px; border-radius:7px; border:none;
-  background:#f5f5f5; color:#888; font-size:12px; font-weight:700; cursor:pointer; }
-#filtres-netejar:hover { background: #eee; }
 </style>
 {% endblock %}
 
@@ -182,34 +149,6 @@ body { overflow: hidden; }
     <span class="mapa-recompte" id="mapa-recompte">{{ rutes|length }} rutes · {{ estacions|length }} estacions</span>
   </div>
 
-  <!-- FILTRES -->
-  <button id="filtres-btn" onclick="document.getElementById('filtres-panel').style.display=document.getElementById('filtres-panel').style.display==='block'?'none':'block'">
-    ⚙️ Filtres <span id="filtres-badge">0</span>
-  </button>
-  <div id="filtres-panel">
-    <div class="fp-seccio">Dificultat</div>
-    <div class="fp-pills">
-      <span class="fp-pill" style="color:#2ECC71;border-color:#2ECC71" data-grup="dif" data-val="Molt fàcil" onclick="fpToggle(this)">Molt fàcil</span>
-      <span class="fp-pill" style="color:#3498DB;border-color:#3498DB" data-grup="dif" data-val="Fàcil" onclick="fpToggle(this)">Fàcil</span>
-      <span class="fp-pill" style="color:#E67E22;border-color:#E67E22" data-grup="dif" data-val="Moderada" onclick="fpToggle(this)">Moderada</span>
-      <span class="fp-pill" style="color:#E74C3C;border-color:#E74C3C" data-grup="dif" data-val="Exigent" onclick="fpToggle(this)">Exigent</span>
-      <span class="fp-pill" style="color:#111;border-color:#111" data-grup="dif" data-val="Molt exigent" onclick="fpToggle(this)">Molt exigent</span>
-    </div>
-    <div class="fp-seccio">Distància</div>
-    <div class="fp-dist">
-      <span data-val="0-10" onclick="fpDist(this)">< 10 km</span>
-      <span data-val="10-20" onclick="fpDist(this)">10–20 km</span>
-      <span data-val="20+" onclick="fpDist(this)">> 20 km</span>
-    </div>
-    <div class="fp-seccio">Espai natural</div>
-    <div class="fp-pills">
-      {% for espai in espais_mapa %}
-      <span class="fp-pill fp-espai" data-grup="espai" data-val="{{ espai }}" onclick="fpToggle(this)">{{ espai }}</span>
-      {% endfor %}
-    </div>
-    <button id="filtres-netejar" onclick="fpNetejar()">✕ Netejar filtres</button>
-  </div>
-
   <!-- MAPA -->
   <div id="mapa-general"></div>
 
@@ -249,20 +188,21 @@ const COLORS = {
 };
 
 // ── MAPA ──
-const mapa = L.map('mapa-general', {zoomControl: true}).setView([41.8, 2.0], 8);
-const capaOSM = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {attribution:'© OpenStreetMap', maxZoom:18});
-const crs25831 = new L.Proj.CRS('EPSG:25831',
-  '+proj=utm +zone=31 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs',
-  {resolutions:[1100,550,275,100,50,25,10,5,2,1,0.5,0.25]}
-);
-const capaICGC = L.tileLayer.wms('https://geoserveis.icgc.cat/icc_mapesmultibase/utm/wms/service?', {
-  layers:'topo', format:'image/jpeg', crs:crs25831, continuousWorld:true, attribution:'© ICGC'
+const mapa = L.map('mapa-general', {zoomControl: true}).setView([41.8, 2.0], 7);
+const capaOSM = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '© OpenStreetMap', maxZoom: 18
 });
-const capaOrtofoto = L.tileLayer.wms('https://geoserveis.icgc.cat/icc_mapesmultibase/utm/wms/service?', {
-  layers:'orto', format:'image/jpeg', crs:crs25831, continuousWorld:true, attribution:'© ICGC'
+const capaICGC = L.tileLayer.wms('https://geoserveis.icgc.cat/icc_mapesmultibase/utm/wms/service?', {
+  layers: 'topo', format: 'image/jpeg', attribution: '© ICGC'
+});
+const capaOrto = L.tileLayer.wms('https://geoserveis.icgc.cat/icc_mapesmultibase/utm/wms/service?', {
+  layers: 'orto', format: 'image/jpeg', attribution: '© ICGC'
 });
 capaOSM.addTo(mapa);
-L.control.layers({'Mapa (OSM)': capaOSM, 'Topogràfic ICGC': capaICGC, 'Ortofoto ICGC': capaOrtofoto}, {}, {position:'bottomright', collapsed:true}).addTo(mapa);
+L.control.layers(
+  {'OSM': capaOSM, 'Topogràfic ICGC': capaICGC, 'Ortofoto ICGC': capaOrto},
+  {}, {position: 'bottomright', collapsed: true}
+).addTo(mapa);
 
 // ── CAPES ──
 const capes = {
@@ -644,73 +584,5 @@ function mostrarInfoRuta(r) {
 function ocultarInfoRuta() {
   document.getElementById('mapa-info-ruta').classList.add('ocult');
 }
-
-// ── FILTRES ──
-const fpActius = {dif: new Set(), espai: new Set(), dist: null};
-
-function fpToggle(el) {
-  const grup = el.dataset.grup, val = el.dataset.val;
-  if (el.classList.toggle('actiu')) {
-    fpActius[grup].add(val);
-    if (grup === 'dif') { el.style.background = el.style.color; el.style.color = 'white'; }
-  } else {
-    fpActius[grup].delete(val);
-    if (grup === 'dif') { el.style.color = el.style.borderColor; el.style.background = 'white'; }
-  }
-  fpAplicar();
-}
-
-function fpDist(el) {
-  const eraActiu = el.classList.contains('actiu');
-  document.querySelectorAll('.fp-dist span').forEach(s => s.classList.remove('actiu'));
-  fpActius.dist = eraActiu ? null : el.dataset.val;
-  if (!eraActiu) el.classList.add('actiu');
-  fpAplicar();
-}
-
-function fpCompleix(r) {
-  if (fpActius.dif.size > 0 && !fpActius.dif.has(r.dificultat)) return false;
-  if (fpActius.espai.size > 0 && ![...fpActius.espai].some(e => (r.espai||'').includes(e))) return false;
-  if (fpActius.dist) {
-    const km = parseFloat(r.km) || 0;
-    if (fpActius.dist === '0-10' && km >= 10) return false;
-    if (fpActius.dist === '10-20' && (km < 10 || km > 20)) return false;
-    if (fpActius.dist === '20+' && km <= 20) return false;
-  }
-  return true;
-}
-
-function fpAplicar() {
-  const n = fpActius.dif.size + fpActius.espai.size + (fpActius.dist ? 1 : 0);
-  const badge = document.getElementById('filtres-badge');
-  badge.style.display = n > 0 ? 'inline' : 'none';
-  badge.textContent = n;
-  const hayFiltres = n > 0;
-  capes.rutes.clearLayers();
-  let vis = 0;
-  RUTES.forEach(r => {
-    if (!r.lat_sortida || !r.lng_sortida) return;
-    if (hayFiltres && !fpCompleix(r)) return;
-    vis++;
-    const color = COLORS[r.dificultat] || '#888';
-    const icon = L.divIcon({className:'', html:`<div style="width:22px;height:22px;border-radius:50%;background:${color};border:2px solid white;box-shadow:0 1px 4px rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:white;">${r.id}</div>`, iconSize:[22,22], iconAnchor:[11,11]});
-    L.marker([r.lat_sortida, r.lng_sortida], {icon}).addTo(capes.rutes).on('click', () => carregarTrack(r.id));
-  });
-  document.getElementById('mapa-recompte').textContent = `${vis} rutes · ${ESTACIONS.length} estacions`;
-}
-
-function fpNetejar() {
-  fpActius.dif.clear(); fpActius.espai.clear(); fpActius.dist = null;
-  const sel = document.getElementById('fp-espai-sel');
-  if (sel) sel.value = '';
-  document.querySelectorAll('.fp-dist span').forEach(s => s.classList.remove('actiu'));
-  fpAplicar();
-}
-
-document.addEventListener('click', e => {
-  const panel = document.getElementById('filtres-panel');
-  const btn = document.getElementById('filtres-btn');
-  if (panel && btn && !panel.contains(e.target) && !btn.contains(e.target)) panel.style.display = 'none';
-});
 </script>
 {% endblock %}
