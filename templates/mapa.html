@@ -201,7 +201,7 @@ const capaOrto = L.tileLayer.wms('https://geoserveis.icgc.cat/icc_mapesmultibase
 capaOSM.addTo(mapa);
 L.control.layers(
   {'OSM': capaOSM, 'Topogràfic ICGC': capaICGC, 'Ortofoto ICGC': capaOrto},
-  {}, {position: 'bottomright', collapsed: true}
+  {}, {position: 'topright', collapsed: true}
 ).addTo(mapa);
 
 // ── CAPES ──
