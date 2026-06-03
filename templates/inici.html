@@ -6,30 +6,24 @@
 <style>
 /* ── AVÍS ──────────────────────────────────────────────────── */
 .avis-barra {
-  background: #1a1a2e;
-  color: #fff;
-  overflow: hidden;
-  white-space: nowrap;
-  height: 36px;
-  display: flex;
-  align-items: center;
+  position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+  background: #1a1a2e; color: #fff;
+  overflow: hidden; white-space: nowrap;
+  height: 32px; display: flex; align-items: center;
   border-bottom: 2px solid #f39c12;
 }
 .avis-track {
   display: inline-block;
-  animation: avis-scroll 30s linear infinite;
+  animation: avis-scroll 35s linear infinite;
   padding-left: 100%;
 }
-.avis-contingut {
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0.3px;
-  color: #f8f9fa;
-}
+.avis-contingut { font-size: 12px; font-weight: 600; letter-spacing: 0.3px; }
 @keyframes avis-scroll {
   0%   { transform: translateX(0); }
   100% { transform: translateX(-100%); }
 }
+body.amb-avis { padding-top: calc(var(--nav-h) + 32px); }
+body.amb-avis .nav { top: 32px; }
 
 /* ── HERO ──────────────────────────────────────────────────────── */
 .hero {
@@ -142,13 +136,13 @@
 
 {% block contingut %}
 
-<!-- AVÍS -->
 {% if avis %}
 <div class="avis-barra">
   <div class="avis-track">
-    <span class="avis-contingut">🚂 {{ avis }} &nbsp;&nbsp;&nbsp; 🚂 {{ avis }} &nbsp;&nbsp;&nbsp; 🚂 {{ avis }}</span>
+    <span class="avis-contingut">🚂 {{ avis }} &nbsp;&nbsp;&nbsp;&nbsp; 🚂 {{ avis }} &nbsp;&nbsp;&nbsp;&nbsp; 🚂 {{ avis }}</span>
   </div>
 </div>
+<script>document.body.classList.add('amb-avis');</script>
 {% endif %}
 
 <!-- HERO -->
