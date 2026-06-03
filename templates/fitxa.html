@@ -264,8 +264,12 @@
       <div class="bloc-cap"><span class="bloc-icon">📊</span><span class="bloc-titol">Dades tècniques</span></div>
       <div class="bloc-cos" style="padding-top:6px;">
         <div class="dades-tec">
-          <div class="dt-item"><div class="dt-icon">🚉</div><div><div class="dt-label">Sortida</div><div class="dt-val">{{ ruta.sortida }}</div></div></div>
-          <div class="dt-item"><div class="dt-icon">🏁</div><div><div class="dt-label">Arribada</div><div class="dt-val">{{ ruta.arribada }}</div></div></div>
+          {% if ruta.sortida == ruta.arribada %}
+          <div class="dt-item"><div class="dt-icon">🚉</div><div><div class="dt-label">Estació de sortida/arribada</div><div class="dt-val">{{ ruta.sortida }}</div></div></div>
+          {% else %}
+          <div class="dt-item"><div class="dt-icon">🚉</div><div><div class="dt-label">Estació de sortida</div><div class="dt-val">{{ ruta.sortida }}</div></div></div>
+          <div class="dt-item"><div class="dt-icon">🏁</div><div><div class="dt-label">Estació d'arribada</div><div class="dt-val">{{ ruta.arribada }}</div></div></div>
+          {% endif %}
           {% if ruta.comarca_sortida %}<div class="dt-item"><div class="dt-icon">🗺</div><div><div class="dt-label">Comarca sortida</div><div class="dt-val">{{ ruta.comarca_sortida }}</div></div></div>{% endif %}
           {% if ruta.comarca_arribada %}<div class="dt-item"><div class="dt-icon">🗺</div><div><div class="dt-label">Comarca arribada</div><div class="dt-val">{{ ruta.comarca_arribada }}</div></div></div>{% endif %}
           {% if ruta.cims and ruta.nom_cim %}<div class="dt-item"><div class="dt-icon">⛰️</div><div><div class="dt-label">100 Cims</div><div class="dt-val">{{ ruta.nom_cim }}</div></div></div>{% endif %}
