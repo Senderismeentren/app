@@ -336,14 +336,18 @@ def get_estacions():
 
 # ── FILTRES DISPONIBLES ─────────────────────────────────────────────
 def get_filtres(rutes):
-    dificultats = sorted(set(r["dificultat"] for r in rutes if r["dificultat"]))
+    ORDRE_DIF = ['Molt fàcil', 'Fàcil', 'Moderada', 'Exigent', 'Molt exigent']
+    difs_set = set(r["dificultat"] for r in rutes if r["dificultat"])
+    dificultats = [d for d in ORDRE_DIF if d in difs_set]
     comarques = sorted(set(
         c for r in rutes
         for c in [r["comarca_sortida"], r["comarca_arribada"]] if c
     ))
     operadors = sorted(set(
-        op for r in rutes
-        for op in [r["op_sortida"], r["op_arribada"]] if op
+        op.strip()
+        for r in rutes
+        for camp in [r["op_sortida"], r["op_arribada"]] if camp
+        for op in camp.split(";") if op.strip()
     ))
     espais = sorted(set(r["espai"] for r in rutes if r["espai"]))
     millors = sorted(set(r["millors"] for r in rutes if r["millors"]))
@@ -450,7 +454,7 @@ def rutes_pagina():
     rutes_all_list = get_rutes()
     if dif:     rutes = [r for r in rutes if r["dificultat"] == dif]
     if comarca: rutes = [r for r in rutes if comarca in [r["comarca_sortida"], r["comarca_arribada"]]]
-    if operador:rutes = [r for r in rutes if operador in [r["op_sortida"], r["op_arribada"]]]
+    if operador:rutes = [r for r in rutes if any(operador == op.strip() for camp in [r["op_sortida"] or "", r["op_arribada"] or ""] for op in camp.split(";"))]
     if espai:   rutes = [r for r in rutes if r["espai"] == espai]
     if cims:    rutes = [r for r in rutes if r["cims"]]
     if millors: rutes = [r for r in rutes if r["millors"] == millors]
@@ -482,9 +486,12 @@ def rutes_pagina():
     # Estacions agrupades per operador
     estacions_op = {}
     for r in rutes_all_list:
-        for est, op in [(r["sortida"], r["op_sortida"]), (r["arribada"], r["op_arribada"])]:
-            if est and op:
-                estacions_op.setdefault(op, set()).add(est)
+        for est, ops_str in [(r["sortida"], r["op_sortida"]), (r["arribada"], r["op_arribada"])]:
+            if est and ops_str:
+                for op in ops_str.split(";"):
+                    op = op.strip()
+                    if op:
+                        estacions_op.setdefault(op, set()).add(est)
     filtres["estacions_per_op"] = {op: sorted(ests) for op, ests in sorted(estacions_op.items())}
 
     return render_template("rutes.html",
