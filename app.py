@@ -360,6 +360,11 @@ def get_filtres(rutes):
 # RUTES FLASK (URLs)
 # ══════════════════════════════════════════════════════════════════════
 
+@app.context_processor
+def injectar_avis():
+    return {"avis": get_avis()}
+
+
 @app.route("/")
 def inici():
     rutes = get_rutes()
@@ -419,13 +424,11 @@ def inici():
         "total_km": round(total_km),
         "total_desn": total_desn,
     }
-    avis = get_avis()
     return render_template("inici.html",
         destacades=destacades,
         colleccions=colleccions,
         articles_recents=articles_recents,
-        stats=stats,
-        avis=avis)
+        stats=stats)
 
 
 @app.route("/rutes")
@@ -509,10 +512,14 @@ def mapa_pagina():
         op = est["op"] or "Altres"
         estacions_per_op.setdefault(op, []).append(est)
 
+    # Espais naturals únics per als filtres
+    espais_mapa = sorted(set(r["espai"] for r in rutes_mapa if r["espai"]))
+
     return render_template("mapa.html",
         rutes=rutes_mapa,
         estacions=estacions_list,
         estacions_per_op=estacions_per_op,
+        espais_mapa=espais_mapa,
     )
 
 
