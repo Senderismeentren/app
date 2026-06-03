@@ -336,14 +336,17 @@
     </div>
     {% endif %}
 
-    <!-- PUNT D'INTERÈS -->
+    <!-- ELEMENT DESTACAT -->
     {% if ruta.punt_interes %}
     {% set pi_parts = ruta.punt_interes.split(';') %}
     <div class="bloc">
-      <div class="bloc-cap"><span class="bloc-icon">📍</span><span class="bloc-titol">{{ pi_parts[0].strip() }}</span></div>
+      <div class="bloc-cap"><span class="bloc-icon">🌟</span><span class="bloc-titol">Element destacat</span></div>
       <div class="bloc-cos">
         {% if pi_parts|length > 1 %}
-        <p style="font-size:14px;color:#444;line-height:1.7;margin:0;">{{ pi_parts[1].strip() }}</p>
+        <p style="font-size:14px;font-weight:700;color:#111;margin:0 0 4px;">{{ pi_parts[0].strip() }}</p>
+        <p style="font-size:13px;color:#555;line-height:1.7;margin:0;">{{ pi_parts[1].strip() }}</p>
+        {% else %}
+        <p style="font-size:13px;color:#555;line-height:1.7;margin:0;">{{ pi_parts[0].strip() }}</p>
         {% endif %}
       </div>
     </div>
