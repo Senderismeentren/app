@@ -188,10 +188,12 @@ const COLORS = {
 };
 
 // ── MAPA ──
-const mapa = L.map('mapa-general', {zoomControl: true}).setView([41.8, 2.0], 7);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  attribution: '© OpenStreetMap', maxZoom: 18
-}).addTo(mapa);
+const mapa = L.map('mapa-general', {zoomControl: true}).setView([41.8, 2.0], 8);
+const capaOSM = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {attribution:'© OpenStreetMap', maxZoom:18});
+const capaICGC = L.tileLayer.wms('https://geoserveis.icgc.cat/icc_mapesmultibase/wms', {layers:'mtc25m', format:'image/png', transparent:false, attribution:'© ICGC', maxZoom:20});
+const capaOrtofoto = L.tileLayer.wms('https://geoserveis.icgc.cat/icgc_orto_territorial/wms', {layers:'ortofoto_color_vigent', format:'image/jpeg', transparent:false, attribution:'© ICGC', maxZoom:20});
+capaOSM.addTo(mapa);
+L.control.layers({'Mapa (OSM)': capaOSM, 'Topogràfic ICGC': capaICGC, 'Ortofoto ICGC': capaOrtofoto}, {}, {position:'bottomright', collapsed:true}).addTo(mapa);
 
 // ── CAPES ──
 const capes = {
@@ -573,5 +575,75 @@ function mostrarInfoRuta(r) {
 function ocultarInfoRuta() {
   document.getElementById('mapa-info-ruta').classList.add('ocult');
 }
+
+// ── FILTRES ──
+const fpActius = {dif: new Set(), espai: new Set(), dist: null};
+
+function fpToggle(el) {
+  const grup = el.dataset.grup, val = el.dataset.val;
+  if (el.classList.toggle('actiu')) {
+    fpActius[grup].add(val);
+    if (grup === 'dif') { el.style.background = el.style.color; el.style.color = 'white'; }
+  } else {
+    fpActius[grup].delete(val);
+    if (grup === 'dif') { el.style.color = el.style.borderColor; el.style.background = 'white'; }
+  }
+  fpAplicar();
+}
+
+function fpDist(el) {
+  const eraActiu = el.classList.contains('actiu');
+  document.querySelectorAll('.fp-dist span').forEach(s => s.classList.remove('actiu'));
+  fpActius.dist = eraActiu ? null : el.dataset.val;
+  if (!eraActiu) el.classList.add('actiu');
+  fpAplicar();
+}
+
+function fpCompleix(r) {
+  if (fpActius.dif.size > 0 && !fpActius.dif.has(r.dificultat)) return false;
+  if (fpActius.espai.size > 0 && ![...fpActius.espai].some(e => (r.espai||'').includes(e))) return false;
+  if (fpActius.dist) {
+    const km = parseFloat(r.km) || 0;
+    if (fpActius.dist === '0-10' && km >= 10) return false;
+    if (fpActius.dist === '10-20' && (km < 10 || km > 20)) return false;
+    if (fpActius.dist === '20+' && km <= 20) return false;
+  }
+  return true;
+}
+
+function fpAplicar() {
+  const n = fpActius.dif.size + fpActius.espai.size + (fpActius.dist ? 1 : 0);
+  const badge = document.getElementById('filtres-badge');
+  badge.style.display = n > 0 ? 'inline' : 'none';
+  badge.textContent = n;
+  const hayFiltres = n > 0;
+  capes.rutes.clearLayers();
+  let vis = 0;
+  RUTES.forEach(r => {
+    if (!r.lat_sortida || !r.lng_sortida) return;
+    if (hayFiltres && !fpCompleix(r)) return;
+    vis++;
+    const color = COLORS[r.dificultat] || '#888';
+    const icon = L.divIcon({className:'', html:`<div style="width:22px;height:22px;border-radius:50%;background:${color};border:2px solid white;box-shadow:0 1px 4px rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:white;">${r.id}</div>`, iconSize:[22,22], iconAnchor:[11,11]});
+    L.marker([r.lat_sortida, r.lng_sortida], {icon}).addTo(capes.rutes).on('click', () => carregarTrack(r.id));
+  });
+  document.getElementById('mapa-recompte').textContent = `${vis} rutes · ${ESTACIONS.length} estacions`;
+}
+
+function fpNetejar() {
+  fpActius.dif.clear(); fpActius.espai.clear(); fpActius.dist = null;
+  document.querySelectorAll('.fp-pill.actiu').forEach(el => {
+    el.classList.remove('actiu');
+    if (el.dataset.grup === 'dif') { el.style.color = el.style.borderColor; el.style.background = 'white'; }
+  });
+  document.querySelectorAll('.fp-dist span').forEach(s => s.classList.remove('actiu'));
+  fpAplicar();
+}
+
+document.addEventListener('click', e => {
+  const panel = document.getElementById('filtres-panel');
+  const btn = document.getElementById('filtres-btn');
+  if (panel && btn && !panel.contains(e.target) && !btn.contains(e.target)) panel.style.display = 'none';
+});
 </script>
 {% endblock %}
