@@ -10,9 +10,11 @@
 .articles-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 20px; }
 .article-card {
   background: white; border-radius: var(--radius); border: 1px solid #eee;
-  padding: 20px; text-decoration: none; color: inherit; display: block;
-  transition: all 0.2s;
+  text-decoration: none; color: inherit; display: block;
+  transition: all 0.2s; overflow: hidden;
 }
+.article-img { width:100%; height:160px; object-fit:cover; display:block; }
+.article-cos { padding: 16px; }
 .article-card:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); }
 .article-data { font-size: 11px; color: #bbb; font-weight: 600; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
 .article-titol { font-size: 16px; font-weight: 700; color: #111; line-height: 1.35; margin-bottom: 10px; }
@@ -32,9 +34,14 @@
   <div class="articles-grid">
     {% for a in articles %}
     <a class="article-card" href="/article/{{ a.id }}">
-      <div class="article-data">{{ a.data }}</div>
-      <div class="article-titol">{{ a.titol }}</div>
-      <div class="article-extracte">{{ a.extracte | safe }}</div>
+      {% if a.imatge %}
+      <img class="article-img" src="{{ a.imatge }}" alt="{{ a.titol }}" loading="lazy" onerror="this.style.display='none'">
+      {% endif %}
+      <div class="article-cos">
+        <div class="article-data">{{ a.data }}</div>
+        <div class="article-titol">{{ a.titol }}</div>
+        <div class="article-extracte">{{ a.extracte | safe }}</div>
+      </div>
     </a>
     {% endfor %}
   </div>
