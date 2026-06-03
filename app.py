@@ -598,7 +598,8 @@ def articles_pagina():
     try:
         resp = requests.get(f"{WP_BASE}/posts",
             params={"categories": CAT_ARTICLES, "per_page": 20,
-                    "_fields": "id,title,excerpt,date,slug,link"},
+                    "_fields": "id,title,excerpt,date,slug,link,featured_media",
+                    "_embed": "wp:featuredmedia"},
             timeout=8)
         articles = resp.json()
         if not isinstance(articles, list):
@@ -607,6 +608,12 @@ def articles_pagina():
             a["titol"] = __import__("html").unescape(a.get("title", {}).get("rendered", ""))
             a["extracte"] = a.get("excerpt", {}).get("rendered", "")
             a["data"] = a.get("date", "")[:10]
+            # Imatge destacada
+            try:
+                embedded = a.get("_embedded", {}).get("wp:featuredmedia", [])
+                a["imatge"] = embedded[0].get("source_url", "") if embedded else ""
+            except Exception:
+                a["imatge"] = ""
     except Exception:
         articles = []
     return render_template("llista_articles.html", articles=articles)
