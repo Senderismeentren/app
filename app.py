@@ -402,7 +402,7 @@ def inici():
         for a in resp.json():
             articles_recents.append({
                 "id": a.get("id"),
-                "titol": a.get("title", {}).get("rendered", ""),
+                "titol": h.unescape(a.get("title", {}).get("rendered", "")),
                 "extracte": a.get("excerpt", {}).get("rendered", ""),
                 "data": a.get("date", "")[:10],
             })
@@ -604,7 +604,7 @@ def articles_pagina():
         if not isinstance(articles, list):
             articles = []
         for a in articles:
-            a["titol"] = a.get("title", {}).get("rendered", "")
+            a["titol"] = __import__("html").unescape(a.get("title", {}).get("rendered", ""))
             a["extracte"] = a.get("excerpt", {}).get("rendered", "")
             a["data"] = a.get("date", "")[:10]
     except Exception:
@@ -620,7 +620,7 @@ def article_pagina(post_id):
             params={"_fields": "id,title,content,excerpt,date"},
             timeout=8)
         data = resp.json()
-        titol = data.get("title", {}).get("rendered", "")
+        titol = __import__("html").unescape(data.get("title", {}).get("rendered", ""))
         contingut_html = data.get("content", {}).get("rendered", "")
         data_pub = data.get("date", "")[:10]
 
@@ -662,7 +662,7 @@ def api_resseny():
                 return jsonify({"error": "no trobat"}), 404
             data = data[0]
 
-        titol = data.get("title", {}).get("rendered", "")
+        titol = __import__("html").unescape(data.get("title", {}).get("rendered", ""))
         contingut_html = data.get("content", {}).get("rendered", "")
         extracte = data.get("excerpt", {}).get("rendered", "")
 
