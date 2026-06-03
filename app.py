@@ -204,6 +204,25 @@ def ruta_a_dict(row):
     }
 
 
+def get_avis():
+    """Llegeix l'avís de la cel·la AP2 del Sheets."""
+    try:
+        dades = _cache_dades.get("dades")
+        if dades is None or dades.empty:
+            return ""
+        # AP és la columna 42 (0-indexed), fila 0 (primera fila de dades = AP2 al Sheets)
+        if "Avís" in dades.columns:
+            val = dades["Avís"].iloc[0] if len(dades) > 0 else ""
+            return str(val).strip() if val and str(val) != "nan" else ""
+        # Provar sense accent
+        if "Avis" in dades.columns:
+            val = dades["Avis"].iloc[0] if len(dades) > 0 else ""
+            return str(val).strip() if val and str(val) != "nan" else ""
+    except Exception:
+        pass
+    return ""
+
+
 def get_rutes():
     """Retorna totes les rutes com a llista de dicts."""
     df = carregar_dades()
@@ -400,11 +419,13 @@ def inici():
         "total_km": round(total_km),
         "total_desn": total_desn,
     }
+    avis = get_avis()
     return render_template("inici.html",
         destacades=destacades,
         colleccions=colleccions,
         articles_recents=articles_recents,
-        stats=stats)
+        stats=stats,
+        avis=avis)
 
 
 @app.route("/rutes")
