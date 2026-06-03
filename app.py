@@ -445,6 +445,7 @@ def rutes_pagina():
     millors = request.args.get("millors", "")
 
     estacio = request.args.get("estacio", "")
+    dist    = request.args.get("dist", "")
 
     rutes_all_list = get_rutes()
     if dif:     rutes = [r for r in rutes if r["dificultat"] == dif]
@@ -454,14 +455,22 @@ def rutes_pagina():
     if cims:    rutes = [r for r in rutes if r["cims"]]
     if millors: rutes = [r for r in rutes if r["millors"] == millors]
     if estacio: rutes = [r for r in rutes if estacio in [r["sortida"], r["arribada"]]]
+    if dist:
+        def dins_dist(r):
+            km = float(r["km"] or 0)
+            if dist == "0-10": return km < 10
+            if dist == "10-20": return 10 <= km <= 20
+            if dist == "20+": return km > 20
+            return True
+        rutes = [r for r in rutes if dins_dist(r)]
     millors_filtre = request.args.get("millors", "")
     if millors_filtre: rutes = [r for r in rutes if r.get("millors") == millors_filtre]
 
     filtres_actius = {k: v for k, v in {
         "dificultat": dif, "comarca": comarca,
         "operador": operador, "espai": espai,
-        "cims": cims,
-        "estacio": estacio,
+        "cims": cims, "estacio": estacio,
+        "dist": dist,
         "millors": millors_filtre or millors,
     }.items() if v}
 
@@ -470,6 +479,13 @@ def rutes_pagina():
         est for r in rutes_all_list
         for est in [r["sortida"], r["arribada"]] if est
     ))
+    # Estacions agrupades per operador
+    estacions_op = {}
+    for r in rutes_all_list:
+        for est, op in [(r["sortida"], r["op_sortida"]), (r["arribada"], r["op_arribada"])]:
+            if est and op:
+                estacions_op.setdefault(op, set()).add(est)
+    filtres["estacions_per_op"] = {op: sorted(ests) for op, ests in sorted(estacions_op.items())}
 
     return render_template("rutes.html",
         rutes=rutes,
@@ -504,7 +520,7 @@ def mapa_pagina():
     rutes = get_rutes()
     estacions = get_estacions()
     # Només rutes amb coordenades
-    rutes_mapa = [r for r in rutes if r["lat_sortida"] and r["lng_sortida"]]
+    rutes_mapa = [r for r in rutes if r["lat_sortida"] not in ("", None, 0) and r["lng_sortida"] not in ("", None, 0)]
     # Agrupar estacions per operador per al sidebar
     estacions_list = list(estacions.values())
     estacions_per_op = {}
