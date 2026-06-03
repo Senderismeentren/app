@@ -4,6 +4,33 @@
 
 {% block estils_extra %}
 <style>
+/* ── AVÍS ──────────────────────────────────────────────────── */
+.avis-barra {
+  background: #1a1a2e;
+  color: #fff;
+  overflow: hidden;
+  white-space: nowrap;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  border-bottom: 2px solid #f39c12;
+}
+.avis-track {
+  display: inline-block;
+  animation: avis-scroll 30s linear infinite;
+  padding-left: 100%;
+}
+.avis-contingut {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  color: #f8f9fa;
+}
+@keyframes avis-scroll {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-100%); }
+}
+
 /* ── HERO ──────────────────────────────────────────────────────── */
 .hero {
   position: relative;
@@ -114,6 +141,15 @@
 {% endblock %}
 
 {% block contingut %}
+
+<!-- AVÍS -->
+{% if avis %}
+<div class="avis-barra">
+  <div class="avis-track">
+    <span class="avis-contingut">🚂 {{ avis }} &nbsp;&nbsp;&nbsp; 🚂 {{ avis }} &nbsp;&nbsp;&nbsp; 🚂 {{ avis }}</span>
+  </div>
+</div>
+{% endif %}
 
 <!-- HERO -->
 <section class="hero">
