@@ -532,11 +532,15 @@ def mapa_pagina():
     # Agrupar estacions per operador per al sidebar
     estacions_list = list(estacions.values())
     estacions_per_op = {}
-    for est in sorted(estacions_list, key=lambda x: (x["op"] or "", x["nom"])):
+    for est in sorted(estacions_list, key=lambda x: x["nom"]):
         ops_str = est["op"] or "Altres"
         for op in ops_str.split(";"):
             op = op.strip() or "Altres"
-            estacions_per_op.setdefault(op, []).append(est)
+            if op not in estacions_per_op:
+                estacions_per_op[op] = []
+            if est["nom"] not in [e["nom"] for e in estacions_per_op[op]]:
+                estacions_per_op[op].append(est)
+    estacions_per_op = dict(sorted(estacions_per_op.items()))
 
     # Espais naturals únics per als filtres
     espais_mapa = sorted(set(r["espai"] for r in rutes_mapa if r["espai"]))
