@@ -297,38 +297,90 @@
   <div class="filtres-mob-inner">
     <h3>⚙️ Filtres</h3>
 
+    <!-- Dificultat amb colors -->
     <div class="filtres-mob-grup">
       <label>Dificultat</label>
       <div class="filtres-mob-pills">
-        <a class="fpill {% if not filtres_actius.get('dificultat') %}actiu{% endif %}" href="/rutes?comarca={{ filtres_actius.get('comarca','') }}">Totes</a>
+        {% set colors = {'Molt fàcil':'#2ECC71','Fàcil':'#3498DB','Moderada':'#E67E22','Exigent':'#E74C3C','Molt exigent':'#111111'} %}
         {% for d in filtres.dificultats %}
-        <a class="fpill {% if filtres_actius.get('dificultat') == d %}actiu{% endif %}"
-           href="/rutes?dificultat={{ d }}&comarca={{ filtres_actius.get('comarca','') }}">{{ d }}</a>
+        {% set c = colors.get(d, '#888') %}
+        <a class="fpill-dif {% if filtres_actius.get('dificultat') == d %}actiu{% endif %}"
+           style="--dc:{{ c }};"
+           href="/rutes?dificultat={{ d }}&comarca={{ filtres_actius.get('comarca','') }}&espai={{ filtres_actius.get('espai','') }}&operador={{ filtres_actius.get('operador','') }}&estacio={{ filtres_actius.get('estacio','') }}&cims={{ filtres_actius.get('cims','') }}&dist={{ filtres_actius.get('dist','') }}">{{ d }}</a>
         {% endfor %}
       </div>
     </div>
 
+    <!-- Estació -->
+    <div class="filtres-mob-grup">
+      <label>Estació</label>
+      <select class="fsel" style="width:100%;" onchange="aplicarFiltre('estacio',this.value)">
+        <option value="">Totes les estacions...</option>
+        {% for op, ests in filtres.estacions_per_op.items() %}
+        <optgroup label="{{ op }}">
+          {% for est in ests %}
+          <option value="{{ est }}" {% if filtres_actius.get('estacio') == est %}selected{% endif %}>{{ est }}</option>
+          {% endfor %}
+        </optgroup>
+        {% endfor %}
+      </select>
+    </div>
+
+    <!-- Operador -->
+    <div class="filtres-mob-grup">
+      <label>Operador</label>
+      <select class="fsel" style="width:100%;" onchange="aplicarFiltre('operador',this.value)">
+        <option value="">Tots els operadors...</option>
+        {% for op in filtres.operadors %}
+        <option value="{{ op }}" {% if filtres_actius.get('operador') == op %}selected{% endif %}>{{ op }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <!-- Espai natural -->
+    <div class="filtres-mob-grup">
+      <label>Espai natural</label>
+      <select class="fsel" style="width:100%;" onchange="aplicarFiltre('espai',this.value)">
+        <option value="">Tots els espais...</option>
+        {% for e in filtres.espais %}
+        <option value="{{ e }}" {% if filtres_actius.get('espai') == e %}selected{% endif %}>{{ e }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <!-- Comarca -->
     <div class="filtres-mob-grup">
       <label>Comarca</label>
-      <div class="filtres-mob-pills">
-        <a class="fpill {% if not filtres_actius.get('comarca') %}actiu{% endif %}" href="/rutes?dificultat={{ filtres_actius.get('dificultat','') }}">Totes</a>
+      <select class="fsel" style="width:100%;" onchange="aplicarFiltre('comarca',this.value)">
+        <option value="">Totes les comarques...</option>
         {% for c in filtres.comarques %}
-        <a class="fpill {% if filtres_actius.get('comarca') == c %}actiu{% endif %}"
-           href="/rutes?comarca={{ c }}&dificultat={{ filtres_actius.get('dificultat','') }}">{{ c }}</a>
+        <option value="{{ c }}" {% if filtres_actius.get('comarca') == c %}selected{% endif %}>{{ c }}</option>
         {% endfor %}
-      </div>
+      </select>
     </div>
 
+    <!-- Distància -->
+    <div class="filtres-mob-grup">
+      <label>Distància</label>
+      <select class="fsel" style="width:100%;" onchange="aplicarFiltre('dist',this.value)">
+        <option value="">Qualsevol distància...</option>
+        <option value="0-10" {% if filtres_actius.get('dist') == '0-10' %}selected{% endif %}>Menys de 10 km</option>
+        <option value="10-20" {% if filtres_actius.get('dist') == '10-20' %}selected{% endif %}>10–20 km</option>
+        <option value="20+" {% if filtres_actius.get('dist') == '20+' %}selected{% endif %}>Més de 20 km</option>
+      </select>
+    </div>
+
+    <!-- 100 Cims -->
     <div class="filtres-mob-grup">
       <label>Especials</label>
       <div class="filtres-mob-pills">
         <a class="fpill {% if filtres_actius.get('cims') %}actiu{% endif %}"
-           href="/rutes?cims=1">🏔 100 Cims</a>
+           href="/rutes?cims={% if filtres_actius.get('cims') %}{% else %}1{% endif %}&dificultat={{ filtres_actius.get('dificultat','') }}&comarca={{ filtres_actius.get('comarca','') }}&espai={{ filtres_actius.get('espai','') }}&operador={{ filtres_actius.get('operador','') }}&estacio={{ filtres_actius.get('estacio','') }}&dist={{ filtres_actius.get('dist','') }}">🏔 100 Cims</a>
       </div>
     </div>
 
     {% if filtres_actius %}
-    <a class="btn btn-blanc" href="/rutes" style="width:100%;justify-content:center;margin-top:8px;">✕ Netejar filtres</a>
+    <a class="btn btn-primari" href="/rutes" style="width:100%;justify-content:center;margin-top:8px;">✕ Netejar filtres</a>
     {% endif %}
   </div>
 </div>
