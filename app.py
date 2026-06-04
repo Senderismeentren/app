@@ -647,6 +647,21 @@ def article_pagina(post_id):
                            data_pub=data_pub, post_id=post_id)
 
 
+@app.route("/debug/estacions")
+def debug_estacions():
+    rutes = get_rutes()
+    resultat = {}
+    for r in rutes:
+        for est, ops in [(r["sortida"], r["op_sortida"]), (r["arribada"], r["op_arribada"])]:
+            if est and ops:
+                for op in ops.split(";"):
+                    op = op.strip()
+                    resultat.setdefault(op, [])
+                    if est not in resultat[op]:
+                        resultat[op].append(est)
+    return jsonify(resultat)
+
+
 @app.route("/api/resseny")
 def api_resseny():
     """Llegeix el contingut d'un post de WP via la seva URL."""
