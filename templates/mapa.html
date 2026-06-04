@@ -188,7 +188,7 @@ const COLORS = {
 };
 
 // ── MAPA ──
-const mapa = L.map('mapa-general', {zoomControl: true}).setView([41.8, 2.0], 9);
+const mapa = L.map('mapa-general', {zoomControl: true}).setView([41.8, 2.0], 7);
 const capaOSM = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   attribution: '© OpenStreetMap', maxZoom: 18
 });
@@ -198,9 +198,21 @@ const capaICGC = L.tileLayer.wms('https://geoserveis.icgc.cat/icc_mapesmultibase
 const capaOrto = L.tileLayer.wms('https://geoserveis.icgc.cat/icc_mapesmultibase/utm/wms/service?', {
   layers: 'orto', format: 'image/jpeg', attribution: '© ICGC'
 });
+const capaIGN = L.tileLayer.wms('https://www.ign.es/wms-inspire/mapa-raster?', {
+  layers: 'mtn_rasterizado', format: 'image/jpeg', attribution: '© IGN España', maxZoom: 20
+});
+const capaOrtoIGN = L.tileLayer.wms('https://www.ign.es/wms-inspire/pnoa-ma?', {
+  layers: 'OI.OrthoimageCoverage', format: 'image/jpeg', attribution: '© IGN España', maxZoom: 20
+});
 capaOSM.addTo(mapa);
 L.control.layers(
-  {'OSM': capaOSM, 'Topogràfic ICGC': capaICGC, 'Ortofoto ICGC': capaOrto},
+  {
+    'Mapa (OSM)': capaOSM,
+    'Topogràfic ICGC': capaICGC,
+    'Ortofoto ICGC': capaOrto,
+    'Topogràfic IGN': capaIGN,
+    'Ortofoto IGN': capaOrtoIGN
+  },
   {}, {position: 'topright', collapsed: true}
 ).addTo(mapa);
 
