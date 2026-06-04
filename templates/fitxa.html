@@ -209,7 +209,6 @@
 <div class="fitxa-nav">
   <a class="fitxa-nav-back" href="/rutes">← Rutes</a>
   <div class="fitxa-nav-nom">{{ ruta.nom }}</div>
-  <div class="fitxa-nav-codi">{{ ruta.codi }}</div>
 </div>
 
 <!-- HERO -->
@@ -219,6 +218,7 @@
     onerror="this.src='https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=1200&q=80'"
     alt="{{ ruta.nom }}">
   <div class="fitxa-hero-overlay"></div>
+  <div style="position:absolute;top:12px;left:12px;background:{{ ruta.color_dif }};color:white;border-radius:6px;padding:3px 10px;font-size:13px;font-weight:800;letter-spacing:0.3px;box-shadow:0 2px 8px rgba(0,0,0,0.3);">{{ ruta.codi }}</div>
   <div class="fitxa-hero-content">
     <div class="fitxa-hero-badges">
       <span class="fitxa-badge fitxa-badge-dif">● {{ ruta.dificultat }}</span>
