@@ -9,7 +9,7 @@
   position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
   background: #1a1a2e; color: #fff;
   overflow: hidden; white-space: nowrap;
-  height: 36px; display: flex; align-items: center;
+  height: 32px; display: flex; align-items: center;
   border-bottom: 2px solid #f39c12;
 }
 .avis-track {
@@ -139,7 +139,7 @@ body.amb-avis .nav { top: 32px; }
 {% if avis %}
 <div class="avis-barra">
   <div class="avis-track">
-    <span class="avis-contingut">{{ avis }} &nbsp;&nbsp; <img src="https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/ico-rodalies-civia.png" style="height:22px;vertical-align:middle;margin:0 16px;"> &nbsp;&nbsp; {{ avis }} &nbsp;&nbsp; <img src="https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/ico-rodalies-civia.png" style="height:22px;vertical-align:middle;margin:0 16px;"> &nbsp;&nbsp; {{ avis }} &nbsp;&nbsp; <img src="https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/ico-rodalies-civia.png" style="height:22px;vertical-align:middle;margin:0 16px;"></span>
+    <span class="avis-contingut">{{ avis }} &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {{ avis }} &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {{ avis }}</span>
   </div>
 </div>
 <script>document.body.classList.add('amb-avis');</script>
