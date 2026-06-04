@@ -533,8 +533,10 @@ def mapa_pagina():
     estacions_list = list(estacions.values())
     estacions_per_op = {}
     for est in sorted(estacions_list, key=lambda x: (x["op"] or "", x["nom"])):
-        op = est["op"] or "Altres"
-        estacions_per_op.setdefault(op, []).append(est)
+        ops_str = est["op"] or "Altres"
+        for op in ops_str.split(";"):
+            op = op.strip() or "Altres"
+            estacions_per_op.setdefault(op, []).append(est)
 
     # Espais naturals únics per als filtres
     espais_mapa = sorted(set(r["espai"] for r in rutes_mapa if r["espai"]))
@@ -645,21 +647,6 @@ def article_pagina(post_id):
         data_pub = ""
     return render_template("fitxa_article.html", titol=titol, contingut=contingut,
                            data_pub=data_pub, post_id=post_id)
-
-
-@app.route("/debug/estacions")
-def debug_estacions():
-    rutes = get_rutes()
-    resultat = {}
-    for r in rutes:
-        for est, ops in [(r["sortida"], r["op_sortida"]), (r["arribada"], r["op_arribada"])]:
-            if est and ops:
-                for op in ops.split(";"):
-                    op = op.strip()
-                    resultat.setdefault(op, [])
-                    if est not in resultat[op]:
-                        resultat[op].append(est)
-    return jsonify(resultat)
 
 
 @app.route("/api/resseny")
