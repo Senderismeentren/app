@@ -318,8 +318,8 @@
               alt="{{ r.nom }}" loading="lazy" onerror="this.style.display='none'">
             <div style="position:absolute;top:4px;left:4px;background:{{ r.color_dif }};color:white;border-radius:4px;padding:1px 6px;font-size:10px;font-weight:800;letter-spacing:0.3px;">{{ r.codi }}</div>
           </div>
-          <div style="padding:8px 12px 4px;">
-            <div class="rcard-nom">{{ r.nom }}</div>
+          <div style="padding:8px 12px 4px;width:100%;">
+            <div class="rcard-nom" style="text-align:left;display:block;width:100%;">{{ r.codi }} {{ r.nom }}</div>
           </div>
         </div>
         <div class="rcard-stats">
