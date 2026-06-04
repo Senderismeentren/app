@@ -142,6 +142,42 @@
 .rbtn-w { background: var(--verd); color: white; }
 .rbtn-w:hover { background: #1e7a52; }
 
+/* ── VISTA LLISTA ───────────────────────────────────────────────── */
+.vista-toggle { display: flex; gap: 4px; margin-left: auto; }
+.vista-btn {
+  width: 30px; height: 30px; border: 1px solid #ddd; border-radius: 6px;
+  background: white; cursor: pointer; display: flex; align-items: center;
+  justify-content: center; font-size: 14px; color: #aaa;
+}
+.vista-btn.actiu { background: var(--blau); border-color: var(--blau); color: white; }
+
+.rutes-grid.vista-llista {
+  grid-template-columns: 1fr;
+  gap: 6px;
+}
+.rutes-grid.vista-llista .rcard {
+  display: flex; flex-direction: row; align-items: center;
+  border-left-width: 4px;
+}
+.rutes-grid.vista-llista .rcard-cap {
+  display: flex; align-items: center; gap: 10px;
+  flex: 1; padding: 8px 12px;
+}
+.rutes-grid.vista-llista .rcard-foto-wrap {
+  width: 70px; height: 52px; flex-shrink: 0; overflow: hidden; border-radius: 6px;
+}
+.rutes-grid.vista-llista .rcard-foto-wrap img {
+  width: 100%; height: 100%; object-fit: cover;
+}
+.rutes-grid.vista-llista .rcard-info { flex: 1; }
+.rutes-grid.vista-llista .rcard-nom { font-size: 13px; margin-bottom: 3px; }
+.rutes-grid.vista-llista .rcard-stats {
+  border-top: none; padding: 0; gap: 12px; flex-shrink: 0;
+  padding-right: 12px;
+}
+.rutes-grid.vista-llista .rcard-tags { display: none; }
+.rutes-grid.vista-llista .rcard-foto-gran { display: none; }
+
 /* ── BUIT ────────────────────────────────────────────────────────── */
 .rutes-buit {
   text-align: center; padding: 80px 20px; color: #aaa;
@@ -233,6 +269,10 @@
   <!-- STATS I FILTRES ACTIUS -->
   <div class="rutes-stats">
     <span class="rutes-stats-n">{% if rutes|length == 1 %}1 ruta{% else %}{{ rutes|length }} rutes{% endif %}{% if rutes|length != n_total %} de {{ n_total }}{% endif %}</span>
+    <div class="vista-toggle">
+      <button class="vista-btn actiu" id="btn-targeta" onclick="setVista('targeta')" title="Vista targeta">⊞</button>
+      <button class="vista-btn" id="btn-llista" onclick="setVista('llista')" title="Vista llista">☰</button>
+    </div>
     {% if filtres_actius %}
     <div class="filtres-actius">
       {% for k, v in filtres_actius.items() %}
@@ -244,12 +284,12 @@
   </div>
 
   <!-- GRAELLA -->
-  <div class="rutes-grid">
+  <div class="rutes-grid" id="rutes-grid">
     {% if rutes %}
       {% for r in rutes %}
       <div class="rcard" style="border-left-color:{{ r.color_dif }};cursor:pointer;" onclick="window.location='/ruta/{{ r.id }}'">
         <div class="rcard-cap">
-          <div style="position:relative;overflow:hidden;">
+          <div class="rcard-foto-gran" style="position:relative;overflow:hidden;">
             <img src="https://raw.githubusercontent.com/Senderismeentren/imatges/main/ruta-{{ '%03d'|format(r.id) }}/foto1.jpg"
               alt="{{ r.nom }}" loading="lazy"
               onerror="this.style.display='none'"
@@ -263,6 +303,10 @@
                 <span style="color:white;">{{ r.dificultat }}</span>
               </div>
             </div>
+          </div>
+          <div class="rcard-foto-wrap" style="display:none;">
+            <img src="https://raw.githubusercontent.com/Senderismeentren/imatges/main/ruta-{{ '%03d'|format(r.id) }}/foto1.jpg"
+              alt="{{ r.nom }}" loading="lazy" onerror="this.style.display='none'">
           </div>
           <div style="padding:8px 12px 4px;">
             <div class="rcard-nom">{{ r.nom }}</div>
@@ -297,90 +341,38 @@
   <div class="filtres-mob-inner">
     <h3>⚙️ Filtres</h3>
 
-    <!-- Dificultat amb colors -->
     <div class="filtres-mob-grup">
       <label>Dificultat</label>
       <div class="filtres-mob-pills">
-        {% set colors = {'Molt fàcil':'#2ECC71','Fàcil':'#3498DB','Moderada':'#E67E22','Exigent':'#E74C3C','Molt exigent':'#111111'} %}
+        <a class="fpill {% if not filtres_actius.get('dificultat') %}actiu{% endif %}" href="/rutes?comarca={{ filtres_actius.get('comarca','') }}">Totes</a>
         {% for d in filtres.dificultats %}
-        {% set c = colors.get(d, '#888') %}
-        <a class="fpill-dif {% if filtres_actius.get('dificultat') == d %}actiu{% endif %}"
-           style="--dc:{{ c }};"
-           href="/rutes?dificultat={{ d }}&comarca={{ filtres_actius.get('comarca','') }}&espai={{ filtres_actius.get('espai','') }}&operador={{ filtres_actius.get('operador','') }}&estacio={{ filtres_actius.get('estacio','') }}&cims={{ filtres_actius.get('cims','') }}&dist={{ filtres_actius.get('dist','') }}">{{ d }}</a>
+        <a class="fpill {% if filtres_actius.get('dificultat') == d %}actiu{% endif %}"
+           href="/rutes?dificultat={{ d }}&comarca={{ filtres_actius.get('comarca','') }}">{{ d }}</a>
         {% endfor %}
       </div>
     </div>
 
-    <!-- Estació -->
-    <div class="filtres-mob-grup">
-      <label>Estació</label>
-      <select class="fsel" style="width:100%;" onchange="aplicarFiltre('estacio',this.value)">
-        <option value="">Totes les estacions...</option>
-        {% for op, ests in filtres.estacions_per_op.items() %}
-        <optgroup label="{{ op }}">
-          {% for est in ests %}
-          <option value="{{ est }}" {% if filtres_actius.get('estacio') == est %}selected{% endif %}>{{ est }}</option>
-          {% endfor %}
-        </optgroup>
-        {% endfor %}
-      </select>
-    </div>
-
-    <!-- Operador -->
-    <div class="filtres-mob-grup">
-      <label>Operador</label>
-      <select class="fsel" style="width:100%;" onchange="aplicarFiltre('operador',this.value)">
-        <option value="">Tots els operadors...</option>
-        {% for op in filtres.operadors %}
-        <option value="{{ op }}" {% if filtres_actius.get('operador') == op %}selected{% endif %}>{{ op }}</option>
-        {% endfor %}
-      </select>
-    </div>
-
-    <!-- Espai natural -->
-    <div class="filtres-mob-grup">
-      <label>Espai natural</label>
-      <select class="fsel" style="width:100%;" onchange="aplicarFiltre('espai',this.value)">
-        <option value="">Tots els espais...</option>
-        {% for e in filtres.espais %}
-        <option value="{{ e }}" {% if filtres_actius.get('espai') == e %}selected{% endif %}>{{ e }}</option>
-        {% endfor %}
-      </select>
-    </div>
-
-    <!-- Comarca -->
     <div class="filtres-mob-grup">
       <label>Comarca</label>
-      <select class="fsel" style="width:100%;" onchange="aplicarFiltre('comarca',this.value)">
-        <option value="">Totes les comarques...</option>
+      <div class="filtres-mob-pills">
+        <a class="fpill {% if not filtres_actius.get('comarca') %}actiu{% endif %}" href="/rutes?dificultat={{ filtres_actius.get('dificultat','') }}">Totes</a>
         {% for c in filtres.comarques %}
-        <option value="{{ c }}" {% if filtres_actius.get('comarca') == c %}selected{% endif %}>{{ c }}</option>
+        <a class="fpill {% if filtres_actius.get('comarca') == c %}actiu{% endif %}"
+           href="/rutes?comarca={{ c }}&dificultat={{ filtres_actius.get('dificultat','') }}">{{ c }}</a>
         {% endfor %}
-      </select>
+      </div>
     </div>
 
-    <!-- Distància -->
-    <div class="filtres-mob-grup">
-      <label>Distància</label>
-      <select class="fsel" style="width:100%;" onchange="aplicarFiltre('dist',this.value)">
-        <option value="">Qualsevol distància...</option>
-        <option value="0-10" {% if filtres_actius.get('dist') == '0-10' %}selected{% endif %}>Menys de 10 km</option>
-        <option value="10-20" {% if filtres_actius.get('dist') == '10-20' %}selected{% endif %}>10–20 km</option>
-        <option value="20+" {% if filtres_actius.get('dist') == '20+' %}selected{% endif %}>Més de 20 km</option>
-      </select>
-    </div>
-
-    <!-- 100 Cims -->
     <div class="filtres-mob-grup">
       <label>Especials</label>
       <div class="filtres-mob-pills">
         <a class="fpill {% if filtres_actius.get('cims') %}actiu{% endif %}"
-           href="/rutes?cims={% if filtres_actius.get('cims') %}{% else %}1{% endif %}&dificultat={{ filtres_actius.get('dificultat','') }}&comarca={{ filtres_actius.get('comarca','') }}&espai={{ filtres_actius.get('espai','') }}&operador={{ filtres_actius.get('operador','') }}&estacio={{ filtres_actius.get('estacio','') }}&dist={{ filtres_actius.get('dist','') }}">🏔 100 Cims</a>
+           href="/rutes?cims=1">🏔 100 Cims</a>
       </div>
     </div>
 
     {% if filtres_actius %}
-    <a class="btn btn-primari" href="/rutes" style="width:100%;justify-content:center;margin-top:8px;">✕ Netejar filtres</a>
+    <a class="btn btn-blanc" href="/rutes" style="width:100%;justify-content:center;margin-top:8px;">✕ Netejar filtres</a>
     {% endif %}
   </div>
 </div>
@@ -399,6 +391,33 @@ function tancarFiltresMob(e) {
     document.body.style.overflow = '';
   }
 }
+function setVista(v) {
+  const grid = document.getElementById('rutes-grid');
+  const btnT = document.getElementById('btn-targeta');
+  const btnL = document.getElementById('btn-llista');
+  if (v === 'llista') {
+    grid.classList.add('vista-llista');
+    btnL.classList.add('actiu'); btnT.classList.remove('actiu');
+    // Mostrar foto petita, amagar gran
+    document.querySelectorAll('.rcard-foto-gran').forEach(el => el.style.display = 'none');
+    document.querySelectorAll('.rcard-foto-wrap').forEach(el => el.style.display = 'block');
+    document.querySelectorAll('.rcard-cap').forEach(el => el.style.padding = '0');
+    localStorage.setItem('vistaRutes', 'llista');
+  } else {
+    grid.classList.remove('vista-llista');
+    btnT.classList.add('actiu'); btnL.classList.remove('actiu');
+    document.querySelectorAll('.rcard-foto-gran').forEach(el => el.style.display = 'block');
+    document.querySelectorAll('.rcard-foto-wrap').forEach(el => el.style.display = 'none');
+    document.querySelectorAll('.rcard-cap').forEach(el => el.style.padding = '');
+    localStorage.setItem('vistaRutes', 'targeta');
+  }
+}
+// Restaurar vista guardada
+document.addEventListener('DOMContentLoaded', () => {
+  const v = localStorage.getItem('vistaRutes');
+  if (v === 'llista') setVista('llista');
+});
+
 function aplicarFiltre(clau, val) {
   const params = new URLSearchParams(window.location.search);
   if (val) { params.set(clau, val); }
