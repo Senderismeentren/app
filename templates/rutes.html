@@ -194,6 +194,13 @@
   .rutes-grid { grid-template-columns: 1fr; padding: 10px 14px 80px; }
   .rutes-stats { padding: 8px 14px; }
   .rutes-grid.vista-llista .rcard-foto-wrap { display: none !important; }
+  /* Vista llista mòbil: forçar horitzontal */
+  .rutes-grid.vista-llista .rcard { flex-direction: row !important; align-items: center !important; }
+  .rutes-grid.vista-llista .rcard-cap { flex-direction: row !important; align-items: center !important; padding: 8px 10px !important; flex: 1; }
+  .rutes-grid.vista-llista .rcard-nom { font-size: 12px !important; line-height: 1.3; }
+  .rutes-grid.vista-llista .rcard-stats { flex-shrink: 0; padding: 0 10px 0 0 !important; gap: 8px !important; }
+  .rutes-grid.vista-llista .rcard-stats .rst-l { font-size: 9px !important; }
+  .rutes-grid.vista-llista .rcard-stats .rst-v { font-size: 12px !important; }
 }
 </style>
 {% endblock %}
