@@ -413,7 +413,7 @@
       <div class="bloc-cap" style="padding-bottom:10px;">
         <span class="bloc-icon">🗺️</span><span class="bloc-titol">Mapa del recorregut</span>
         {% if ruta.wiki %}
-        {% set wiki_id = ruta.wiki.split('id=')[1].split('&')[0] if 'id=' in ruta.wiki else ruta.wiki.rstrip('/').split('/')[-1] %}
+        {% set wiki_id = ruta.wiki.rstrip('/').split('-')[-1] %}
         <div style="margin-left:auto;display:flex;gap:4px;">
           <button id="btn-mapa-propi" onclick="setMapa('propi')"
             style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:6px;border:1px solid var(--blau);background:var(--blau);color:white;cursor:pointer;">Propi</button>
@@ -424,7 +424,7 @@
       </div>
       <div id="fitxa-mapa"></div>
       {% if ruta.wiki %}
-      {% set wiki_id = ruta.wiki.split('id=')[1].split('&')[0] if 'id=' in ruta.wiki else ruta.wiki.rstrip('/').split('/')[-1] %}
+      {% set wiki_id = ruta.wiki.rstrip('/').split('-')[-1] %}
       <iframe id="fitxa-mapa-wiki"
         src="https://ca.wikiloc.com/wikiloc/embedv2.do?id={{ wiki_id }}&elevation=off&images=on&maptype=H"
         style="width:100%;height:280px;border:none;display:none;"
