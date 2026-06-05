@@ -559,8 +559,8 @@ function obrirPanellEstacio(est) {
         <img src="${fotoUrl}" style="width:50px;height:50px;object-fit:cover;border-radius:5px;flex-shrink:0;"
           onerror="this.style.display='none'">
         <div style="flex:1;min-width:0;">
-          <div class="ruta-mini-nom"><span style="background:${color};color:white;border-radius:5px;padding:1px 5px;font-size:10px;font-weight:800;margin-right:6px;flex-shrink:0;letter-spacing:0.2px;">${r.codi}</span>${r.nom}</div>
-          ${ruta ? `<div class="ruta-mini-dades"><span>📏 ${ruta.km} km</span><span>⬆ ${ruta.desn_txt}</span><span>⏱ ${ruta.temps}</span></div>` : ''}
+          <div class="ruta-mini-nom">${ruta ? ruta.codi : r.id} · ${r.nom}</div>
+          ${ruta ? `<div class="ruta-mini-dades"><span style="background:${color};color:white;border-radius:4px;padding:1px 6px;font-size:10px;font-weight:700;">${ruta.dificultat}</span><span>📏 ${ruta.km} km</span><span>⏱ ${ruta.temps}</span></div>` : ''}
         </div>
       </div>
       <div style="display:flex;gap:5px;margin-top:7px;">
