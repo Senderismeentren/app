@@ -324,19 +324,24 @@ function netejarTracks() {
   });
 }
 
-// Marcadors 100 Cims - usar coordenades del cim específic
+// Marcadors 100 Cims - suporta múltiples cims separats per punt i coma
 RUTES.filter(r => r.cims).forEach(r => {
-  const lat = r.lat_cim || r.lat_s;
-  const lng = r.lng_cim || r.lng_s;
-  if (!lat || !lng) return;
-  const nom_cim = r.nom_cim || r.nom;
-  const icon = L.divIcon({
-    html: `<div style="background:#0F6E56;color:white;border-radius:6px;padding:2px 6px;font-size:9px;font-weight:700;border:1.5px solid white;box-shadow:0 2px 4px rgba(0,0,0,0.3);white-space:nowrap;">🏔 ${nom_cim}</div>`,
-    className: '', iconSize: [120,20], iconAnchor: [10,10]
+  const lats = String(r.lat_cim || r.lat_s || '').split(';');
+  const lngs = String(r.lng_cim || r.lng_s || '').split(';');
+  const noms = String(r.nom_cim || r.nom || '').split(';');
+  lats.forEach((latStr, i) => {
+    const lat = parseFloat(latStr);
+    const lng = parseFloat(lngs[i] || lngs[0]);
+    if (!lat || !lng) return;
+    const nom_cim = (noms[i] || noms[0]).trim();
+    const icon = L.divIcon({
+      html: `<div style="background:#0F6E56;color:white;border-radius:6px;padding:2px 6px;font-size:9px;font-weight:700;border:1.5px solid white;box-shadow:0 2px 4px rgba(0,0,0,0.3);white-space:nowrap;">🏔 ${nom_cim}</div>`,
+      className: '', iconSize: [120,20], iconAnchor: [10,10]
+    });
+    L.marker([lat, lng], {icon})
+      .addTo(capes.cims)
+      .bindTooltip(`<b>${nom_cim}</b><br><small>${r.nom}</small>`, {direction: 'top'});
   });
-  L.marker([lat, lng], {icon})
-    .addTo(capes.cims)
-    .bindTooltip(`<b>${nom_cim}</b><br><small>${r.nom}</small>`, {direction: 'top'});
 });
 
 // Afegir capes actives
