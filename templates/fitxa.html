@@ -544,6 +544,8 @@ const LINIES_SORTIDA = {{ ruta.linies_sortida|tojson }};
 const LINIES_ARRIBADA = {{ ruta.linies_arribada|tojson }};
 const COLOR_OP_S = "{{ ruta.color_op_s }}";
 const COLOR_OP_A = "{{ ruta.color_op_a }}";
+const OP_SORTIDA = "{{ ruta.op_sortida | lower }}";
+const OP_ARRIBADA = "{{ ruta.op_arribada | lower }}";
 
 // ── MAPA ──
 const mapa = L.map('fitxa-mapa', {zoomControl:true, scrollWheelZoom:false}).setView([41.8, 2.0], 8);
@@ -673,7 +675,9 @@ async function actualitzarHoraris(tipus, idEst, colorOp) {
 
   el.innerHTML = '<div class="horaris-loading">⏳ Carregant...</div>';
   try {
-    const resp = await fetch(`/api/horaris/${idEst}`);
+    const esSNCF = (tipus === 'sortida' ? OP_SORTIDA : OP_ARRIBADA).includes('sncf') || (tipus === 'sortida' ? OP_SORTIDA : OP_ARRIBADA).includes('groc');
+    const endpointHoraris = esSNCF ? `/api/horaris-sncf/${idEst}` : `/api/horaris/${idEst}`;
+    const resp = await fetch(endpointHoraris);
     const data = await resp.json();
 
     if (data.horaris && data.horaris.length > 0) {
