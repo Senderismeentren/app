@@ -284,7 +284,7 @@
     <div class="vista-toggle">
       <button class="vista-btn actiu" id="btn-targeta" onclick="setVista('targeta')" title="Vista targeta">⊞</button>
       <button class="vista-btn" id="btn-llista" onclick="setVista('llista')" title="Vista llista">☰</button>
-      <button class="vista-btn" id="btn-ordre" onclick="invertirOrdre(this)" title="Invertir ordre">↕</button>
+      <button class="vista-btn" id="btn-ordre" onclick="invertirOrdre(this)" title="Invertir ordre">↑</button>
     </div>
     {% if filtres_actius %}
     <div class="filtres-actius">
@@ -482,7 +482,9 @@ function invertirOrdre(btn) {
   const grid = document.getElementById('rutes-grid');
   const cards = Array.from(grid.querySelectorAll('.rcard'));
   cards.reverse().forEach(c => grid.appendChild(c));
-  btn.classList.toggle('actiu');
+  const invertit = btn.textContent === '↓';
+  btn.textContent = invertit ? '↑' : '↓';
+  btn.classList.toggle('actiu', !invertit);
 }
 function aplicarFiltre(clau, val) {
   const params = new URLSearchParams(window.location.search);
