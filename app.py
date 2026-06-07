@@ -866,6 +866,58 @@ def api_horaris(id_estacio):
         return jsonify({"horaris": [], "error": str(e)})
 
 
+
+@app.route("/api/horaris-sncf/<path:id_estacio>")
+def api_horaris_sncf(id_estacio):
+    """Horaris en temps real SNCF via API Navitia."""
+    from datetime import datetime
+    import zoneinfo
+    sncf_key = os.environ.get("SNCF_API_KEY", "")
+    if not sncf_key:
+        return jsonify({"horaris": [], "error": "SNCF_API_KEY no configurada"})
+    try:
+        # L'ID pot venir com a codi numèric (87611483) o com a stop_area complet
+        if not id_estacio.startswith("stop_area:"):
+            id_estacio = f"stop_area:SNCF:{id_estacio}"
+        url = f"https://api.sncf.com/v1/coverage/sncf/stop_areas/{id_estacio}/departures"
+        params = {
+            "count": 10,
+            "forbidden_uris[]": "physical_mode:Coach",  # només trens, no autocars
+        }
+        resp = requests.get(url, params=params, auth=(sncf_key, ""), timeout=8)
+        data = resp.json()
+        tz_paris = zoneinfo.ZoneInfo("Europe/Paris")
+        ara = datetime.now(tz_paris)
+        horaris = []
+        vists = set()
+        for dep in data.get("departures", []):
+            dt_str = dep.get("stop_date_time", {}).get("departure_date_time", "")
+            if not dt_str:
+                continue
+            # Format SNCF: 20260607T170300
+            dt = datetime.strptime(dt_str, "%Y%m%dT%H%M%S").replace(tzinfo=tz_paris)
+            if dt < ara:
+                continue
+            hora = dt.strftime("%H:%M")
+            info = dep.get("display_informations", {})
+            linia = info.get("code") or info.get("label", "")
+            dest = info.get("direction", "").split(" (")[0]  # Treure "(municipi)"
+            mode = info.get("physical_mode", "")
+            clau = f"{hora}_{linia}_{dest}"
+            if clau not in vists:
+                vists.add(clau)
+                horaris.append({
+                    "hora": hora,
+                    "linia": linia or mode,
+                    "destinacio": dest,
+                    "retard": 0,
+                    "ara": False
+                })
+        return jsonify({"horaris": horaris[:8], "operador": "SNCF"})
+    except Exception as e:
+        return jsonify({"horaris": [], "error": str(e)})
+
+
 # ── ERROR HANDLERS ───────────────────────────────────────────────────
 @app.errorhandler(404)
 def pagina_no_trobada(e):
