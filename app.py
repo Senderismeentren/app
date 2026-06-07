@@ -900,7 +900,9 @@ def api_horaris_sncf(id_estacio):
                 continue
             hora = dt.strftime("%H:%M")
             info = dep.get("display_informations", {})
-            linia = info.get("code") or info.get("label", "")
+            linia_codi = info.get("code") or info.get("label", "")
+            NOMS_SNCF = {"P14": "Tren Groc"}
+            linia = NOMS_SNCF.get(linia_codi, linia_codi)
             dest = info.get("direction", "").split(" (")[0]
             mode = info.get("physical_mode", "")
             # Afegir icona per distingir tren/autocar
