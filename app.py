@@ -641,7 +641,7 @@ def article_pagina(post_id):
         data_pub = data.get("date", "")[:10]
 
         # Netejar HTML: treure social links, spacers, però mantenir imatges
-        contingut = re.sub(r'<ul[^>]*wp-block-social-links[^>]*>.*?</ul>', '', contingut_html, flags=re.DOTALL)
+        contingut = re.sub(r'<ul[^>]*wp-block-social-links[^>]*>.*?</ul>\s*', '', contingut_html, flags=re.DOTALL, count=1)
         contingut = re.sub(r'<div[^>]*wp-block-spacer[^>]*>.*?</div>', '', contingut, flags=re.DOTALL)
         contingut = re.sub(r' style="[^"]*color[^"]*"', '', contingut)
         contingut = contingut.strip()
@@ -697,7 +697,8 @@ def api_resseny():
             contingut_html = m_resseny.group(1)
 
         # Netejar HTML: treure galeries, imatges, spacers, social links
-        contingut = re.sub(r'<ul[^>]*wp-block-social-links[^>]*>.*?</ul>', '', contingut_html, flags=re.DOTALL)
+        contingut = re.sub(r'<ul[^>]*wp-block-social-links[^>]*>.*?</ul>\s*', '', contingut_html, flags=re.DOTALL)
+        contingut = re.sub(r'<li[^>]*wp-social-link[^>]*>.*?</li>', '', contingut, flags=re.DOTALL)
         contingut = re.sub(r'<ol[^>]*wp-block-table-of-contents[^>]*>.*?</ol>', '', contingut, flags=re.DOTALL)
         contingut = re.sub(r'<div[^>]*tiled-gallery[^>]*>.*?</div>\s*</div>\s*</div>\s*</div>\s*</div>', '', contingut, flags=re.DOTALL)
         contingut = re.sub(r'<div[^>]*wp-block-image[^>]*>.*?</div>', '', contingut, flags=re.DOTALL)
@@ -705,8 +706,11 @@ def api_resseny():
         contingut = re.sub(r'<figure[^>]*>.*?</figure>', '', contingut, flags=re.DOTALL)
         contingut = re.sub(r'<img[^>]*>', '', contingut)
         contingut = re.sub(r' style="[^"]*"', '', contingut)
+        # Si el contingut és buit després de netejar, usar l'extracte com a fallback
         contingut = re.sub("\n{3,}", "\n\n", contingut)
         contingut = contingut.strip()
+        if not contingut or len(contingut) < 50:
+            contingut = re.sub(r'<[^>]+>', '', extracte).strip()
 
         return jsonify({
             "titol": titol,
