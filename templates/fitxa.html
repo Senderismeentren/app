@@ -661,7 +661,7 @@ function renderEstacioHoraris(nom, idEst, linies, colorOp, tipus) {
         '<p style="font-size:12px;color:#bbb;">Horaris en temps real disponibles properament.</p>'
       }
     </div>
-    ${idEst ? `<button class="btn-actualitza" onclick="actualitzarHoraris('${tipus}','${idEst}','${colorOp}')">↻ Actualitzar</button>` : ''}
+    ${idEst && !['Núria','Queralbs','Ribes de Freser','Ribes-Enllaç','La Pobla de Lillet'].some(e => idEst.replace(/_/g,' ').includes(e)) ? `<button class="btn-actualitza" onclick="actualitzarHoraris('${tipus}','${idEst}','${colorOp}')">↻ Actualitzar</button>` : ''}
     <div class="horaris-peu" id="peu-${tipus}"></div>
   </div>`;
 }
@@ -698,9 +698,9 @@ async function actualitzarHoraris(tipus, idEst, colorOp) {
       if (esCremallera) {
         el.innerHTML = `<div style="font-size:12px;color:#888;line-height:1.5;">
           <p>El cremallera de Núria no publica horaris en temps real.</p>
-          <a href="https://www.fgc.cat/cat/cremallera-nuria.asp" target="_blank" rel="noopener"
+          <a href="https://turistren.cat/trens/cremallera-de-nuria/" target="_blank" rel="noopener"
             style="color:#3498DB;font-weight:600;display:inline-flex;align-items:center;gap:4px;margin-top:4px;">
-            🔗 Horaris oficials a fgc.cat
+            🔗 Horaris i bitllets a turistren.cat
           </a>
         </div>`;
       } else {
