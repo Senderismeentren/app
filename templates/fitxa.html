@@ -547,15 +547,27 @@ const COLOR_OP_A = "{{ ruta.color_op_a }}";
 const OP_SORTIDA = "{{ ruta.op_sortida | lower }}";
 const OP_ARRIBADA = "{{ ruta.op_arribada | lower }}";
 const COLORS_LINIA = {
-  "R1":"#B11623","R2":"#F07A1F","R2N":"#9D3F97","R3":"#097B45",
-  "R4":"#7A4199","R7":"#00904B","R8":"#E4002B","R11":"#E4002B",
-  "R12":"#A50034","R13":"#F07A1F","R14":"#B11623","R15":"#097B45",
-  "R16":"#7A4199","R17":"#00904B",
-  "RG1":"#A50034","RG2":"#00904B",
-  "L1":"#E3051A","L2":"#A3239B","L3":"#4FAC2B","L4":"#FFCB00",
-  "L5":"#1A5CA8","L9N":"#F07A1F","L9S":"#F07A1F","L10N":"#00B4E6","L10S":"#00B4E6","L11":"#97C73E",
-  "FGC":"#9D3F97","S1":"#9D3F97","S2":"#9D3F97","S5":"#9D3F97","S55":"#9D3F97",
-  "Tren Groc":"#F9C013","P14":"#F9C013"
+  // Rodalies de Catalunya
+  "R1":"#78b3e0","R2":"#009640","R2N":"#a2c617","R2S":"#005f27",
+  "R3":"#e63027","R4":"#f6a22d","R7":"#bf7fb5","R8":"#870064",
+  "R11":"#0064a7","R13":"#e8308a","R14":"#6a509d","R15":"#9a8b75",
+  "R16":"#b20933","R17":"#e87200",
+  "RT1":"#00c4b3","RT2":"#e577cb",
+  "RL1":"#5e8523","RL2":"#6eaf25","RL3":"#949300",
+  // FGC
+  "FGC":"#EF7900",
+  "L6":"#797FBC","L7":"#B2600B","L8":"#E274AA","L12":"#b2aed3",
+  "S1":"#EF7900","S2":"#88BB0B","S3":"#4F868E","S4":"#A78600",
+  "S5":"#EF7900","S55":"#EF7900","S8":"#49C0DE","S9":"#DF4661",
+  "R5":"#3dbfc3","R6":"#b3b3b3","R50":"#00738a","R60":"#5b5b5b",
+  // Metro TMB
+  "L1":"#E23A3C","L2":"#9E469C","L3":"#52BA54","L4":"#FEBE14",
+  "L5":"#327ACC","L9N":"#F6862C","L9S":"#F6862C",
+  "L10N":"#02AEEC","L10S":"#02AEEC","L11":"#AAD264",
+  // Tren Groc SNCF
+  "Tren Groc":"#F9C013","P14":"#F9C013",
+  // Rodalies Girona
+  "RG1":"#A50034","RG2":"#00904B"
 };
 function colorLinia(linia, fallback) {
   const codi = linia.replace(/[🚆🚌]\s*/u, '').trim();
