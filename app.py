@@ -22,7 +22,7 @@ GOOGLE_CREDS    = os.environ.get("GOOGLE_CREDS", "")   # JSON de credencials
 BASE_FOTO_URL   = "https://raw.githubusercontent.com/Senderismeentren/imatges/main/ruta-{id:03d}/foto{n}.jpg"
 BASE_GPX_URL    = "https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/gpx/ruta-{id:03d}.gpx"
 BASE_LOGO_URL   = "https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/Logo-{linia}.svg"
-MAX_FOTOS       = 9
+MAX_FOTOS       = 20
 CACHE_TTL       = 1800   # 30 min
 
 # ── COLORS DIFICULTAT ───────────────────────────────────────────────
