@@ -546,6 +546,21 @@ const COLOR_OP_S = "{{ ruta.color_op_s }}";
 const COLOR_OP_A = "{{ ruta.color_op_a }}";
 const OP_SORTIDA = "{{ ruta.op_sortida | lower }}";
 const OP_ARRIBADA = "{{ ruta.op_arribada | lower }}";
+const COLORS_LINIA = {
+  "R1":"#B11623","R2":"#F07A1F","R2N":"#9D3F97","R3":"#097B45",
+  "R4":"#7A4199","R7":"#00904B","R8":"#E4002B","R11":"#E4002B",
+  "R12":"#A50034","R13":"#F07A1F","R14":"#B11623","R15":"#097B45",
+  "R16":"#7A4199","R17":"#00904B",
+  "RG1":"#A50034","RG2":"#00904B",
+  "L1":"#E3051A","L2":"#A3239B","L3":"#4FAC2B","L4":"#FFCB00",
+  "L5":"#1A5CA8","L9N":"#F07A1F","L9S":"#F07A1F","L10N":"#00B4E6","L10S":"#00B4E6","L11":"#97C73E",
+  "FGC":"#9D3F97","S1":"#9D3F97","S2":"#9D3F97","S5":"#9D3F97","S55":"#9D3F97",
+  "Tren Groc":"#F9C013","P14":"#F9C013"
+};
+function colorLinia(linia, fallback) {
+  const codi = linia.replace(/[🚆🚌]\s*/u, '').trim();
+  return COLORS_LINIA[codi] || fallback;
+}
 
 // ── MAPA ──
 const mapa = L.map('fitxa-mapa', {zoomControl:true, scrollWheelZoom:false}).setView([41.8, 2.0], 8);
@@ -688,7 +703,7 @@ async function actualitzarHoraris(tipus, idEst, colorOp) {
         return `
         <div class="horari-row">
           <div class="horari-hora ${horaClass}">${h.hora}</div>
-          <span class="horari-linia-badge" style="background:${colorOp};">${h.linia}</span>
+          <span class="horari-linia-badge" style="background:${colorLinia(h.linia, colorOp)};">${h.linia}</span>
           <div class="horari-dest">${h.destinacio}</div>
           <span class="horari-retard ${retardClass}">${retardTxt}</span>
         </div>`;
