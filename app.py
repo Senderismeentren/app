@@ -957,3 +957,29 @@ def globals_plantilles():
 
 if __name__ == "__main__":
     app.run(debug=True, port=5000)
+
+@app.route("/api/tram-debug")
+def tram_debug():
+    """Diagnòstic temporal de l'API de Tram."""
+    tram_id = os.environ.get("TRAM_CLIENT_ID", "NO_ID")
+    tram_secret = os.environ.get("TRAM_CLIENT_SECRET", "NO_SECRET")
+    try:
+        r_token = requests.post("https://opendata.tram.cat/connect/token", data={
+            "grant_type": "client_credentials",
+            "client_id": tram_id,
+            "client_secret": tram_secret
+        }, timeout=8)
+        token_resp = r_token.json()
+        token = token_resp.get("access_token", "")
+        if not token:
+            return jsonify({"error": "no_token", "resp": token_resp})
+        r2 = requests.get("https://opendata.tram.cat/api/v1/stopTimes/1001",
+            headers={"Authorization": f"Bearer {token}"}, timeout=8)
+        return jsonify({
+            "token_ok": True,
+            "client_id": tram_id,
+            "stopTimes_status": r2.status_code,
+            "stopTimes_resp": r2.text[:500]
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)})
