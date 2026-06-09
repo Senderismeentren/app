@@ -49,17 +49,6 @@ COLORS_OP = {
     "sncf":          "#C00000",
 }
 
-# ── CODIS PARADES TRAM ───────────────────────────────────────────────
-TRAM_CODIS = {
-    172:(1001,1101), 173:(1002,1102), 174:(1003,1103), 175:(1004,1104),
-    176:(1005,1105), 177:(1008,1108), 178:(1009,1109), 179:(1010,1110),
-    180:(1011,1111), 181:(1012,1112), 182:(1013,1113), 183:(1213,1313),
-    186:(1014,1114), 187:(1015,1115), 188:(1016,1116), 189:(1017,1117),
-    190:(1018,1118), 191:(1019,1119), 192:(1020,1120), 193:(1021,1121),
-    194:(1022,1122), 195:(1025,1125), 196:(1026,1126), 197:(1028,1128),
-    198:(1029,1129), 199:(1030,1130), 200:(1031,1131), 201:(1032,1132),
-    230:(1027,1127),
-}
 
 def color_op(op):
     if not op: return "#EE7F00"
@@ -767,10 +756,10 @@ def api_horaris(id_estacio):
 
     try:
         # ── TRAM ─────────────────────────────────────────────────────
-        if id_estacio.isdigit() and int(id_estacio) in TRAM_CODIS:
+        if ";" in id_estacio and all(p.strip().isdigit() for p in id_estacio.split(";")):
             tram_id = os.environ.get("TRAM_CLIENT_ID", "")
             tram_secret = os.environ.get("TRAM_CLIENT_SECRET", "")
-            out_code, ret_code = TRAM_CODIS[int(id_estacio)]
+            codis = [int(p.strip()) for p in id_estacio.split(";")]
             r_token = requests.post("https://opendata.tram.cat/connect/token", data={
                 "grant_type": "client_credentials",
                 "client_id": tram_id,
@@ -779,7 +768,7 @@ def api_horaris(id_estacio):
             token = r_token.json()["access_token"]
             horaris = []
             vists = set()
-            for code in [out_code, ret_code]:
+            for code in codis:
                 r2 = requests.get(f"https://opendata.tram.cat/api/v1/stopTimes/{code}",
                     headers={"Authorization": f"Bearer {token}"}, timeout=8)
                 for st in r2.json():
