@@ -204,6 +204,7 @@ def ruta_a_dict(row):
         "descripcio":   v("Descripció_ruta"),
         "advertiments": v("Advertiments"),
         "enllaç_meteocat": v("Enllaç_Meteocat"),
+        "webcam_3cat": v("Webcam_3Cat"),
     }
 
 
