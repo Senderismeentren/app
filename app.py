@@ -803,19 +803,13 @@ def api_horaris(id_estacio):
             nom_api = ''.join(_acc.get(c, c) for c in nom_estacio)
             # Carregar tots els trens d'avui i filtrar per hora en Python
             params = {
-                "where": f"stop_name='{nom_api}'",
+                "where": f"stop_name='{nom_api}' AND departure_time>='{hora_actual}'",
                 "order_by": "departure_time ASC",
-                "limit": "100",
+                "limit": "10",
                 "select": "departure_time,route_short_name,trip_headsign",
             }
             resp = requests.get(base, params=params, timeout=8)
             data = resp.json()
-            # Filtrar per hora actual en Python (evita problemes de format a l'API)
-            results_filtrats = [
-                r for r in data.get("results", [])
-                if r.get("departure_time", "") >= hora_actual
-            ]
-            data["results"] = results_filtrats
 
             horaris = []
             vists = set()
