@@ -203,6 +203,7 @@ def ruta_a_dict(row):
         "millors":      v("Millors_rutes"),
         "descripcio":   v("Descripció_ruta"),
         "advertiments": v("Advertiments"),
+        "enllaç_meteocat": v("Enllaç_Meteocat"),
     }
 
 
