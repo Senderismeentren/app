@@ -22,7 +22,7 @@ GOOGLE_CREDS    = os.environ.get("GOOGLE_CREDS", "")   # JSON de credencials
 BASE_FOTO_URL   = "https://raw.githubusercontent.com/Senderismeentren/imatges/main/ruta-{id:03d}/foto{n}.jpg"
 BASE_GPX_URL    = "https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/gpx/ruta-{id:03d}.gpx"
 BASE_LOGO_URL   = "https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/Logo-{linia}.svg"
-MAX_FOTOS       = 20
+MAX_FOTOS       = 9
 CACHE_TTL       = 1800   # 30 min
 
 # ── COLORS DIFICULTAT ───────────────────────────────────────────────
@@ -48,7 +48,6 @@ COLORS_OP = {
     "cremallera":    "#C8A96E",
     "sncf":          "#C00000",
 }
-
 
 def color_op(op):
     if not op: return "#EE7F00"
@@ -164,9 +163,6 @@ def ruta_a_dict(row):
         "sortida":      v("Estació_sortida"),
         "op_sortida":   v("Operador_sortida"),
         "id_sortida":   v("ID_estació_sortida"),
-        "enllaç_wp":    v("Enllaç_WP"),
-        "destacada":    (v("Destacades") or "").strip().lower() in ("sí", "si", "yes", "1", "x"),
-        "punt_interes":  v("Punt_interès") or v("Punt_interes") or "",
         "lat_sortida":  vf("Lat_sortida"),
         "lng_sortida":  vf("Lon_sortida"),
         "linies_sortida": [l.strip() for l in v("Linies_sortida").split(";") if l.strip()],
@@ -195,35 +191,15 @@ def ruta_a_dict(row):
         "alcada_alt":   int(vf("Alçada_punt_alt")),
         "cims":         v("100cims").lower() in ("si", "sí", "yes", "1", "true"),
         "nom_cim":      v("Nom_100cims"),
-        "lat_cim":      v("Lat_100cims"),
-        "lng_cim":      v("Lon_100cims"),
+        "lat_cim":      vf("Lat_100cims"),
+        "lng_cim":      vf("Lon_100cims"),
         "senders":      senders,
         "espai":        v("Espai_natural"),
         "punts_interes": punts_interes,
         "millors":      v("Millors_rutes"),
         "descripcio":   v("Descripció_ruta"),
         "advertiments": v("Advertiments"),
-        "enllaç_meteocat": v("Enllaç_Meteocat"),
     }
-
-
-def get_avis():
-    """Llegeix l'avís de la cel·la AP2 del Sheets."""
-    try:
-        dades = _cache_dades.get("dades")
-        if dades is None or dades.empty:
-            return ""
-        # AP és la columna 42 (0-indexed), fila 0 (primera fila de dades = AP2 al Sheets)
-        if "Avís" in dades.columns:
-            val = dades["Avís"].iloc[0] if len(dades) > 0 else ""
-            return str(val).strip() if val and str(val) != "nan" else ""
-        # Provar sense accent
-        if "Avis" in dades.columns:
-            val = dades["Avis"].iloc[0] if len(dades) > 0 else ""
-            return str(val).strip() if val and str(val) != "nan" else ""
-    except Exception:
-        pass
-    return ""
 
 
 def get_rutes():
@@ -339,18 +315,14 @@ def get_estacions():
 
 # ── FILTRES DISPONIBLES ─────────────────────────────────────────────
 def get_filtres(rutes):
-    ORDRE_DIF = ['Molt fàcil', 'Fàcil', 'Moderada', 'Exigent', 'Molt exigent']
-    difs_set = set(r["dificultat"] for r in rutes if r["dificultat"])
-    dificultats = [d for d in ORDRE_DIF if d in difs_set]
+    dificultats = sorted(set(r["dificultat"] for r in rutes if r["dificultat"]))
     comarques = sorted(set(
         c for r in rutes
         for c in [r["comarca_sortida"], r["comarca_arribada"]] if c
     ))
     operadors = sorted(set(
-        op.strip()
-        for r in rutes
-        for camp in [r["op_sortida"], r["op_arribada"]] if camp
-        for op in camp.split(";") if op.strip()
+        op for r in rutes
+        for op in [r["op_sortida"], r["op_arribada"]] if op
     ))
     espais = sorted(set(r["espai"] for r in rutes if r["espai"]))
     millors = sorted(set(r["millors"] for r in rutes if r["millors"]))
@@ -367,55 +339,16 @@ def get_filtres(rutes):
 # RUTES FLASK (URLs)
 # ══════════════════════════════════════════════════════════════════════
 
-@app.context_processor
-def injectar_avis():
-    return {"avis": get_avis()}
-
-
 @app.route("/")
 def inici():
     rutes = get_rutes()
-
-    # Rutes destacades (columna "Destacada" = Sí)
-    destacades = [r for r in rutes if r.get("destacada")][:6]
-    if not destacades:
-        destacades = rutes[:3]  # fallback
-
-    # Millors rutes temàtiques (primeres 4 col·leccions)
-    grups = {}
-    for r in rutes:
-        cat = r.get("millors", "")
-        if not cat: continue
-        grups.setdefault(cat, []).append(r)
-    colleccions = []
-    for k, v_list in sorted(grups.items()):
-        primera = v_list[0] if v_list else None
-        foto = f"https://raw.githubusercontent.com/Senderismeentren/imatges/main/ruta-{str(primera['id']).zfill(3)}/foto1.jpg" if primera else ""
-        colleccions.append({"nom": k, "n": len(v_list), "foto": foto, "url": f"/rutes?millors={k}"})
-    # Totes les col·leccions (inici.html en mostra 4 i la resta amb botó)
-
-    # Articles recents del WP
-    articles_recents = []
-    try:
-        resp = requests.get("https://senderismeentren.cat/wp-json/wp/v2/posts",
-            params={"categories": CAT_ARTICLES, "per_page": 3,
-                    "_fields": "id,title,excerpt,date"},
-            timeout=5)
-        for a in resp.json():
-            articles_recents.append({
-                "id": a.get("id"),
-                "titol": h.unescape(a.get("title", {}).get("rendered", "")),
-                "extracte": a.get("excerpt", {}).get("rendered", ""),
-                "data": a.get("date", "")[:10],
-            })
-    except Exception:
-        pass
-
-    # Stats
+    destacades = rutes[:3]
+    # Estacions úniques (sense duplicats)
     estacions_uniques = set()
     for r in rutes:
         if r["sortida"]: estacions_uniques.add(r["sortida"])
         if r["arribada"]: estacions_uniques.add(r["arribada"])
+    # Línies úniques (sense duplicats)
     linies_uniques = set()
     for r in rutes:
         for l in r["linies_sortida"]: linies_uniques.add(l)
@@ -431,11 +364,7 @@ def inici():
         "total_km": round(total_km),
         "total_desn": total_desn,
     }
-    return render_template("inici.html",
-        destacades=destacades,
-        colleccions=colleccions,
-        articles_recents=articles_recents,
-        stats=stats)
+    return render_template("inici.html", destacades=destacades, stats=stats)
 
 
 @app.route("/rutes")
@@ -452,33 +381,21 @@ def rutes_pagina():
     millors = request.args.get("millors", "")
 
     estacio = request.args.get("estacio", "")
-    dist    = request.args.get("dist", "")
 
     rutes_all_list = get_rutes()
     if dif:     rutes = [r for r in rutes if r["dificultat"] == dif]
     if comarca: rutes = [r for r in rutes if comarca in [r["comarca_sortida"], r["comarca_arribada"]]]
-    if operador:rutes = [r for r in rutes if any(operador == op.strip() for camp in [r["op_sortida"] or "", r["op_arribada"] or ""] for op in camp.split(";"))]
+    if operador:rutes = [r for r in rutes if operador in [r["op_sortida"], r["op_arribada"]]]
     if espai:   rutes = [r for r in rutes if r["espai"] == espai]
     if cims:    rutes = [r for r in rutes if r["cims"]]
     if millors: rutes = [r for r in rutes if r["millors"] == millors]
     if estacio: rutes = [r for r in rutes if estacio in [r["sortida"], r["arribada"]]]
-    if dist:
-        def dins_dist(r):
-            km = float(r["km"] or 0)
-            if dist == "0-10": return km < 10
-            if dist == "10-20": return 10 <= km <= 20
-            if dist == "20+": return km > 20
-            return True
-        rutes = [r for r in rutes if dins_dist(r)]
-    millors_filtre = request.args.get("millors", "")
-    if millors_filtre: rutes = [r for r in rutes if r.get("millors") == millors_filtre]
 
     filtres_actius = {k: v for k, v in {
         "dificultat": dif, "comarca": comarca,
         "operador": operador, "espai": espai,
-        "cims": cims, "estacio": estacio,
-        "dist": dist,
-        "millors": millors_filtre or millors,
+        "cims": cims, "millors": millors,
+        "estacio": estacio,
     }.items() if v}
 
     # Afegir estacions al diccionari de filtres
@@ -486,16 +403,6 @@ def rutes_pagina():
         est for r in rutes_all_list
         for est in [r["sortida"], r["arribada"]] if est
     ))
-    # Estacions agrupades per operador
-    estacions_op = {}
-    for r in rutes_all_list:
-        for est, ops_str in [(r["sortida"], r["op_sortida"]), (r["arribada"], r["op_arribada"])]:
-            if est and ops_str:
-                for op in ops_str.split(";"):
-                    op = op.strip()
-                    if op:
-                        estacions_op.setdefault(op, set()).add(est)
-    filtres["estacions_per_op"] = {op: sorted(ests) for op, ests in sorted(estacions_op.items())}
 
     return render_template("rutes.html",
         rutes=rutes,
@@ -530,28 +437,18 @@ def mapa_pagina():
     rutes = get_rutes()
     estacions = get_estacions()
     # Només rutes amb coordenades
-    rutes_mapa = [r for r in rutes if r["lat_sortida"] not in ("", None, 0) and r["lng_sortida"] not in ("", None, 0)]
+    rutes_mapa = [r for r in rutes if r["lat_sortida"] and r["lng_sortida"]]
     # Agrupar estacions per operador per al sidebar
     estacions_list = list(estacions.values())
     estacions_per_op = {}
-    for est in sorted(estacions_list, key=lambda x: x["nom"]):
-        ops_str = est["op"] or "Altres"
-        for op in ops_str.split(";"):
-            op = op.strip() or "Altres"
-            if op not in estacions_per_op:
-                estacions_per_op[op] = []
-            if est["nom"] not in [e["nom"] for e in estacions_per_op[op]]:
-                estacions_per_op[op].append(est)
-    estacions_per_op = dict(sorted(estacions_per_op.items()))
-
-    # Espais naturals únics per als filtres
-    espais_mapa = sorted(set(r["espai"] for r in rutes_mapa if r["espai"]))
+    for est in sorted(estacions_list, key=lambda x: (x["op"] or "", x["nom"])):
+        op = est["op"] or "Altres"
+        estacions_per_op.setdefault(op, []).append(est)
 
     return render_template("mapa.html",
         rutes=rutes_mapa,
         estacions=estacions_list,
         estacions_per_op=estacions_per_op,
-        espais_mapa=espais_mapa,
     )
 
 
@@ -595,103 +492,6 @@ def api_rutes():
 
 # Caché de GPX de línies (en memòria, es carrega un cop)
 _cache_gpx_linies = {}
-
-# ── ARTICLES ─────────────────────────────────────────────────────
-WP_BASE = "https://senderismeentren.cat/wp-json/wp/v2"
-CAT_ARTICLES = 208
-
-@app.route("/articles")
-def articles_pagina():
-    """Llista d'articles del WP."""
-    try:
-        resp = requests.get(f"{WP_BASE}/posts",
-            params={"categories": CAT_ARTICLES, "per_page": 20,
-                    "_fields": "id,title,excerpt,date,slug,link,featured_media"},
-            timeout=8)
-        articles = resp.json()
-        if not isinstance(articles, list):
-            articles = []
-        for a in articles:
-            a["titol"] = __import__("html").unescape(a.get("title", {}).get("rendered", ""))
-            a["extracte"] = a.get("excerpt", {}).get("rendered", "")
-            a["data"] = a.get("date", "")[:10]
-            # Imatge destacada via crida directa a media
-            a["imatge"] = ""
-            media_id = a.get("featured_media", 0)
-            if media_id:
-                try:
-                    mr = requests.get(f"{WP_BASE}/media/{media_id}",
-                        params={"_fields": "source_url"}, timeout=5)
-                    a["imatge"] = mr.json().get("source_url", "")
-                except Exception:
-                    pass
-    except Exception:
-        articles = []
-    return render_template("llista_articles.html", articles=articles)
-
-@app.route("/article/<int:post_id>")
-def article_pagina(post_id):
-    """Mostra un article del WP."""
-    import re
-    try:
-        resp = requests.get(f"{WP_BASE}/posts/{post_id}",
-            params={"_fields": "id,title,content,excerpt,date"},
-            timeout=8)
-        data = resp.json()
-        titol = __import__("html").unescape(data.get("title", {}).get("rendered", ""))
-        contingut_html = data.get("content", {}).get("rendered", "")
-        data_pub = data.get("date", "")[:10]
-
-        # Netejar HTML: treure social links, spacers, però mantenir imatges
-        contingut = re.sub(r'<ul[^>]*wp-block-social-links[^>]*>.*?</ul>\s*', '', contingut_html, flags=re.DOTALL, count=1)
-        contingut = re.sub(r'<div[^>]*wp-block-spacer[^>]*>.*?</div>', '', contingut, flags=re.DOTALL)
-        contingut = re.sub(r' style="[^"]*color[^"]*"', '', contingut)
-        contingut = contingut.strip()
-    except Exception as e:
-        titol = "Article no trobat"
-        contingut = ""
-        data_pub = ""
-    return render_template("fitxa_article.html", titol=titol, contingut=contingut,
-                           data_pub=data_pub, post_id=post_id)
-
-
-@app.route("/api/resseny")
-def api_resseny():
-    """Llegeix el contingut d'un post de WP via la seva URL."""
-    import re
-    url_wp = request.args.get("url", "")
-    if not url_wp:
-        return jsonify({"error": "cal url"}), 400
-    try:
-        # Extreure l'ID de la URL (pot ser numèric o slug)
-        import re as _re
-        segment = url_wp.rstrip('/').split('/')[-1]
-        if segment.isdigit():
-            api_url = f"https://senderismeentren.cat/wp-json/wp/v2/posts/{segment}?_fields=title,content,excerpt"
-        else:
-            api_url = f"https://senderismeentren.cat/wp-json/wp/v2/posts?slug={segment}&_fields=title,content,excerpt"
-
-        resp = requests.get(api_url, timeout=8)
-        data = resp.json()
-
-        # Si és llista, agafar el primer
-        if isinstance(data, list):
-            if not data:
-                return jsonify({"error": "no trobat"}), 404
-            data = data[0]
-
-        titol = __import__("html").unescape(data.get("title", {}).get("rendered", ""))
-        contingut = data.get("content", {}).get("rendered", "")
-        extracte = data.get("excerpt", {}).get("rendered", "")
-
-        return jsonify({
-            "titol": titol,
-            "contingut": contingut,
-            "extracte": extracte,
-        })
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
 
 @app.route("/api/gpx/linia/<nom_linia>")
 def api_gpx_linia(nom_linia):
@@ -756,39 +556,6 @@ def api_horaris(id_estacio):
     ara = datetime.now()
 
     try:
-        # ── TRAM ─────────────────────────────────────────────────────
-        if ";" in id_estacio and all(p.strip().isdigit() for p in id_estacio.split(";")):
-            tram_id = os.environ.get("TRAM_CLIENT_ID", "")
-            tram_secret = os.environ.get("TRAM_CLIENT_SECRET", "")
-            codis = [int(p.strip()) for p in id_estacio.split(";")]
-            r_token = requests.post("https://opendata.tram.cat/connect/token", data={
-                "grant_type": "client_credentials",
-                "client_id": tram_id,
-                "client_secret": tram_secret
-            }, timeout=8)
-            token = r_token.json()["access_token"]
-            horaris = []
-            vists = set()
-            for code in codis:
-                r2 = requests.get(f"https://opendata.tram.cat/api/v1/stopTimes/{code}",
-                    headers={"Authorization": f"Bearer {token}"}, timeout=8)
-                for st in r2.json():
-                    hora = st.get("arrivalTime", "")[:16].split(" ")[-1][:5]
-                    linia = st.get("lineName", "")
-                    dest = st.get("destination", "")
-                    clau = f"{hora}_{linia}_{dest}"
-                    if hora and clau not in vists:
-                        vists.add(clau)
-                        horaris.append({
-                            "hora": hora,
-                            "linia": linia,
-                            "destinacio": dest,
-                            "retard": 0,
-                            "ara": False
-                        })
-            horaris.sort(key=lambda h: h["hora"])
-            return jsonify({"horaris": horaris[:8], "operador": "Tram"})
-
         # ── FGC ──────────────────────────────────────────────────────
         if not id_estacio.isdigit():
             # Hora local catalana (UTC+2 estiu, UTC+1 hivern)
@@ -803,13 +570,19 @@ def api_horaris(id_estacio):
             nom_api = ''.join(_acc.get(c, c) for c in nom_estacio)
             # Carregar tots els trens d'avui i filtrar per hora en Python
             params = {
-                "where": f"stop_name='{nom_api}' AND departure_time>='{hora_actual}'",
+                "where": f"stop_name='{nom_api}'",
                 "order_by": "departure_time ASC",
-                "limit": "10",
+                "limit": "300",
                 "select": "departure_time,route_short_name,trip_headsign",
             }
             resp = requests.get(base, params=params, timeout=8)
             data = resp.json()
+            # Filtrar per hora actual en Python (evita problemes de format a l'API)
+            results_filtrats = [
+                r for r in data.get("results", [])
+                if r.get("departure_time", "00:00:00") >= hora_actual
+            ]
+            data["results"] = results_filtrats
 
             horaris = []
             vists = set()
@@ -841,17 +614,8 @@ def api_horaris(id_estacio):
             hora = entry.get("theoreticalDeparture", "")[:5]
             hora_est = entry.get("estimatedDeparture", "")[:5]
             linia = entry.get("lineId", "")
-            # headsign és la destinació concreta; si és null, usem la segona part del lineName
-            headsign = entry.get("headsign")
-            line_name = entry.get("lineName", "")
-            if headsign:
-                dest = headsign
-            elif " - " in line_name:
-                # Ex: "Sant Vicenç - Maçanet-Massanes" -> agafem la part correcta
-                # segons la direcció del tren (no ho sabem, mostrem les dues parts)
-                dest = line_name
-            else:
-                dest = line_name
+            # headsign és la destinació concreta del tren
+            dest = entry.get("headsign") or entry.get("lineName", "")
             retard = int(entry.get("currentDelay", 0) or 0)
             clau = f"{hora}_{linia}_{dest}"
             if hora and linia and clau not in vists:
@@ -865,67 +629,6 @@ def api_horaris(id_estacio):
                 })
         return jsonify({"horaris": horaris[:8], "operador": "Rodalies"})
 
-    except Exception as e:
-        return jsonify({"horaris": [], "error": str(e)})
-
-
-
-@app.route("/api/horaris-sncf/<path:id_estacio>")
-def api_horaris_sncf(id_estacio):
-    """Horaris en temps real SNCF via API Navitia. Accepta un o dos IDs separats per ;"""
-    from datetime import datetime
-    import zoneinfo
-    sncf_key = os.environ.get("SNCF_API_KEY", "")
-    if not sncf_key:
-        return jsonify({"horaris": [], "error": "SNCF_API_KEY no configurada"})
-    try:
-        tz_paris = zoneinfo.ZoneInfo("Europe/Paris")
-        ara = datetime.now(tz_paris)
-        # Suporta múltiples IDs separats per ; (ex: "87611483;87611905")
-        ids = [i.strip() for i in id_estacio.split(";") if i.strip()]
-        totes_departures = []
-        for id_est in ids:
-            if not id_est.startswith("stop_area:"):
-                id_est = f"stop_area:SNCF:{id_est}"
-            url = f"https://api.sncf.com/v1/coverage/sncf/stop_areas/{id_est}/departures"
-            params = {"count": 15}
-            resp = requests.get(url, params=params, auth=(sncf_key, ""), timeout=8)
-            data = resp.json()
-            totes_departures.extend(data.get("departures", []))
-        horaris = []
-        vists = set()
-        for dep in totes_departures:
-            dt_str = dep.get("stop_date_time", {}).get("departure_date_time", "")
-            if not dt_str:
-                continue
-            dt = datetime.strptime(dt_str, "%Y%m%dT%H%M%S").replace(tzinfo=tz_paris)
-            if dt < ara:
-                continue
-            hora = dt.strftime("%H:%M")
-            info = dep.get("display_informations", {})
-            linia_codi = info.get("code") or info.get("label", "")
-            NOMS_SNCF = {"P14": "Tren Groc"}
-            linia = NOMS_SNCF.get(linia_codi, linia_codi)
-            dest = info.get("direction", "").split(" (")[0]
-            mode = info.get("physical_mode", "")
-            # Afegir icona per distingir tren/autocar
-            if "coach" in mode.lower() or "autocar" in mode.lower():
-                mode_icon = "🚌"
-            else:
-                mode_icon = "🚆"
-            clau = f"{hora}_{linia}_{dest}"
-            if clau not in vists:
-                vists.add(clau)
-                horaris.append({
-                    "hora": hora,
-                    "linia": f"{mode_icon} {linia or mode}".strip(),
-                    "destinacio": dest,
-                    "retard": 0,
-                    "ara": False
-                })
-        # Ordenar per hora i limitar
-        horaris.sort(key=lambda h: h["hora"])
-        return jsonify({"horaris": horaris[:10], "operador": "SNCF"})
     except Exception as e:
         return jsonify({"horaris": [], "error": str(e)})
 
@@ -952,29 +655,3 @@ def globals_plantilles():
 
 if __name__ == "__main__":
     app.run(debug=True, port=5000)
-
-@app.route("/api/tram-debug")
-def tram_debug():
-    """Diagnòstic temporal de l'API de Tram."""
-    tram_id = os.environ.get("TRAM_CLIENT_ID", "NO_ID")
-    tram_secret = os.environ.get("TRAM_CLIENT_SECRET", "NO_SECRET")
-    try:
-        r_token = requests.post("https://opendata.tram.cat/connect/token", data={
-            "grant_type": "client_credentials",
-            "client_id": tram_id,
-            "client_secret": tram_secret
-        }, timeout=8)
-        token_resp = r_token.json()
-        token = token_resp.get("access_token", "")
-        if not token:
-            return jsonify({"error": "no_token", "resp": token_resp})
-        r2 = requests.get("https://opendata.tram.cat/api/v1/stopTimes/1001",
-            headers={"Authorization": f"Bearer {token}"}, timeout=8)
-        return jsonify({
-            "token_ok": True,
-            "client_id": tram_id,
-            "stopTimes_status": r2.status_code,
-            "stopTimes_resp": r2.text[:500]
-        })
-    except Exception as e:
-        return jsonify({"error": str(e)})
