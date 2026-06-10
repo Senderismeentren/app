@@ -438,6 +438,22 @@
       <div class="perfil-wrap"><canvas id="fitxa-perfil"></canvas></div>
     </div>
 
+    <!-- METEOROLOGIA -->
+    {% if ruta.enllaç_meteocat %}
+    <div class="bloc">
+      <div class="bloc-cap"><span class="bloc-icon">🌤️</span><span class="bloc-titol">Meteorologia</span></div>
+      <div class="bloc-cos" style="padding:0;overflow:hidden;">
+        <iframe
+          src="https://static-m.meteo.cat/ginys/municipal72h?location={{ ruta.enllaç_meteocat }}&language=ca&color=2c3e50&tempFormat=ºC&windSpeedFormat=km/h&mainChart=estCel&secondaryChart=true&target=_blank"
+          title="Predicció meteorològica"
+          frameborder="0"
+          style="border:0;display:block;width:100%;height:350px;"
+          scrolling="no">
+        </iframe>
+      </div>
+    </div>
+    {% endif %}
+
     <!-- HORARIS EN TEMPS REAL -->
     <div class="bloc">
       <div class="bloc-cap"><span class="bloc-icon">🚆</span><span class="bloc-titol">Pròxims trens</span></div>
