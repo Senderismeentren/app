@@ -438,21 +438,6 @@
       <div class="perfil-wrap"><canvas id="fitxa-perfil"></canvas></div>
     </div>
 
-    <!-- WEBCAM 3CAT -->
-    {% if ruta.webcam_3cat %}
-    <div class="bloc">
-      <div class="bloc-cap"><span class="bloc-icon">📷</span><span class="bloc-titol">Càmera en directe</span></div>
-      <div class="bloc-cos" style="padding:0;overflow:hidden;">
-        <iframe
-          src="https://www.3cat.cat/3catinfo/el-temps/camera/embed/{{ ruta.webcam_3cat }}/"
-          title="Càmera en directe"
-          frameborder="0"
-          style="border:0;display:block;width:100%;height:550px;"
-          scrolling="no">
-        </iframe>
-      </div>Spaces
-    </div>
-    {% endif %}
 
     <!-- METEOROLOGIA -->
     {% if ruta.enllaç_meteocat %}
