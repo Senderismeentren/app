@@ -801,24 +801,21 @@ def api_horaris(id_estacio):
             # Normalitzar accents per compatibilitat amb l'API FGC
             _acc = {'à':'a','è':'e','é':'e','í':'i','ï':'i','ó':'o','ò':'o','ú':'u','ü':'u','ç':'c','À':'A','È':'E','É':'E','Í':'I','Ï':'I','Ó':'O','Ò':'O','Ú':'U','Ü':'U','·':''}
             nom_api = ''.join(_acc.get(c, c) for c in nom_estacio)
-            # Carregar tots els trens d'avui i filtrar per hora en Python
+            # Agafar els 100 últims trens del dia en ordre DESC i filtrar >= hora actual
             params = {
                 "where": f"stop_name='{nom_api}'",
-                "order_by": "departure_time ASC",
+                "order_by": "departure_time DESC",
                 "limit": "100",
                 "select": "departure_time,route_short_name,trip_headsign",
             }
             resp = requests.get(base, params=params, timeout=8)
             data = resp.json()
-            print(f"FGC DEBUG: nom_api={nom_api}, hora_actual={hora_actual}, total={data.get('total_count')}, resultats={len(data.get('results',[]))}")
-            if data.get('results'):
-                print(f"FGC DEBUG primer hora: {data['results'][0].get('departure_time')}")
-            # Filtrar per hora actual en Python (evita problemes de format a l'API)
-            results_filtrats = [
-                r for r in data.get("results", [])
-                if r.get("departure_time", "") >= hora_actual
-            ]
-            print(f"FGC DEBUG filtrats: {len(results_filtrats)}")
+            # Filtrar per hora actual i ordenar ASC
+            results_filtrats = sorted(
+                [r for r in data.get("results", [])
+                 if r.get("departure_time", "00:00:00") >= hora_actual],
+                key=lambda r: r.get("departure_time", "")
+            )
             data["results"] = results_filtrats
 
             horaris = []
