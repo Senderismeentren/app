@@ -805,7 +805,7 @@ def api_horaris(id_estacio):
             params = {
                 "where": f"stop_name='{nom_api}'",
                 "order_by": "departure_time ASC",
-                "limit": "100",
+                "limit": "500",
                 "select": "departure_time,route_short_name,trip_headsign",
             }
             resp = requests.get(base, params=params, timeout=8)
