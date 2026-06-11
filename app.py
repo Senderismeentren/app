@@ -796,6 +796,7 @@ def api_horaris(id_estacio):
             tz_cat = zoneinfo.ZoneInfo("Europe/Madrid")
             ara_cat = datetime.now(tz_cat)
             hora_actual = ara_cat.strftime("%H:%M:%S")
+            print(f"FGC HORA DEBUG: hora_actual={hora_actual}, UTC={datetime.now().strftime('%H:%M:%S')}")
             base = "https://dadesobertes.fgc.cat/api/explore/v2.1/catalog/datasets/viajes-de-hoy/records"
             nom_estacio = id_estacio.replace("_", " ")
             # Normalitzar accents per compatibilitat amb l'API FGC
