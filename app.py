@@ -801,26 +801,22 @@ def api_horaris(id_estacio):
             # Normalitzar accents per compatibilitat amb l'API FGC
             _acc = {'à':'a','è':'e','é':'e','í':'i','ï':'i','ó':'o','ò':'o','ú':'u','ü':'u','ç':'c','À':'A','È':'E','É':'E','Í':'I','Ï':'I','Ó':'O','Ò':'O','Ú':'U','Ü':'U','·':''}
             nom_api = ''.join(_acc.get(c, c) for c in nom_estacio)
-            # Dues crides ASC i DESC per cobrir tots els horaris del dia
-            tots = []
-            for order in ["ASC", "DESC"]:
-                params = {
-                    "where": f"stop_name='{nom_api}'",
-                    "order_by": f"departure_time {order}",
-                    "limit": "100",
-                    "select": "departure_time,route_short_name,trip_headsign",
-                }
-                r2 = requests.get(base, params=params, timeout=8)
-                tots.extend(r2.json().get("results", []))
-            # Filtrar >= hora actual, eliminar duplicats i ordenar ASC
-            vistos = set()
-            results_filtrats = []
-            for r in sorted(tots, key=lambda x: x.get("departure_time", "")):
-                clau = r.get("departure_time","") + r.get("route_short_name","")
-                if r.get("departure_time", "00:00:00") >= hora_actual and clau not in vistos:
-                    vistos.add(clau)
-                    results_filtrats.append(r)
-            data = {"results": results_filtrats}
+            # Agafar els 100 últims trens del dia en ordre DESC i filtrar >= hora actual
+            params = {
+                "where": f"stop_name='{nom_api}'",
+                "order_by": "departure_time DESC",
+                "limit": "100",
+                "select": "departure_time,route_short_name,trip_headsign",
+            }
+            resp = requests.get(base, params=params, timeout=8)
+            data = resp.json()
+            # Filtrar per hora actual i ordenar ASC
+            results_filtrats = sorted(
+                [r for r in data.get("results", [])
+                 if r.get("departure_time", "00:00:00") >= hora_actual],
+                key=lambda r: r.get("departure_time", "")
+            )
+            data["results"] = results_filtrats
 
             horaris = []
             vists = set()
