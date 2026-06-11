@@ -799,38 +799,41 @@ def api_horaris(id_estacio):
             base = "https://dadesobertes.fgc.cat/api/explore/v2.1/catalog/datasets/viajes-de-hoy/records"
             nom_estacio = id_estacio.replace("_", " ")
             nom_api = nom_estacio
-            # Crida ASC: primers 100 trens del dia
-            params_asc = {
+            # Crida inicial per saber el total de trens del dia
+            params_count = {
+                "where": f"stop_name='{nom_api}'",
+                "limit": "1",
+                "select": "departure_time",
+            }
+            resp_count = requests.get(base, params=params_count, timeout=8)
+            total_count = resp_count.json().get("total_count", 100)
+            # Calcular offset aproximat basat en l'hora actual
+            h, m, s = [int(x) for x in hora_actual.split(":")]
+            hora_decimal = h + m / 60
+            offset = max(0, int((hora_decimal / 24) * total_count) - 20)
+            # Crida amb offset per obtenir trens propers
+            params = {
                 "where": f"stop_name='{nom_api}'",
                 "order_by": "departure_time ASC",
-                "limit": "100",
+                "limit": "50",
+                "offset": str(offset),
                 "select": "departure_time,route_short_name,trip_headsign",
             }
-            resp_asc = requests.get(base, params=params_asc, timeout=8)
-            tots = resp_asc.json().get("results", [])
-            # Filtrar ASC >= hora actual
+            resp = requests.get(base, params=params, timeout=8)
+            tots = resp.json().get("results", [])
             results_filtrats = sorted(
                 [r for r in tots if r.get("departure_time", "00:00:00") >= hora_actual],
                 key=lambda r: r.get("departure_time", "")
             )
-            # Si tenim menys de 8, fem crida DESC per cobrir la resta del dia
-            if len(results_filtrats) < 8:
-                params_desc = {
-                    "where": f"stop_name='{nom_api}'",
-                    "order_by": "departure_time DESC",
-                    "limit": "100",
-                    "select": "departure_time,route_short_name,trip_headsign",
-                }
-                resp_desc = requests.get(base, params=params_desc, timeout=8)
-                tots_desc = resp_desc.json().get("results", [])
-                # Afegir els que no tenim ja
-                ids_existents = {r.get("departure_time","") + r.get("route_short_name","") for r in results_filtrats}
-                for r in tots_desc:
-                    clau = r.get("departure_time","") + r.get("route_short_name","")
-                    if r.get("departure_time", "00:00:00") >= hora_actual and clau not in ids_existents:
-                        ids_existents.add(clau)
-                        results_filtrats.append(r)
-                results_filtrats.sort(key=lambda r: r.get("departure_time", ""))
+            # Si no n'hi ha prou, ajustem l'offset i tornem a intentar
+            if len(results_filtrats) < 4 and offset > 0:
+                params["offset"] = str(max(0, offset - 30))
+                resp2 = requests.get(base, params=params, timeout=8)
+                tots2 = resp2.json().get("results", [])
+                results_filtrats = sorted(
+                    [r for r in tots2 if r.get("departure_time", "00:00:00") >= hora_actual],
+                    key=lambda r: r.get("departure_time", "")
+                )
             data = {"results": results_filtrats}
 
             horaris = []
