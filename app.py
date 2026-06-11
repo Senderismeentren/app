@@ -798,9 +798,7 @@ def api_horaris(id_estacio):
             hora_actual = ara_cat.strftime("%H:%M:%S")
             base = "https://dadesobertes.fgc.cat/api/explore/v2.1/catalog/datasets/viajes-de-hoy/records"
             nom_estacio = id_estacio.replace("_", " ")
-            # Normalitzar accents per compatibilitat amb l'API FGC
-            _acc = {'à':'a','è':'e','é':'e','í':'i','ï':'i','ó':'o','ò':'o','ú':'u','ü':'u','ç':'c','À':'A','È':'E','É':'E','Í':'I','Ï':'I','Ó':'O','Ò':'O','Ú':'U','Ü':'U','·':''}
-            nom_api = ''.join(_acc.get(c, c) for c in nom_estacio)
+            nom_api = nom_estacio
             # Agafar els 100 últims trens del dia en ordre DESC i filtrar >= hora actual
             params = {
                 "where": f"stop_name='{nom_api}'",
