@@ -805,16 +805,20 @@ def api_horaris(id_estacio):
             params = {
                 "where": f"stop_name='{nom_api}'",
                 "order_by": "departure_time ASC",
-                "limit": "500",
+                "limit": "100",
                 "select": "departure_time,route_short_name,trip_headsign",
             }
             resp = requests.get(base, params=params, timeout=8)
             data = resp.json()
+            print(f"FGC DEBUG: nom_api={nom_api}, hora_actual={hora_actual}, total={data.get('total_count')}, resultats={len(data.get('results',[]))}")
+            if data.get('results'):
+                print(f"FGC DEBUG primer hora: {data['results'][0].get('departure_time')}")
             # Filtrar per hora actual en Python (evita problemes de format a l'API)
             results_filtrats = [
                 r for r in data.get("results", [])
                 if r.get("departure_time", "") >= hora_actual
             ]
+            print(f"FGC DEBUG filtrats: {len(results_filtrats)}")
             data["results"] = results_filtrats
 
             horaris = []
