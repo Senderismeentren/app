@@ -810,7 +810,16 @@ def api_horaris(id_estacio):
             # Calcular offset aproximat basat en l'hora actual
             h, m, s = [int(x) for x in hora_actual.split(":")]
             hora_decimal = h + m / 60
-            offset = max(0, int((hora_decimal / 24) * total_count) - 20)
+            # Correcció variable per hores punta (més trens al matí/tarda)
+            if hora_decimal < 10:
+                correccio = 10
+            elif hora_decimal < 14:
+                correccio = 50
+            elif hora_decimal < 18:
+                correccio = 35
+            else:
+                correccio = 20
+            offset = max(0, int((hora_decimal / 24) * total_count) - correccio)
             # Crida amb offset per obtenir trens propers
             params = {
                 "where": f"stop_name='{nom_api}'",
