@@ -799,50 +799,30 @@ def api_horaris(id_estacio):
             base = "https://dadesobertes.fgc.cat/api/explore/v2.1/catalog/datasets/viajes-de-hoy/records"
             nom_estacio = id_estacio.replace("_", " ")
             nom_api = nom_estacio
-            # Crida inicial per saber el total de trens del dia
-            params_count = {
-                "where": f"stop_name='{nom_api}'",
-                "limit": "1",
-                "select": "departure_time",
-            }
-            resp_count = requests.get(base, params=params_count, timeout=8)
-            total_count = resp_count.json().get("total_count", 100)
-            # Calcular offset aproximat basat en l'hora actual
-            h, m, s = [int(x) for x in hora_actual.split(":")]
-            hora_decimal = h + m / 60
-            # Correcció variable per hores punta (més trens al matí/tarda)
-            if hora_decimal < 10:
-                correccio = 10
-            elif hora_decimal < 14:
-                correccio = 50
-            elif hora_decimal < 18:
-                correccio = 35
-            else:
-                correccio = 20
-            offset = max(0, int((hora_decimal / 24) * total_count) - correccio)
-            # Crida amb offset per obtenir trens propers
-            params = {
+            # Paginació per trobar l'hora actual: demanem de 100 en 100 fins trobar trens futurs
+            params_base = {
                 "where": f"stop_name='{nom_api}'",
                 "order_by": "departure_time ASC",
-                "limit": "50",
-                "offset": str(offset),
+                "limit": "100",
                 "select": "departure_time,route_short_name,trip_headsign",
             }
-            resp = requests.get(base, params=params, timeout=8)
-            tots = resp.json().get("results", [])
-            results_filtrats = sorted(
-                [r for r in tots if r.get("departure_time", "00:00:00") >= hora_actual],
-                key=lambda r: r.get("departure_time", "")
-            )
-            # Si no n'hi ha prou, ajustem l'offset i tornem a intentar
-            if len(results_filtrats) < 4 and offset > 0:
-                params["offset"] = str(max(0, offset - 30))
-                resp2 = requests.get(base, params=params, timeout=8)
-                tots2 = resp2.json().get("results", [])
+            results_filtrats = []
+            for offset in range(0, 600, 100):
+                params_base["offset"] = str(offset)
+                resp = requests.get(base, params=params_base, timeout=8)
+                bloc = resp.json().get("results", [])
+                if not bloc:
+                    break
+                # Si l'últim element del bloc és anterior a l'hora actual, saltem al següent
+                ultim = bloc[-1].get("departure_time", "00:00:00")
+                if ultim < hora_actual:
+                    continue
+                # Tenim trens futurs en aquest bloc
                 results_filtrats = sorted(
-                    [r for r in tots2 if r.get("departure_time", "00:00:00") >= hora_actual],
+                    [r for r in bloc if r.get("departure_time", "00:00:00") >= hora_actual],
                     key=lambda r: r.get("departure_time", "")
                 )
+                break
             data = {"results": results_filtrats}
 
             horaris = []
