@@ -107,34 +107,6 @@ body { overflow: hidden; }
   <!-- TOOLBAR -->
   <div class="mapa-toolbar">
     <span class="mapa-toolbar-titol">Mapa</span>
-    <span class="tcapa actiu" id="tcapa-estacions" onclick="toggleCapa('estacions', this)">Estacions</span>
-    <div class="mapa-sep"></div>
-    <span class="tcapa" id="tcapa-cims" onclick="toggleCapa('cims', this)">100 Cims</span>
-    <div class="mapa-sep"></div>
-    <div class="op-linies-wrap">
-      <span class="op-linies-label">Línies</span>
-      <div class="op-linies-grup">
-        <div class="op-btn" id="op-rodalies" onclick="toggleOperador('rodalies',this)" title="Rodalies" style="--op-color:#EE0000">
-          <img src="https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/logo-rodalies.svg" alt="Rodalies">
-        </div>
-        <div class="op-btn" id="op-fgc" onclick="toggleOperador('fgc',this)" title="FGC" style="--op-color:#97D700">
-          <img src="https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/logo-fgc.svg" alt="FGC">
-        </div>
-        <div class="op-btn" id="op-tmb" onclick="toggleOperador('tmb',this)" title="TMB" style="--op-color:#DA2128">
-          <img src="https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/logo-tmb.svg" alt="TMB">
-        </div>
-        <div class="op-btn" id="op-tram" onclick="toggleOperador('tram',this)" title="Tram" style="--op-color:#009A44">
-          <img src="https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/logo-tram.svg" alt="Tram">
-        </div>
-        <div class="op-btn" id="op-cremallera" onclick="toggleOperador('cremallera',this)" title="Cremallera" style="--op-color:#E87722">
-          <img src="https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/logo-cremalleranuria.svg" alt="Cremallera">
-        </div>
-        <div class="op-btn" id="op-sncf" onclick="toggleOperador('sncf',this)" title="SNCF" style="--op-color:#C00000">
-          <img src="https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/logo-sncf.svg" alt="SNCF">
-        </div>
-      </div>
-    </div>
-    <div class="mapa-sep"></div>
     <select onchange="if(this.value){const est=ESTACIONS.find(e=>e.nom===this.value);if(est){mapa.setView([est.lat,est.lng],14);obrirPanellEstacio(est);}this.value=''}"
       style="border:1.5px solid #3498DB;background:white;color:#333;border-radius:20px;padding:5px 14px;font-size:13px;cursor:pointer;max-width:220px;height:34px;font-weight:600;flex-shrink:0;">
       <option value="">🔍 Cerca estació...</option>
@@ -146,7 +118,28 @@ body { overflow: hidden; }
       </optgroup>
       {% endfor %}
     </select>
-    <span class="mapa-recompte" id="mapa-recompte">{{ rutes|length }} rutes · {{ estacions|length }} estacions</span>
+    <div class="mapa-sep"></div>
+    <span class="tcapa actiu" id="tcapa-estacions" onclick="toggleCapa('estacions', this)"><i class="ti ti-map-pin" aria-hidden="true"></i> Estacions</span>
+    <span class="tcapa" id="tcapa-cims" onclick="toggleCapa('cims', this)"><i class="ti ti-mountain" aria-hidden="true"></i> 100 Cims</span>
+    <div class="mapa-sep"></div>
+    <div class="op-linies-grup">
+      <div class="op-btn" id="op-rodalies" onclick="toggleOperador('rodalies',this)" title="Rodalies" style="--op-color:#EE0000">
+        <img src="https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/logo-rodalies.svg" alt="Rodalies">
+      </div>
+      <div class="op-btn" id="op-fgc" onclick="toggleOperador('fgc',this)" title="FGC" style="--op-color:#97D700">
+        <img src="https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/logo-fgc.svg" alt="FGC">
+      </div>
+      <div class="op-btn" id="op-tmb" onclick="toggleOperador('tmb',this)" title="TMB" style="--op-color:#DA2128">
+        <img src="https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/logo-tmb.svg" alt="TMB">
+      </div>
+      <div class="op-btn" id="op-tram" onclick="toggleOperador('tram',this)" title="Tram" style="--op-color:#009A44">
+        <img src="https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/logo-tram.svg" alt="Tram">
+      </div>
+      <div class="op-btn" id="op-sncf" onclick="toggleOperador('sncf',this)" title="SNCF" style="--op-color:#C00000">
+        <img src="https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/logo-sncf.svg" alt="SNCF">
+      </div>
+    </div>
+    <span class="mapa-recompte" id="mapa-recompte">{{ rutes|length }} rutes</span>
   </div>
 
   <!-- MAPA -->
