@@ -20,22 +20,22 @@ body { overflow: hidden; }
 }
 .mapa-toolbar-titol { font-size: 15px; font-weight: 800; color: #111; margin-right: 4px; white-space: nowrap; }
 .tcapa {
-  background: white; border: 1px solid #e0e0e0; border-radius: 8px;
-  padding: 4px 12px; font-size: 12px; color: #555; cursor: pointer;
+  background: transparent; border: 1.5px solid #ddd; border-radius: 20px;
+  padding: 5px 14px; font-size: 12px; color: #666; cursor: pointer;
   transition: all 0.15s; white-space: nowrap; user-select: none;
-  font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  font-weight: 600; height: 34px; display: inline-flex; align-items: center; gap: 5px;
 }
-.tcapa.actiu { background: white; color: var(--blau); border-color: #3498DB; box-shadow: 0 0 0 2px #3498DB44; }
+.tcapa.actiu { background: #EFF6FF; color: var(--blau); border-color: #3498DB; border-width: 1.5px; }
 .tcapa:hover:not(.actiu) { border-color: #bbb; background: #fafafa; }
 .mapa-sep { width: 1px; height: 22px; background: #e8e8e8; margin: 0 4px; flex-shrink: 0; }
 .mapa-recompte { font-size: 12px; color: #aaa; margin-left: auto; white-space: nowrap; }
 .op-linies-wrap { display: flex; align-items: center; gap: 6px; }
 .op-linies-label { font-size: 11px; color: #888; font-weight: 700; white-space: nowrap; }
 .op-linies-grup { display: flex; gap: 4px; }
-.op-btn { height: 28px; min-width: 44px; padding: 2px 6px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; background: transparent; border: 1px solid transparent; opacity: 0.55; transition: all 0.15s; }
-.op-btn:hover { opacity: 0.85; border-color: #bbb; }
-.op-btn.actiu { opacity: 1; background: #EFF6FF; border-color: #3498DB; }
-.op-btn img { height: 16px; max-width: 38px; object-fit: contain; pointer-events: none; }
+.op-btn { height: 34px; min-width: 54px; padding: 4px 8px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; background: white; border: 1.5px solid transparent; opacity: 0.45; transition: all 0.15s; }
+.op-btn:hover { opacity: 0.75; }
+.op-btn.actiu { opacity: 1; border-color: var(--op-color, #3498DB); box-shadow: 0 0 0 3px color-mix(in srgb, var(--op-color, #3498DB) 15%, transparent); }
+.op-btn img { height: 18px; max-width: 46px; object-fit: contain; pointer-events: none; }
 
 /* ── MAPA ── */
 #mapa-general { flex: 1; }
@@ -114,29 +114,29 @@ body { overflow: hidden; }
     <div class="op-linies-wrap">
       <span class="op-linies-label">Línies</span>
       <div class="op-linies-grup">
-        <div class="op-btn" id="op-rodalies" onclick="toggleOperador('rodalies',this)" title="Rodalies">
+        <div class="op-btn" id="op-rodalies" onclick="toggleOperador('rodalies',this)" title="Rodalies" style="--op-color:#EE0000">
           <img src="https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/logo-rodalies.svg" alt="Rodalies">
         </div>
-        <div class="op-btn" id="op-fgc" onclick="toggleOperador('fgc',this)" title="FGC">
+        <div class="op-btn" id="op-fgc" onclick="toggleOperador('fgc',this)" title="FGC" style="--op-color:#97D700">
           <img src="https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/logo-fgc.svg" alt="FGC">
         </div>
-        <div class="op-btn" id="op-tmb" onclick="toggleOperador('tmb',this)" title="TMB">
+        <div class="op-btn" id="op-tmb" onclick="toggleOperador('tmb',this)" title="TMB" style="--op-color:#DA2128">
           <img src="https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/logo-tmb.svg" alt="TMB">
         </div>
-        <div class="op-btn" id="op-tram" onclick="toggleOperador('tram',this)" title="Tram">
+        <div class="op-btn" id="op-tram" onclick="toggleOperador('tram',this)" title="Tram" style="--op-color:#009A44">
           <img src="https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/logo-tram.svg" alt="Tram">
         </div>
-        <div class="op-btn" id="op-cremallera" onclick="toggleOperador('cremallera',this)" title="Cremallera">
+        <div class="op-btn" id="op-cremallera" onclick="toggleOperador('cremallera',this)" title="Cremallera" style="--op-color:#E87722">
           <img src="https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/logo-cremalleranuria.svg" alt="Cremallera">
         </div>
-        <div class="op-btn" id="op-sncf" onclick="toggleOperador('sncf',this)" title="SNCF">
+        <div class="op-btn" id="op-sncf" onclick="toggleOperador('sncf',this)" title="SNCF" style="--op-color:#C00000">
           <img src="https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/logo-sncf.svg" alt="SNCF">
         </div>
       </div>
     </div>
     <div class="mapa-sep"></div>
     <select onchange="if(this.value){const est=ESTACIONS.find(e=>e.nom===this.value);if(est){mapa.setView([est.lat,est.lng],14);obrirPanellEstacio(est);}this.value=''}"
-      style="border:1px solid #e0e0e0;background:white;color:#555;border-radius:8px;padding:4px 10px;font-size:12px;cursor:pointer;max-width:200px;height:30px;font-weight:600;">
+      style="border:1.5px solid #3498DB;background:white;color:#333;border-radius:20px;padding:5px 14px;font-size:13px;cursor:pointer;max-width:220px;height:34px;font-weight:600;flex-shrink:0;">
       <option value="">🔍 Cerca estació...</option>
       {% for op, ests in estacions_per_op.items() %}
       <optgroup label="{{ op }}">
