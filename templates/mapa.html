@@ -28,7 +28,7 @@ body { overflow: hidden; }
 .filtre-badge { background: #3498DB; color: white; border-radius: 10px; padding: 1px 6px; font-size: 10px; font-weight: 700; }
 .filtre-wrap { position: relative; }
 .filtre-panell {
-  display: none; position: absolute; top: calc(100% + 6px); left: 0;
+  display: none; position: fixed; top: 56px; left: 0;
   background: white; border: 0.5px solid #e0e0e0; border-radius: 12px;
   padding: 14px 16px; width: 320px; z-index: 9999;
   box-shadow: 0 4px 24px rgba(0,0,0,0.12); max-height: 70vh; overflow-y: auto;
@@ -500,8 +500,12 @@ const LINIES_PER_OP = {
 function toggleFiltrePanell(e) {
   if (e) e.stopPropagation();
   const panell = document.getElementById('filtre-panell');
+  const btn = document.getElementById('filtre-btn');
+  const rect = btn.getBoundingClientRect();
+  panell.style.left = Math.min(rect.left, window.innerWidth - 330) + 'px';
+  panell.style.top = (rect.bottom + 6) + 'px';
   panell.classList.toggle('obert');
-  document.getElementById('filtre-btn').classList.toggle('actiu', panell.classList.contains('obert'));
+  btn.classList.toggle('actiu', panell.classList.contains('obert'));
 }
 
 function toggleOpGrup(cap) {
