@@ -547,11 +547,34 @@ def mapa_pagina():
     # Espais naturals únics per als filtres
     espais_mapa = sorted(set(r["espai"] for r in rutes_mapa if r["espai"]))
 
+    # Línies per operador (només les que apareixen al portal)
+    OP_ORDER = ["Rodalies", "FGC", "TMB", "Tram", "SNCF"]
+    linies_per_op = {}
+    for r in rutes_mapa:
+        for camp_op, camp_lin in [("op_sortida","linies_sortida"),("op_arribada","linies_arribada")]:
+            op = r.get(camp_op, "").strip()
+            if not op: continue
+            for linia in r.get(camp_lin, []):
+                if not linia: continue
+                if op not in linies_per_op:
+                    linies_per_op[op] = set()
+                linies_per_op[op].add(linia)
+    linies_per_op = {op: sorted(lins) for op, lins in linies_per_op.items()}
+    # Ordenar per ordre preferit
+    linies_per_op_ord = {}
+    for op in OP_ORDER:
+        if op in linies_per_op:
+            linies_per_op_ord[op] = linies_per_op[op]
+    for op in linies_per_op:
+        if op not in linies_per_op_ord:
+            linies_per_op_ord[op] = linies_per_op[op]
+
     return render_template("mapa.html",
         rutes=rutes_mapa,
         estacions=estacions_list,
         estacions_per_op=estacions_per_op,
         espais_mapa=espais_mapa,
+        linies_per_op=linies_per_op_ord,
     )
 
 
