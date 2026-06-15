@@ -26,14 +26,40 @@ body { overflow: hidden; }
 }
 .filtre-btn.actiu { border-color: #3498DB; color: #3498DB; background: #EFF6FF; }
 .filtre-badge { background: #3498DB; color: white; border-radius: 10px; padding: 1px 6px; font-size: 10px; font-weight: 700; }
+.filtre-wrap { position: relative; }
 .filtre-panell {
-  display: none; position: fixed; top: 56px; left: 50%; transform: translateX(-50%);
+  display: none; position: absolute; top: calc(100% + 6px); left: 0;
   background: white; border: 0.5px solid #e0e0e0; border-radius: 12px;
-  padding: 16px; width: 300px; z-index: 9999;
-  box-shadow: 0 4px 24px rgba(0,0,0,0.12);
+  padding: 14px 16px; width: 320px; z-index: 9999;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.12); max-height: 70vh; overflow-y: auto;
 }
 .filtre-panell.obert { display: block; }
-.filtre-panell-titol { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: #aaa; margin: 0 0 10px; }
+.filtre-panell-titol { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: #aaa; margin: 0 0 8px; }
+.op-grup { margin-bottom: 8px; border: 1px solid #eee; border-radius: 8px; overflow: hidden; }
+.op-cap {
+  display: flex; align-items: center; gap: 8px; padding: 8px 12px;
+  cursor: pointer; background: #fafafa; user-select: none;
+  font-size: 12px; font-weight: 700; color: #333;
+}
+.op-cap:hover { background: #f0f4ff; }
+.op-cap-arrow { margin-left: auto; font-size: 10px; color: #aaa; transition: transform 0.15s; }
+.op-cap.obert .op-cap-arrow { transform: rotate(180deg); }
+.op-linies-expand { display: none; padding: 8px 12px; background: white; border-top: 1px solid #eee; }
+.op-linies-expand.obert { display: flex; flex-wrap: wrap; gap: 5px; }
+.linia-pill {
+  border: 1px solid #ddd; border-radius: 20px; padding: 3px 10px;
+  font-size: 11px; font-weight: 600; color: #555; background: white;
+  cursor: pointer; transition: all 0.12s; white-space: nowrap;
+}
+.linia-pill:hover { border-color: #3498DB; color: #3498DB; }
+.linia-pill.actiu { background: #3498DB; color: white; border-color: #3498DB; }
+.op-capa-pill {
+  border: 1px solid #ddd; border-radius: 20px; padding: 4px 12px;
+  font-size: 12px; font-weight: 600; color: #555; background: white;
+  cursor: pointer; transition: all 0.12s; display: inline-flex; align-items: center; gap: 5px;
+}
+.op-capa-pill:hover { border-color: #3498DB; color: #3498DB; }
+.op-capa-pill.actiu { background: #EFF6FF; color: #3498DB; border-color: #3498DB; }
 .mapa-toolbar-titol { font-size: 15px; font-weight: 800; color: #111; margin-right: 4px; white-space: nowrap; }
 .tcapa {
   background: transparent; border: 1.5px solid #ddd; border-radius: 20px;
@@ -135,37 +161,39 @@ body { overflow: hidden; }
       </optgroup>
       {% endfor %}
     </select>
-    <button class="filtre-btn" id="filtre-btn" onclick="toggleFiltrePanell(event)">
-      <i class="ti ti-adjustments-horizontal" style="font-size:15px;" aria-hidden="true"></i>
-      <span>Filtres</span>
-      <span class="filtre-badge" id="filtre-badge" style="display:none;">0</span>
-    </button>
-    <span class="mapa-recompte" id="mapa-recompte">{{ rutes|length }} rutes</span>
-  </div>
-  <div class="filtre-panell" id="filtre-panell">
+    <div class="filtre-wrap">
+      <button class="filtre-btn" id="filtre-btn" onclick="toggleFiltrePanell(event)">
+        <i class="ti ti-adjustments-horizontal" style="font-size:15px;" aria-hidden="true"></i>
+        Filtres
+        <span class="filtre-badge" id="filtre-badge" style="display:none;">0</span>
+      </button>
+      <div class="filtre-panell" id="filtre-panell">
     <div class="filtre-panell-titol">Capes</div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;">
-      <span class="tcapa actiu" id="tcapa-estacions" onclick="toggleCapa('estacions', this)"><i class="ti ti-map-pin" aria-hidden="true"></i> Estacions</span>
-      <span class="tcapa" id="tcapa-cims" onclick="toggleCapa('cims', this)"><i class="ti ti-mountain" aria-hidden="true"></i> 100 Cims</span>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;">
+      <span class="op-capa-pill actiu" id="tcapa-estacions" onclick="toggleCapa('estacions', this)"><i class="ti ti-map-pin" style="font-size:13px;" aria-hidden="true"></i> Estacions</span>
+      <span class="op-capa-pill" id="tcapa-cims" onclick="toggleCapa('cims', this)"><i class="ti ti-mountain" style="font-size:13px;" aria-hidden="true"></i> 100 Cims</span>
     </div>
-    <div class="filtre-panell-titol">Operadors</div>
-    <div style="display:flex;gap:6px;flex-wrap:wrap;">
-      <div class="op-btn" id="op-rodalies" onclick="toggleOperador('rodalies',this)" title="Rodalies" style="--op-color:#EE0000">
-        <img src="https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/logo-rodalies.svg" alt="Rodalies">
+    <div class="filtre-panell-titol">Línies</div>
+    {% set BASE = "https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/" %}
+    {% set logos = {"Rodalies": "logo-rodalies", "FGC": "logo-fgc", "TMB": "logo-tmb", "Tram": "logo-tram", "SNCF": "logo-sncf"} %}
+    {% for op, linies in linies_per_op.items() %}
+    <div class="op-grup">
+      <div class="op-cap" onclick="toggleOpGrup(this)" data-op="{{ op|lower|replace(' ','-') }}">
+        <img src="{{ BASE }}{{ logos.get(op, 'logo-rodalies') }}.svg" alt="{{ op }}"
+          onerror="this.style.display='none'">
+        {{ op }}
+        <span class="op-cap-arrow">▼</span>
       </div>
-      <div class="op-btn" id="op-fgc" onclick="toggleOperador('fgc',this)" title="FGC" style="--op-color:#97D700">
-        <img src="https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/logo-fgc.svg" alt="FGC">
-      </div>
-      <div class="op-btn" id="op-tmb" onclick="toggleOperador('tmb',this)" title="TMB" style="--op-color:#DA2128">
-        <img src="https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/logo-tmb.svg" alt="TMB">
-      </div>
-      <div class="op-btn" id="op-tram" onclick="toggleOperador('tram',this)" title="Tram" style="--op-color:#009A44">
-        <img src="https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/logo-tram.svg" alt="Tram">
-      </div>
-      <div class="op-btn" id="op-sncf" onclick="toggleOperador('sncf',this)" title="SNCF" style="--op-color:#C00000">
-        <img src="https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/logo-sncf.svg" alt="SNCF">
+      <div class="op-linies-expand">
+        {% for linia in linies %}
+        <span class="linia-pill" onclick="toggleLinia('{{ op|lower|replace(' ','-') }}','{{ linia }}',this)">{{ linia }}</span>
+        {% endfor %}
       </div>
     </div>
+    {% endfor %}
+      </div>
+    </div>
+    <span class="mapa-recompte" id="mapa-recompte">{{ rutes|length }} rutes</span>
   </div>
 
   <!-- MAPA -->
@@ -476,8 +504,52 @@ function toggleFiltrePanell(e) {
   document.getElementById('filtre-btn').classList.toggle('actiu', panell.classList.contains('obert'));
 }
 
+function toggleOpGrup(cap) {
+  cap.classList.toggle('obert');
+  const expand = cap.nextElementSibling;
+  expand.classList.toggle('obert');
+}
+
+const liniesActives = {};
+const capesLinia = {};
+
+async function toggleLinia(op, linia, pill) {
+  const clau = op + '|' + linia;
+  const actiu = liniesActives[clau];
+  liniesActives[clau] = !actiu;
+  pill.classList.toggle('actiu', !actiu);
+  actualitzarBadgeFiltres();
+
+  if (actiu) {
+    if (capesLinia[clau]) capesLinia[clau].forEach(l => mapa.removeLayer(l));
+    return;
+  }
+  if (!capesLinia[clau]) {
+    capesLinia[clau] = [];
+    const nomGpx = linia.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const operadorGpx = op.toLowerCase().replace(/[^a-z]/g, '');
+    const candidates = [operadorGpx + '-' + nomGpx, nomGpx];
+    for (const nom of candidates) {
+      try {
+        const resp = await fetch('/api/gpx/linia/' + nom);
+        if (!resp.ok) continue;
+        const punts = await resp.json();
+        if (!punts || punts.length === 0) continue;
+        const latlngs = punts.map(p => [p.lat, p.lng]);
+        const color = colorLinia(nom + '.gpx');
+        const poly = L.polyline(latlngs, {color, weight: 4, opacity: 0.85}).addTo(mapa)
+          .bindTooltip(linia.toUpperCase(), {sticky: true});
+        capesLinia[clau].push(poly);
+        break;
+      } catch(e) {}
+    }
+  } else {
+    capesLinia[clau].forEach(l => l.addTo(mapa));
+  }
+}
+
 function actualitzarBadgeFiltres() {
-  const actius = document.querySelectorAll('.op-btn.actiu').length +
+  const actius = Object.values(liniesActives).filter(Boolean).length +
     (document.getElementById('tcapa-cims')?.classList.contains('actiu') ? 1 : 0);
   const badge = document.getElementById('filtre-badge');
   if (actius > 0) { badge.textContent = actius; badge.style.display = ''; }
