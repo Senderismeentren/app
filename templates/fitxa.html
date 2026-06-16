@@ -443,12 +443,12 @@
     {% if ruta.enllaç_meteocat %}
     <div class="bloc">
       <div class="bloc-cap"><span class="bloc-icon">🌤️</span><span class="bloc-titol">Meteorologia</span></div>
-      <div class="bloc-cos" style="padding:0;overflow:hidden;">
+      <div class="bloc-cos" style="padding:0;overflow:hidden;height:207px;position:relative;">
         <iframe
           src="https://static-m.meteo.cat/ginys/municipal72h?location={{ ruta.enllaç_meteocat }}&language=ca&color=2c3e50&tempFormat=ºC&windSpeedFormat=km/h&mainChart=estCel&secondaryChart=true&target=_blank"
           title="Predicció meteorològica"
           frameborder="0"
-          style="border:0;display:block;width:100%;height:420px;"
+          style="border:0;display:block;width:640px;height:350px;transform:scale(0.59);transform-origin:top left;"
           scrolling="no">
         </iframe>
       </div>
