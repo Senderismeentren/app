@@ -204,6 +204,8 @@
   .fitxa-col-dreta { gap: 12px; }
   .fotos-grid { grid-template-columns: repeat(3, 1fr); }
   .btns-flotants { bottom: calc(var(--mob-nav-h) + 12px); }
+  .meteo-wrap { height: auto !important; }
+  .meteo-iframe { width: 100% !important; height: 200px !important; transform: none !important; }
 }
 </style>
 {% endblock %}
@@ -443,11 +445,12 @@
     {% if ruta.enllaç_meteocat %}
     <div class="bloc">
       <div class="bloc-cap"><span class="bloc-icon">🌤️</span><span class="bloc-titol">Meteorologia</span></div>
-      <div class="bloc-cos" style="padding:0;overflow:hidden;height:263px;max-width:100%;">
+      <div class="bloc-cos meteo-wrap" style="padding:0;overflow:hidden;height:263px;">
         <iframe
           src="https://static-m.meteo.cat/ginys/municipal72h?location={{ ruta.enllaç_meteocat }}&language=ca&color=2c3e50&tempFormat=ºC&windSpeedFormat=km/h&mainChart=estCel&secondaryChart=true&target=_blank"
           title="Predicció meteorològica"
           frameborder="0"
+          class="meteo-iframe"
           style="border:0;display:block;width:640px;height:350px;transform:scale(0.59);transform-origin:top left;"
           scrolling="no">
         </iframe>
