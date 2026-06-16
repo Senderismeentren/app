@@ -732,7 +732,7 @@ async function actualitzarHoraris(tipus, idEst, colorOp) {
         return `
         <div class="horari-row">
           <div class="horari-hora ${horaClass}">${h.hora}</div>
-          <span class="horari-linia-badge" style="background:${colorLinia(h.linia, colorOp)};">${h.linia}</span>
+          <span class="horari-linia-badge" style="background:${colorLinia(h.linia, colorOp)};">${h.linia.replace(/[🚆🚌]\s*/u, "").trim()}</span>
           <div class="horari-dest">${h.destinacio}</div>
           <span class="horari-retard ${retardClass}">${retardTxt}</span>
         </div>`;
