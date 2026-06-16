@@ -412,19 +412,13 @@
     <div class="bloc" style="overflow:hidden;">
       <div class="bloc-cap" style="padding-bottom:10px;">
         <span class="bloc-icon">🗺️</span><span class="bloc-titol">Mapa del recorregut</span>
-        {% if ruta.wiki or ruta["enllaç_mapy"] %}
-        {% set wiki_id = ruta.wiki.rstrip('/').split('-')[-1] if ruta.wiki else '' %}
+        {% if ruta.wiki %}
+        {% set wiki_id = ruta.wiki.rstrip('/').split('-')[-1] %}
         <div style="margin-left:auto;display:flex;gap:4px;">
           <button id="btn-mapa-propi" onclick="setMapa('propi')"
             style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:6px;border:1px solid var(--blau);background:var(--blau);color:white;cursor:pointer;">Propi</button>
-          {% if ruta.wiki %}
           <button id="btn-mapa-wiki" onclick="setMapa('wiki')"
             style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:6px;border:1px solid #2d9e6b;background:white;color:#2d9e6b;cursor:pointer;">Wikiloc</button>
-          {% endif %}
-          {% if ruta["enllaç_mapy"] %}
-          <button id="btn-mapa-mapy" onclick="setMapa('mapy')"
-            style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:6px;border:1px solid #e05c00;background:white;color:#e05c00;cursor:pointer;">Mapy</button>
-          {% endif %}
         </div>
         {% endif %}
       </div>
@@ -435,12 +429,6 @@
         src="https://ca.wikiloc.com/wikiloc/embedv2.do?id={{ wiki_id }}&elevation=off&images=on&maptype=H"
         style="width:100%;height:450px;border:none;display:none;"
         scrolling="no" frameborder="0"></iframe>
-      {% endif %}
-      {% if ruta["enllaç_mapy"] %}
-      <iframe id="fitxa-mapa-mapy"
-        src="{{ ruta['enllaç_mapy'] }}"
-        style="width:100%;height:450px;border:none;display:none;"
-        scrolling="no" frameborder="0" allowfullscreen></iframe>
       {% endif %}
     </div>
 
@@ -505,29 +493,20 @@ const GPX_PUNTS = {{ gpx_punts|safe }};
 
 function setMapa(tipus) {
   const mapaPropi = document.getElementById('fitxa-mapa');
-  const mapaWiki  = document.getElementById('fitxa-mapa-wiki');
-  const mapaMapy  = document.getElementById('fitxa-mapa-mapy');
-  const btnPropi  = document.getElementById('btn-mapa-propi');
-  const btnWiki   = document.getElementById('btn-mapa-wiki');
-  const btnMapy   = document.getElementById('btn-mapa-mapy');
-
-  mapaPropi.style.display = 'none';
-  if (mapaWiki) mapaWiki.style.display = 'none';
-  if (mapaMapy) mapaMapy.style.display = 'none';
-
-  btnPropi.style.background = 'white'; btnPropi.style.color = 'var(--blau)';
-  if (btnWiki) { btnWiki.style.background = 'white'; btnWiki.style.color = '#2d9e6b'; }
-  if (btnMapy) { btnMapy.style.background = 'white'; btnMapy.style.color = '#e05c00'; }
-
-  if (tipus === 'wiki' && mapaWiki) {
+  const mapaWiki = document.getElementById('fitxa-mapa-wiki');
+  const btnPropi = document.getElementById('btn-mapa-propi');
+  const btnWiki = document.getElementById('btn-mapa-wiki');
+  if (!mapaWiki) return;
+  if (tipus === 'wiki') {
+    mapaPropi.style.display = 'none';
     mapaWiki.style.display = 'block';
     btnWiki.style.background = '#2d9e6b'; btnWiki.style.color = 'white';
-  } else if (tipus === 'mapy' && mapaMapy) {
-    mapaMapy.style.display = 'block';
-    btnMapy.style.background = '#e05c00'; btnMapy.style.color = 'white';
+    btnPropi.style.background = 'white'; btnPropi.style.color = 'var(--blau)';
   } else {
     mapaPropi.style.display = 'block';
+    mapaWiki.style.display = 'none';
     btnPropi.style.background = 'var(--blau)'; btnPropi.style.color = 'white';
+    btnWiki.style.background = 'white'; btnWiki.style.color = '#2d9e6b';
   }
 }
 const PERFIL_DISTS = {{ perfil_dists|safe }};
