@@ -296,8 +296,12 @@
             </div>
           </div></div>
           {% endif %}
+          {% if ruta.comarca_sortida and ruta.comarca_arribada and ruta.comarca_sortida == ruta.comarca_arribada %}
+          <div class="dt-item"><div class="dt-icon">🗺</div><div><div class="dt-label">Comarca sortida/arribada</div><div class="dt-val">{{ ruta.comarca_sortida }}</div></div></div>
+          {% else %}
           {% if ruta.comarca_sortida %}<div class="dt-item"><div class="dt-icon">🗺</div><div><div class="dt-label">Comarca sortida</div><div class="dt-val">{{ ruta.comarca_sortida }}</div></div></div>{% endif %}
           {% if ruta.comarca_arribada %}<div class="dt-item"><div class="dt-icon">🗺</div><div><div class="dt-label">Comarca arribada</div><div class="dt-val">{{ ruta.comarca_arribada }}</div></div></div>{% endif %}
+          {% endif %}
           {% if ruta.cims and ruta.nom_cim %}<div class="dt-item"><div class="dt-icon">⛰️</div><div><div class="dt-label">100 Cims</div><div class="dt-val">{{ ruta.nom_cim }}</div></div></div>{% endif %}
 
           {% if ruta.millors %}<div class="dt-item"><div class="dt-icon">⭐</div><div><div class="dt-label">Col·lecció</div><div class="dt-val">{{ ruta.millors }}</div></div></div>{% endif %}
