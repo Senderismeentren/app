@@ -254,15 +254,23 @@
       <!-- Espai natural -->
       <select class="fsel" onchange="aplicarFiltre('espai',this.value)">
         <option value="">🌿 Espai natural...</option>
-        {% for e in filtres.espais %}
-        <option value="{{ e }}" {% if filtres_actius.get('espai') == e %}selected{% endif %}>{{ e }}</option>
+        {% for prov, espais in filtres.espais_per_prov.items() %}
+        <optgroup label="{{ prov }}">
+          {% for e in espais %}
+          <option value="{{ e }}" {% if filtres_actius.get('espai') == e %}selected{% endif %}>{{ e }}</option>
+          {% endfor %}
+        </optgroup>
         {% endfor %}
       </select>
       <!-- Comarca -->
       <select class="fsel" onchange="aplicarFiltre('comarca',this.value)">
         <option value="">🗺 Comarca...</option>
-        {% for c in filtres.comarques %}
-        <option value="{{ c }}" {% if filtres_actius.get('comarca') == c %}selected{% endif %}>{{ c }}</option>
+        {% for prov, comarques in filtres.comarques_per_prov.items() %}
+        <optgroup label="{{ prov }}">
+          {% for c in comarques %}
+          <option value="{{ c }}" {% if filtres_actius.get('comarca') == c %}selected{% endif %}>{{ c }}</option>
+          {% endfor %}
+        </optgroup>
         {% endfor %}
       </select>
       <!-- 100 Cims -->
@@ -396,8 +404,12 @@
       <label>Espai natural</label>
       <select class="fsel" style="width:100%;" onchange="aplicarFiltre('espai',this.value)">
         <option value="">Tots els espais...</option>
-        {% for e in filtres.espais %}
-        <option value="{{ e }}" {% if filtres_actius.get('espai') == e %}selected{% endif %}>{{ e }}</option>
+        {% for prov, espais in filtres.espais_per_prov.items() %}
+        <optgroup label="{{ prov }}">
+          {% for e in espais %}
+          <option value="{{ e }}" {% if filtres_actius.get('espai') == e %}selected{% endif %}>{{ e }}</option>
+          {% endfor %}
+        </optgroup>
         {% endfor %}
       </select>
     </div>
@@ -406,8 +418,12 @@
       <label>Comarca</label>
       <select class="fsel" style="width:100%;" onchange="aplicarFiltre('comarca',this.value)">
         <option value="">Totes les comarques...</option>
-        {% for c in filtres.comarques %}
-        <option value="{{ c }}" {% if filtres_actius.get('comarca') == c %}selected{% endif %}>{{ c }}</option>
+        {% for prov, comarques in filtres.comarques_per_prov.items() %}
+        <optgroup label="{{ prov }}">
+          {% for c in comarques %}
+          <option value="{{ c }}" {% if filtres_actius.get('comarca') == c %}selected{% endif %}>{{ c }}</option>
+          {% endfor %}
+        </optgroup>
         {% endfor %}
       </select>
     </div>
