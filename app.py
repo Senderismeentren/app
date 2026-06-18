@@ -351,7 +351,7 @@ COMARQUES_PER_PROV = {
         "La Selva", "Pla de l'Estany", "Ripollès",
     ],
     "Lleida": [
-        "Alta Ribagorça", "Alt Urgell", "Les Garrigues", "Noguera",
+        "Alta Ribagorça", "Alt Urgell", "Les Garrigues", "La Noguera",
         "Pallars Jussà", "Pallars Sobirà", "Pla d'Urgell",
         "Segarra", "Segrià", "Solsonès", "Urgell", "Val d'Aran",
     ],
@@ -373,44 +373,7 @@ _COMARCA_A_PROV = {
 }
 
 # Assignació d'espais naturals a província (per la comarca principal)
-ESPAIS_PER_PROV = {
-    "Barcelona": [
-        "Parc Natural de Collserola", "Parc Natural del Montseny",
-        "Parc Natural de Sant Llorenç del Munt i l'Obac",
-        "Parc Natural del Garraf", "Parc Natural del Foix",
-        "Parc Natural del Montnegre i el Corredor",
-        "Espai Natural de les Guilleries",
-        "Parc Natural de la Serra de l'Albera",
-    ],
-    "Girona": [
-        "Parc Natural dels Aiguamolls de l'Empordà",
-        "Parc Natural de la Zona Volcànica de la Garrotxa",
-        "Parc Natural del Cap de Creus",
-        "Parc Natural del Cadí-Moixeró",
-        "Espai Natural de les Guilleries",
-        "Massís del Canigó",
-    ],
-    "Lleida": [
-        "Parc Nacional d'Aigüestortes i Estany de Sant Maurici",
-        "Parc Natural de l'Alt Pirineu",
-        "Parc Natural del Cadí-Moixeró",
-    ],
-    "Tarragona": [
-        "Parc Natural de les Muntanyes de Prades",
-        "Parc Natural dels Ports",
-        "Parc Natural del Delta de l'Ebre",
-        "Parc Natural de la Serra de Montsant",
-    ],
-    "Catalunya Nord": [
-        "Massís del Canigó",
-        "Parc Natural de la Serra de l'Albera",
-    ],
-}
-_ESPAI_A_PROV = {
-    e: prov
-    for prov, espais in ESPAIS_PER_PROV.items()
-    for e in espais
-}
+# → deduït automàticament a get_filtres() a partir de les rutes
 
 ORDRE_PROVS = ["Barcelona", "Girona", "Lleida", "Tarragona", "Catalunya Nord"]
 
@@ -448,13 +411,26 @@ def get_filtres(rutes):
     ))
     espais = sorted(set(r["espai"] for r in rutes if r["espai"]))
     millors = sorted(set(r["millors"] for r in rutes if r["millors"]))
+
+    # Deduir província de cada espai natural a partir de les comarques de les rutes
+    espai_a_prov = {}
+    for r in rutes:
+        espai = r.get("espai")
+        if not espai or espai in espai_a_prov:
+            continue
+        for comarca in [r.get("comarca_sortida"), r.get("comarca_arribada")]:
+            prov = _COMARCA_A_PROV.get(comarca)
+            if prov:
+                espai_a_prov[espai] = prov
+                break
+
     return {
         "dificultats": dificultats,
         "comarques": comarques,
         "comarques_per_prov": _agrupar_per_prov(comarques, _COMARCA_A_PROV),
         "operadors": operadors,
         "espais": espais,
-        "espais_per_prov": _agrupar_per_prov(espais, _ESPAI_A_PROV),
+        "espais_per_prov": _agrupar_per_prov(espais, espai_a_prov),
         "millors": millors,
     }
 
