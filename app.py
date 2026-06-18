@@ -338,6 +338,100 @@ def get_estacions():
 
 
 # ── FILTRES DISPONIBLES ─────────────────────────────────────────────
+
+# Assignació de comarques a província
+COMARQUES_PER_PROV = {
+    "Barcelona": [
+        "Alt Penedès", "Anoia", "Bages", "Baix Llobregat", "Barcelonès",
+        "Berguedà", "Garraf", "Maresme", "Moianès", "Osona",
+        "Vallès Occidental", "Vallès Oriental",
+    ],
+    "Girona": [
+        "Alt Empordà", "Baix Empordà", "Cerdanya", "Garrotxa", "Gironès",
+        "La Selva", "Pla de l'Estany", "Ripollès",
+    ],
+    "Lleida": [
+        "Alta Ribagorça", "Alt Urgell", "Les Garrigues", "Noguera",
+        "Pallars Jussà", "Pallars Sobirà", "Pla d'Urgell",
+        "Segarra", "Segrià", "Solsonès", "Urgell", "Val d'Aran",
+    ],
+    "Tarragona": [
+        "Alt Camp", "Baix Camp", "Baix Ebre", "Baix Penedès",
+        "Conca de Barberà", "Montsià", "Priorat", "Ribera d'Ebre",
+        "Tarragonès", "Terra Alta",
+    ],
+    "Catalunya Nord": [
+        "Alta Cerdanya", "Capcir", "Conflent", "Rosselló", "Vallespir",
+    ],
+}
+
+# Índex invers: comarca → província
+_COMARCA_A_PROV = {
+    c: prov
+    for prov, comarques in COMARQUES_PER_PROV.items()
+    for c in comarques
+}
+
+# Assignació d'espais naturals a província (per la comarca principal)
+ESPAIS_PER_PROV = {
+    "Barcelona": [
+        "Parc Natural de Collserola", "Parc Natural del Montseny",
+        "Parc Natural de Sant Llorenç del Munt i l'Obac",
+        "Parc Natural del Garraf", "Parc Natural del Foix",
+        "Parc Natural del Montnegre i el Corredor",
+        "Espai Natural de les Guilleries",
+        "Parc Natural de la Serra de l'Albera",
+    ],
+    "Girona": [
+        "Parc Natural dels Aiguamolls de l'Empordà",
+        "Parc Natural de la Zona Volcànica de la Garrotxa",
+        "Parc Natural del Cap de Creus",
+        "Parc Natural del Cadí-Moixeró",
+        "Espai Natural de les Guilleries",
+        "Massís del Canigó",
+    ],
+    "Lleida": [
+        "Parc Nacional d'Aigüestortes i Estany de Sant Maurici",
+        "Parc Natural de l'Alt Pirineu",
+        "Parc Natural del Cadí-Moixeró",
+    ],
+    "Tarragona": [
+        "Parc Natural de les Muntanyes de Prades",
+        "Parc Natural dels Ports",
+        "Parc Natural del Delta de l'Ebre",
+        "Parc Natural de la Serra de Montsant",
+    ],
+    "Catalunya Nord": [
+        "Massís del Canigó",
+        "Parc Natural de la Serra de l'Albera",
+    ],
+}
+_ESPAI_A_PROV = {
+    e: prov
+    for prov, espais in ESPAIS_PER_PROV.items()
+    for e in espais
+}
+
+ORDRE_PROVS = ["Barcelona", "Girona", "Lleida", "Tarragona", "Catalunya Nord"]
+
+
+def _agrupar_per_prov(items, index_a_prov):
+    """Agrupa una llista d'ítems per província seguint ORDRE_PROVS.
+    Els ítems no reconeguts van a 'Altres'."""
+    grups = {p: [] for p in ORDRE_PROVS}
+    altres = []
+    for item in sorted(items):
+        prov = index_a_prov.get(item)
+        if prov and prov in grups:
+            grups[prov].append(item)
+        else:
+            altres.append(item)
+    resultat = {p: grups[p] for p in ORDRE_PROVS if grups[p]}
+    if altres:
+        resultat["Altres"] = altres
+    return resultat
+
+
 def get_filtres(rutes):
     ORDRE_DIF = ['Molt fàcil', 'Fàcil', 'Moderada', 'Exigent', 'Molt exigent']
     difs_set = set(r["dificultat"] for r in rutes if r["dificultat"])
@@ -357,8 +451,10 @@ def get_filtres(rutes):
     return {
         "dificultats": dificultats,
         "comarques": comarques,
+        "comarques_per_prov": _agrupar_per_prov(comarques, _COMARCA_A_PROV),
         "operadors": operadors,
         "espais": espais,
+        "espais_per_prov": _agrupar_per_prov(espais, _ESPAI_A_PROV),
         "millors": millors,
     }
 
