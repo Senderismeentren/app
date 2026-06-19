@@ -260,10 +260,6 @@ const capaOrtoFranca = L.tileLayer(
   'https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=ORTHOIMAGERY.ORTHOPHOTOS&STYLE=normal&FORMAT=image/jpeg&TILEMATRIXSET=PM&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}',
   { attribution: '© IGN France', maxZoom: 20, tileSize: 256 }
 );
-const capaAndorra = L.tileLayer.wms('http://www.ideandorra.ad/geoserver/wms_cartogeneral/wms?', {
-  layers: 'BASEgeneral', format: 'image/png', transparent: true,
-  attribution: '© Govern d\'Andorra', maxZoom: 20
-});
 capaOSM.addTo(mapa);
 L.control.layers(
   {
@@ -274,7 +270,6 @@ L.control.layers(
     'Ortofoto IGN España': capaOrtoIGN,
     'Topogràfic IGN França': capaIGNFranca,
     'Ortofoto IGN França': capaOrtoFranca,
-    'Mapa Andorra': capaAndorra,
   },
   {}, {position: 'topright', collapsed: true}
 ).addTo(mapa);
