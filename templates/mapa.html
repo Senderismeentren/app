@@ -252,18 +252,18 @@ const capaIGN = L.tileLayer.wms('https://www.ign.es/wms-inspire/mapa-raster?', {
 const capaOrtoIGN = L.tileLayer.wms('https://www.ign.es/wms-inspire/pnoa-ma?', {
   layers: 'OI.OrthoimageCoverage', format: 'image/jpeg', attribution: '© IGN España', maxZoom: 20
 });
-const capaAndorra = L.tileLayer.wms('https://www.cartografia.ad/wms?', {
-  layers: 'topo', format: 'image/png', transparent: true,
-  attribution: '© Govern d\'Andorra', maxZoom: 20
-});
 const capaIGNFranca = L.tileLayer(
-  'https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=GEOGRAPHICALGRIDSYSTEMS.MAPS&STYLE=normal&FORMAT=image/jpeg&TILEMATRIXSET=PM&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}',
-  { attribution: '© IGN France', maxZoom: 18, tileSize: 256 }
+  'https://data.geopf.fr/private/wmts?apikey=ign_scan_ws&LAYER=GEOGRAPHICALGRIDSYSTEMS.MAPS.SCAN25TOUR&FORMAT=image/jpeg&SERVICE=WMTS&VERSION=1.0.0&REQUEST=GetTile&STYLE=normal&TILEMATRIXSET=PM&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}',
+  { attribution: '© IGN France', maxNativeZoom: 16, maxZoom: 20, tileSize: 256 }
 );
 const capaOrtoFranca = L.tileLayer(
   'https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=ORTHOIMAGERY.ORTHOPHOTOS&STYLE=normal&FORMAT=image/jpeg&TILEMATRIXSET=PM&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}',
   { attribution: '© IGN France', maxZoom: 20, tileSize: 256 }
 );
+const capaAndorra = L.tileLayer.wms('https://www.ideandorra.ad/Serveis/wms_cartografia/wms?', {
+  layers: 'mapa_base', format: 'image/png', transparent: true,
+  attribution: '© Govern d\'Andorra', maxZoom: 20
+});
 capaOSM.addTo(mapa);
 L.control.layers(
   {
