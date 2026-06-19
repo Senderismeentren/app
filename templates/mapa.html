@@ -252,14 +252,29 @@ const capaIGN = L.tileLayer.wms('https://www.ign.es/wms-inspire/mapa-raster?', {
 const capaOrtoIGN = L.tileLayer.wms('https://www.ign.es/wms-inspire/pnoa-ma?', {
   layers: 'OI.OrthoimageCoverage', format: 'image/jpeg', attribution: '© IGN España', maxZoom: 20
 });
+const capaAndorra = L.tileLayer.wms('https://www.cartografia.ad/wms?', {
+  layers: 'topo', format: 'image/png', transparent: true,
+  attribution: '© Govern d\'Andorra', maxZoom: 20
+});
+const capaIGNFranca = L.tileLayer(
+  'https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=GEOGRAPHICALGRIDSYSTEMS.MAPS&STYLE=normal&FORMAT=image/jpeg&TILEMATRIXSET=PM&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}',
+  { attribution: '© IGN France', maxZoom: 18, tileSize: 256 }
+);
+const capaOrtoFranca = L.tileLayer(
+  'https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=ORTHOIMAGERY.ORTHOPHOTOS&STYLE=normal&FORMAT=image/jpeg&TILEMATRIXSET=PM&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}',
+  { attribution: '© IGN France', maxZoom: 20, tileSize: 256 }
+);
 capaOSM.addTo(mapa);
 L.control.layers(
   {
     'Mapa (OSM)': capaOSM,
     'Topogràfic ICGC': capaICGC,
     'Ortofoto ICGC': capaOrto,
-    'Topogràfic IGN': capaIGN,
-    'Ortofoto IGN': capaOrtoIGN
+    'Topogràfic IGN España': capaIGN,
+    'Ortofoto IGN España': capaOrtoIGN,
+    'Topogràfic IGN França': capaIGNFranca,
+    'Ortofoto IGN França': capaOrtoFranca,
+    'Topogràfic Andorra': capaAndorra,
   },
   {}, {position: 'topright', collapsed: true}
 ).addTo(mapa);
