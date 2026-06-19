@@ -368,6 +368,12 @@
     <div class="bloc" id="bloc-resseny">
       <div class="bloc-cap"><span class="bloc-icon">📰</span><span class="bloc-titol">Ressenya</span></div>
       <div class="bloc-cos">
+        <div id="resseny-amagar-dalt" style="display:none;margin-bottom:10px;">
+          <button onclick="toggleResseny()"
+            style="background:none;border:1px solid #ddd;border-radius:6px;padding:6px 14px;font-size:12px;color:#888;cursor:pointer;">
+            ↑ Amagar ressenya
+          </button>
+        </div>
         <div id="resseny-contingut" style="color:#444;line-height:1.7;font-size:14px;padding-left:10px;">
           <p style="color:#ccc;font-size:13px;">Carregant...</p>
         </div>
@@ -555,8 +561,10 @@ function toggleResseny() {
   _ressenyExpandida = !_ressenyExpandida;
   const rest = document.getElementById('resseny-rest');
   const btn = document.getElementById('resseny-toggle-btn');
+  const amagarDalt = document.getElementById('resseny-amagar-dalt');
   if (rest) rest.style.display = _ressenyExpandida ? 'block' : 'none';
   if (btn) btn.textContent = _ressenyExpandida ? '↑ Amagar ressenya' : 'Llegir ressenya completa ↓';
+  if (amagarDalt) amagarDalt.style.display = _ressenyExpandida ? 'block' : 'none';
 }
 // Per FGC usem el nom; per Rodalies (numèric) usem l'ID
 // Rodalies: ID numèric. FGC: nom de l'estació
