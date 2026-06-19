@@ -377,12 +377,6 @@
             Llegir ressenya completa ↓
           </button>
         </div>
-        <div id="resseny-amagar-dalt" style="display:none;margin-top:6px;">
-          <button onclick="toggleResseny()"
-            style="background:none;border:1px solid #ddd;border-radius:6px;padding:6px 14px;font-size:12px;color:#888;cursor:pointer;">
-            ↑ Amagar ressenya
-          </button>
-        </div>
       </div>
     </div>
     {% endif %}
@@ -544,7 +538,8 @@ if (ENLLAÇ_WP) {
       if (parags.length > 3) {
         let preview = parags.slice(0, 3).map(p => p.outerHTML).join('');
         let rest = parags.slice(3).map(p => p.outerHTML).join('');
-        div.innerHTML = `<div>${preview}</div><div id="resseny-rest" style="display:none">${rest}</div>`;
+        const botoAmagar = '<div id="resseny-amagar-dalt" style="display:block;margin-bottom:10px;"><button onclick="toggleResseny()" style="background:none;border:1px solid #ddd;border-radius:6px;padding:6px 14px;font-size:12px;color:#888;cursor:pointer;">↑ Amagar ressenya</button></div>';
+        div.innerHTML = `<div>${preview}</div><div id="resseny-rest" style="display:none">${botoAmagar}${rest}</div>`;
         document.getElementById('resseny-toggle').style.display = 'block';
       } else {
         div.innerHTML = data.contingut;
@@ -563,8 +558,6 @@ function toggleResseny() {
   const btn = document.getElementById('resseny-toggle-btn');
   if (rest) rest.style.display = _ressenyExpandida ? 'block' : 'none';
   if (btn) btn.textContent = _ressenyExpandida ? '↑ Amagar ressenya' : 'Llegir ressenya completa ↓';
-  const ad = document.getElementById('resseny-amagar-dalt');
-  if (ad) ad.style.display = _ressenyExpandida ? 'block' : 'none';
 }
 // Per FGC usem el nom; per Rodalies (numèric) usem l'ID
 // Rodalies: ID numèric. FGC: nom de l'estació
