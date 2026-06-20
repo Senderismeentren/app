@@ -523,12 +523,14 @@ const RUTA_ID = {{ ruta.id }};
 const ENLLAÇ_WP = "{{ ruta.enllaç_wp or '' }}";
 
 if (ENLLAÇ_WP) {
-  fetch('/api/resseny?url=' + encodeURIComponent(ENLLAÇ_WP))
-    .then(r => r.json())
-    .then(data => {
-      const div = document.getElementById('resseny-contingut');
+  async function carregarResseny(intents) {
+    const div = document.getElementById('resseny-contingut');
+    try {
+      const r = await fetch('/api/resseny?url=' + encodeURIComponent(ENLLAÇ_WP));
+      const data = await r.json();
       if (!div) return;
       if (data.error || !data.contingut) {
+        if (intents > 1) { setTimeout(() => carregarResseny(intents - 1), 2000); return; }
         div.innerHTML = '<p style="color:#bbb;font-size:13px;">Ressenya no disponible.</p>';
         return;
       }
@@ -538,16 +540,18 @@ if (ENLLAÇ_WP) {
       if (parags.length > 3) {
         let preview = parags.slice(0, 3).map(p => p.outerHTML).join('');
         let rest = parags.slice(3).map(p => p.outerHTML).join('');
-        div.innerHTML = `<div>${preview}</div><div id="resseny-rest" style="display:none">${rest}</div>`;
+        const botoAmagar = '<div id="resseny-amagar-dalt" style="display:block;margin-bottom:10px;"><button onclick="toggleResseny()" style="background:none;border:1px solid #ddd;border-radius:6px;padding:6px 14px;font-size:12px;color:#888;cursor:pointer;">↑ Amagar ressenya</button></div>';
+        div.innerHTML = `<div>${preview}</div><div id="resseny-rest" style="display:none">${botoAmagar}${rest}</div>`;
         document.getElementById('resseny-toggle').style.display = 'block';
       } else {
         div.innerHTML = data.contingut;
       }
-    })
-    .catch(() => {
-      const div = document.getElementById('resseny-contingut');
+    } catch(e) {
+      if (intents > 1) { setTimeout(() => carregarResseny(intents - 1), 2000); return; }
       if (div) div.innerHTML = '<p style="color:#bbb;font-size:13px;">Ressenya no disponible.</p>';
-    });
+    }
+  }
+  carregarResseny(3);
 }
 
 let _ressenyExpandida = false;
