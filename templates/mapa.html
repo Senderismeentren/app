@@ -427,7 +427,7 @@ const COLORS_LINIA = {
   // FGC Metro Baix Llobregat
   'fgc-l6':'#0070C0','fgc-l7':'#984B9A','fgc-l8':'#E2001A','fgc-l12':'#009FE3',
   // FGC cremalleres
-  'fgc-fc':'#C8A96E','fgc-mm':'#008000','fgc-nu':'#0070C0',
+  'fgc-fc':'#C8A96E','fgc-mm':'#008000','fgc-nu':'#0070C0','fgc-fv':'#0A57A3',
   // Rodalies colors oficials
   'rodalies-r1':'#00AEEF',
   'rodalies-r2nord':'#00A651',
@@ -470,7 +470,7 @@ function colorLinia(nomFitxer) {
 async function carregarLiniesGPX() {
   // Llista de fitxers GPX de línies coneguts
   const linies = [
-    'fgc-fc','fgc-l12','fgc-l6','fgc-l7','fgc-l8','fgc-mm','fgc-nu',
+    'fgc-fc','fgc-fv','fgc-l12','fgc-l6','fgc-l7','fgc-l8','fgc-mm','fgc-nu',
     'fgc-r5','fgc-r50','fgc-r6','fgc-r60','fgc-rl2',
     'fgc-s1','fgc-s2','fgc-s3','fgc-s4','fgc-s8','fgc-s9',
     'rodalies-r2nord',
@@ -504,14 +504,14 @@ const operadorsActius = {};
 
 const LINIES_PER_OP = {
   'rodalies':   ['rodalies-r1','rodalies-r2nord'],
-  'fgc':        ['fgc-fc','fgc-l12','fgc-l6','fgc-l7','fgc-l8','fgc-mm','fgc-nu',
+  'fgc':        ['fgc-fc','fgc-fv','fgc-l12','fgc-l6','fgc-l7','fgc-l8','fgc-mm','fgc-nu',
                  'fgc-r5','fgc-r50','fgc-r6','fgc-r60','fgc-rl2',
                  'fgc-s1','fgc-s2','fgc-s3','fgc-s4','fgc-s8','fgc-s9'],
   'tmb':        ['tmb-l1','tmb-l2','tmb-l3','tmb-l4','tmb-l5',
                  'tmb-l9nord','tmb-l9sud','tmb-l10nord','tmb-l10sud',
                  'tmb-l11','tmb-funicular'],
   'tram':       [],
-  'cremallera': ['fgc-nu','fgc-mm'],
+  'cremallera': ['fgc-nu','fgc-mm','fgc-fv'],
   'sncf':       [],
 };
 
@@ -555,6 +555,7 @@ async function toggleLinia(op, linia, pill) {
   const LINIA_A_GPX = {
     'cremallera de núria': 'fgc-nu',
     'cremallera de montserrat': 'fgc-mm',
+    'funicular de vallvidrera': 'fgc-fv',
     'fc': 'fgc-fc',
   };
 
