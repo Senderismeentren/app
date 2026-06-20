@@ -427,7 +427,7 @@ const COLORS_LINIA = {
   // FGC Metro Baix Llobregat
   'fgc-l6':'#0070C0','fgc-l7':'#984B9A','fgc-l8':'#E2001A','fgc-l12':'#009FE3',
   // FGC cremalleres
-  'fgc-fc':'#C8A96E','fgc-mm':'#A05000','fgc-nu':'#6B4226',
+  'fgc-fc':'#C8A96E','fgc-mm':'#008000','fgc-nu':'#0070C0',
   // Rodalies colors oficials
   'rodalies-r1':'#00AEEF',
   'rodalies-r2nord':'#00A651',
@@ -552,7 +552,6 @@ async function toggleLinia(op, linia, pill) {
     return;
   }
 
-  // Mapeig explícit nom de línia → fitxer GPX
   const LINIA_A_GPX = {
     'cremallera de núria': 'fgc-nu',
     'cremallera de montserrat': 'fgc-mm',
@@ -565,7 +564,6 @@ async function toggleLinia(op, linia, pill) {
     const liniaNormAcc = linia.toLowerCase();
     const nomGpx = linia.toLowerCase().replace(/[^a-z0-9]/g, '');
     const operadorGpx = op.toLowerCase().replace(/[^a-z]/g, '');
-    // Buscar primer al mapeig explícit, després candidates automàtics
     const gpxExplicit = LINIA_A_GPX[liniaNormAcc] || LINIA_A_GPX[liniaNorm];
     const candidates = gpxExplicit
       ? [gpxExplicit]
