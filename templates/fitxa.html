@@ -523,12 +523,14 @@ const RUTA_ID = {{ ruta.id }};
 const ENLLAÇ_WP = "{{ ruta.enllaç_wp or '' }}";
 
 if (ENLLAÇ_WP) {
-  fetch('/api/resseny?url=' + encodeURIComponent(ENLLAÇ_WP))
-    .then(r => r.json())
-    .then(data => {
-      const div = document.getElementById('resseny-contingut');
+  async function carregarResseny(intents) {
+    const div = document.getElementById('resseny-contingut');
+    try {
+      const r = await fetch('/api/resseny?url=' + encodeURIComponent(ENLLAÇ_WP));
+      const data = await r.json();
       if (!div) return;
       if (data.error || !data.contingut) {
+        if (intents > 1) { setTimeout(() => carregarResseny(intents - 1), 2000); return; }
         div.innerHTML = '<p style="color:#bbb;font-size:13px;">Ressenya no disponible.</p>';
         return;
       }
@@ -544,11 +546,12 @@ if (ENLLAÇ_WP) {
       } else {
         div.innerHTML = data.contingut;
       }
-    })
-    .catch(() => {
-      const div = document.getElementById('resseny-contingut');
+    } catch(e) {
+      if (intents > 1) { setTimeout(() => carregarResseny(intents - 1), 2000); return; }
       if (div) div.innerHTML = '<p style="color:#bbb;font-size:13px;">Ressenya no disponible.</p>';
-    });
+    }
+  }
+  carregarResseny(3);
 }
 
 let _ressenyExpandida = false;
