@@ -551,11 +551,25 @@ async function toggleLinia(op, linia, pill) {
     if (capesLinia[clau]) capesLinia[clau].forEach(l => mapa.removeLayer(l));
     return;
   }
+
+  // Mapeig explícit nom de línia → fitxer GPX
+  const LINIA_A_GPX = {
+    'cremallera de núria': 'fgc-nu',
+    'cremallera de montserrat': 'fgc-mm',
+    'fc': 'fgc-fc',
+  };
+
   if (!capesLinia[clau]) {
     capesLinia[clau] = [];
+    const liniaNorm = linia.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    const liniaNormAcc = linia.toLowerCase();
     const nomGpx = linia.toLowerCase().replace(/[^a-z0-9]/g, '');
     const operadorGpx = op.toLowerCase().replace(/[^a-z]/g, '');
-    const candidates = [operadorGpx + '-' + nomGpx, nomGpx];
+    // Buscar primer al mapeig explícit, després candidates automàtics
+    const gpxExplicit = LINIA_A_GPX[liniaNormAcc] || LINIA_A_GPX[liniaNorm];
+    const candidates = gpxExplicit
+      ? [gpxExplicit]
+      : [operadorGpx + '-' + nomGpx, nomGpx];
     for (const nom of candidates) {
       try {
         const resp = await fetch('/api/gpx/linia/' + nom);
