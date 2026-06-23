@@ -267,15 +267,17 @@
         <div class="dades-tec">
           {% set BASE = "https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/" %}
           {% macro logo_fitxa(op) %}{% if op %}{% set o = op.lower() %}{% if 'fgc' in o %}logo-fgc{% elif 'cremallera' in o %}logo-cremalleranuria{% elif 'tmb' in o or 'metro' in o %}logo-tmb{% elif 'tram' in o %}logo-tram{% elif 'sncf' in o or 'groc' in o %}logo-sncf{% elif 'alta' in o or 'adif' in o %}logo-altavelocitat{% elif 'renfe' in o %}logo-renfe{% else %}logo-rodalies{% endif %}{% endif %}{% endmacro %}
-          {% macro linies_fitxa(linies) %}{% set LOGO_MAP = {'r1':'logo-r1','rg1':'logo-rg1','r2':'logo-r2','r2 nord':'logo-r2nord','r2 sud':'logo-r2sud','r3':'logo-r3','r4':'logo-r4','r7':'logo-r7','r8':'logo-r8','r11':'logo-r11','r13':'logo-r13','r14':'logo-r14','r15':'logo-r15','r16':'logo-r16','r17':'logo-r17','s1':'logo-s1','s2':'logo-s2','s3':'logo-fgc-s3','s4':'logo-fgc-s4','s8':'logo-fgc-s8','s9':'logo-fgc-s9','rl2':'logo-rl2','rl3':'logo-rl3','rl4':'logo-rl4','r5':'logo-fgc-r5','r50':'logo-fgc-r50','r6':'logo-fgc-r6','r60':'logo-fgc-r60','l8':'logo-fgc-l8','t1':'logo-t1','t2':'logo-t2','t3':'logo-t3','t4':'logo-t4','t5':'logo-t5','t6':'logo-t6','rt1':'logo-rt1','rt2':'logo-rt2'} %}{% for l in linies %}{% set nom_logo = LOGO_MAP.get(l.lower(), 'logo-' ~ l.lower().replace(' ','')) %}<img src="https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/{{ nom_logo }}.svg" style="height:20px;max-width:44px;object-fit:contain;" title="{{ l }}" onerror="this.replaceWith(Object.assign(document.createElement('span'),{textContent:'{{ l }}',style:'background:#1a1a2e;color:white;border-radius:4px;padding:2px 6px;font-size:10px;font-weight:700;margin:1px;display:inline-block;'}))">{% endfor %}{% endmacro %}
+          {% set BASE_LOGOS_OP = "https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/logos-operadors/" %}
+          {% set BASE_LOGOS_LI = "https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/logos-linies/" %}
+          {% macro linies_fitxa(op, linies) %}{% set o = op.lower() %}{% set prefix = 'fgc' if 'fgc' in o or 'cremallera' in o else ('rodalies' if 'rodalies' in o else ('tmb' if 'tmb' in o or 'metro' in o else ('tram' if 'tram' in o else ('sncf' if 'sncf' in o else 'rodalies')))) %}{% for l in linies %}<img src="{{ BASE_LOGOS_LI }}logo-{{ prefix }}-{{ l.lower().replace(' ','-') }}.svg" style="height:20px;max-width:44px;object-fit:contain;" title="{{ l }}" onerror="this.replaceWith(Object.assign(document.createElement('span'),{textContent:'{{ l }}',style:'background:#1a1a2e;color:white;border-radius:4px;padding:2px 6px;font-size:10px;font-weight:700;margin:1px;display:inline-block;'}))">{% endfor %}{% endmacro %}
 
           {% if ruta.sortida == ruta.arribada %}
           <div class="dt-item"><div class="dt-icon">🚉</div><div>
             <div class="dt-label">Estació de sortida/arribada</div>
             <div class="dt-val" style="font-size:16px;font-weight:800;">{{ ruta.sortida }}</div>
             <div style="display:flex;align-items:center;gap:6px;margin-top:5px;flex-wrap:wrap;">
-              <img src="{{ BASE }}{{ logo_fitxa(ruta.op_sortida) }}.svg" style="height:18px;max-width:44px;object-fit:contain;" onerror="this.style.display='none'">
-              {{ linies_fitxa(ruta.linies_sortida) }}
+              <img src="{{ BASE_LOGOS_OP }}{{ logo_fitxa(ruta.op_sortida) }}.svg" style="height:18px;max-width:44px;object-fit:contain;" onerror="this.style.display='none'">
+              {{ linies_fitxa(ruta.op_sortida, ruta.linies_sortida) }}
             </div>
           </div></div>
           {% else %}
@@ -283,16 +285,16 @@
             <div class="dt-label">Estació de sortida</div>
             <div class="dt-val" style="font-size:16px;font-weight:800;">{{ ruta.sortida }}</div>
             <div style="display:flex;align-items:center;gap:6px;margin-top:5px;flex-wrap:wrap;">
-              <img src="{{ BASE }}{{ logo_fitxa(ruta.op_sortida) }}.svg" style="height:18px;max-width:44px;object-fit:contain;" onerror="this.style.display='none'">
-              {{ linies_fitxa(ruta.linies_sortida) }}
+              <img src="{{ BASE_LOGOS_OP }}{{ logo_fitxa(ruta.op_sortida) }}.svg" style="height:18px;max-width:44px;object-fit:contain;" onerror="this.style.display='none'">
+              {{ linies_fitxa(ruta.op_sortida, ruta.linies_sortida) }}
             </div>
           </div></div>
           <div class="dt-item"><div class="dt-icon">🏁</div><div>
             <div class="dt-label">Estació d'arribada</div>
             <div class="dt-val" style="font-size:16px;font-weight:800;">{{ ruta.arribada }}</div>
             <div style="display:flex;align-items:center;gap:6px;margin-top:5px;flex-wrap:wrap;">
-              <img src="{{ BASE }}{{ logo_fitxa(ruta.op_arribada) }}.svg" style="height:18px;max-width:44px;object-fit:contain;" onerror="this.style.display='none'">
-              {{ linies_fitxa(ruta.linies_arribada) }}
+              <img src="{{ BASE_LOGOS_OP }}{{ logo_fitxa(ruta.op_arribada) }}.svg" style="height:18px;max-width:44px;object-fit:contain;" onerror="this.style.display='none'">
+              {{ linies_fitxa(ruta.op_arribada, ruta.linies_arribada) }}
             </div>
           </div></div>
           {% endif %}
