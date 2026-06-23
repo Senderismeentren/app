@@ -657,8 +657,11 @@ function toggleCapa(nom, el) {
 const BASE_LOGOS_OP = "https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/logos-operadors/";
 const BASE_LOGOS_LI = "https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/logos-linies/";
 
+const NOM_LINIA_MAP = {'r2 nord':'r2n','r2 sud':'r2s','r2nord':'r2n','r2sud':'r2s'};
+
 function logoLinia(linia, colorOp, operador) {
-  const l = linia.toLowerCase().replace(/[^a-z0-9]/g,'');
+  const lkey = linia.toLowerCase();
+  const l = NOM_LINIA_MAP[lkey] || lkey.replace(/[^a-z0-9]/g,'');
   const op = (operador||'').toLowerCase();
   const prefix = op.includes('fgc') || op.includes('cremallera') ? 'fgc'
     : op.includes('tmb') || op.includes('metro') ? 'tmb'
