@@ -21,7 +21,8 @@ SHEET_ID        = os.environ.get("SHEET_ID", "")
 GOOGLE_CREDS    = os.environ.get("GOOGLE_CREDS", "")   # JSON de credencials
 BASE_FOTO_URL   = "https://raw.githubusercontent.com/Senderismeentren/imatges/main/ruta-{id:03d}/foto{n}.jpg"
 BASE_GPX_URL    = "https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/gpx-rutes/ruta-{id:03d}.gpx"
-BASE_LOGO_URL   = "https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/Logo-{linia}.svg"
+BASE_LOGO_OPERADOR_URL = "https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/logos-operadors/logo-{operador}.svg"
+BASE_LOGO_LINIA_URL    = "https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/logos-linies/logo-{operador}-{linia}.svg"
 MAX_FOTOS       = 20
 CACHE_TTL       = 1800   # 30 min
 
@@ -594,6 +595,8 @@ def fitxa_ruta(ruta_id):
         gpx_punts=json.dumps(gpx_punts or []),
         perfil_dists=json.dumps(dists),
         perfil_eles=json.dumps(eles),
+        BASE_LOGOS_OP="https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/logos-operadors/",
+        BASE_LOGOS_LI="https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/logos-linies/",
     )
 
 
