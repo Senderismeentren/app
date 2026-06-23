@@ -317,7 +317,7 @@
       <div class="bloc-cap"><span class="bloc-icon">🥾</span><span class="bloc-titol">Senders</span></div>
       <div class="senders-llista">
         {% for s in ruta.senders %}
-        <a href="https://senders.feec.cat/" target="_blank" rel="noopener" class="sender-pill">{{ s }}</a>
+        <a href="{{ senders_url.get(s, 'https://senders.feec.cat/') }}" target="_blank" rel="noopener" class="sender-pill">{{ s }}</a>
         {% endfor %}
       </div>
     </div>
