@@ -180,7 +180,7 @@ body { overflow: hidden; }
     {% for op, linies in linies_per_op.items() %}
     <div class="op-grup">
       <div class="op-cap" onclick="toggleOpGrup(this)" data-op="{{ op|lower|replace(' ','-') }}">
-        <img src="{{ BASE }}{{ logos.get(op, 'logo-rodalies') }}.svg" alt="{{ op }}"
+        <img src="https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/logos-operadors/{{ logos.get(op, 'logo-rodalies') }}.svg" alt="{{ op }}"
           onerror="this.style.display='none'">
         {{ op }}
         <span class="op-cap-arrow">▼</span>
@@ -308,7 +308,7 @@ ESTACIONS.forEach(est => {
   else if (opLower.includes('adif') || opLower.includes('alta velocitat')) logoOp = 'logo-altavelocitat';
   else if (opLower.includes('renfe'))                            logoOp = 'logo-renfe';
   else if (opLower.includes('rodalies'))                         logoOp = 'logo-rodalies';
-  const logoOpUrl = `https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/${logoOp}.svg`;
+  const logoOpUrl = `https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/logos-operadors/${logoOp}.svg`;
   const icon = L.divIcon({
     html: `<div style="position:relative;cursor:pointer;display:inline-flex;align-items:center;gap:3px;">
       <img src="${logoOpUrl}" style="height:20px;max-width:44px;object-fit:contain;display:block;filter:drop-shadow(0 1px 3px rgba(0,0,0,0.4));"
@@ -654,35 +654,18 @@ function toggleCapa(nom, el) {
 }
 
 // ── LOGOS LÍNIES ──
-const BASE_LOGO = "https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/Logo-{linia}.svg";
+const BASE_LOGOS_OP = "https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/logos-operadors/";
+const BASE_LOGOS_LI = "https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/logos-linies/";
 
-// Mapeig complet línia -> fitxer logo
-const LOGO_LINIA = {
-  // Rodalies
-  'r1':'logo-r1','rg1':'logo-rg1','r2':'logo-r2','r2nord':'logo-r2nord',
-  'r2sud':'logo-r2sud','r3':'logo-r3','r4':'logo-r4','r7':'logo-r7',
-  'r8':'logo-r8','r11':'logo-r11','r13':'logo-r13','r14':'logo-r14',
-  'r15':'logo-r15','r16':'logo-r16','r17':'logo-r17',
-  // FGC Vallès
-  's1':'logo-s1','s2':'logo-s2','s3':'logo-fgc-s3','s4':'logo-fgc-s4',
-  's8':'logo-fgc-s8','s9':'logo-fgc-s9',
-  // FGC Llobregat-Anoia
-  'rl2':'logo-rl2','rl3':'logo-rl3','rl4':'logo-rl4',
-  'r5':'logo-fgc-r5','r50':'logo-fgc-r50','r6':'logo-fgc-r6','r60':'logo-fgc-r60',
-  'l8':'logo-fgc-l8',
-  // Tram
-  't1':'logo-t1','t2':'logo-t2','t3':'logo-t3',
-  't4':'logo-t4','t5':'logo-t5','t6':'logo-t6',
-  // Altres
-  'rt1':'logo-rt1','rt2':'logo-rt2',
-};
-
-function logoLinia(linia, colorOp) {
-  const clau = linia.toLowerCase().replace(/[^a-z0-9]/g,'');
-  const nomLogo = LOGO_LINIA[clau] || null;
-  const url = nomLogo
-    ? `https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/${nomLogo}.svg`
-    : `https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/logo-${linia.toLowerCase()}.svg`;
+function logoLinia(linia, colorOp, operador) {
+  const l = linia.toLowerCase().replace(/[^a-z0-9]/g,'');
+  const op = (operador||'').toLowerCase();
+  const prefix = op.includes('fgc') || op.includes('cremallera') ? 'fgc'
+    : op.includes('tmb') || op.includes('metro') ? 'tmb'
+    : op.includes('tram') ? 'tram'
+    : op.includes('sncf') ? 'sncf'
+    : 'rodalies';
+  const url = `${BASE_LOGOS_LI}logo-${prefix}-${l}.svg`;
   return `<img src="${url}" alt="${linia}" style="height:22px;object-fit:contain;vertical-align:middle;"
     onerror="this.replaceWith(Object.assign(document.createElement('span'),{textContent:'${linia}',style:'background:${colorOp};color:white;border-radius:4px;padding:2px 7px;font-size:11px;font-weight:700;display:inline-block;'}))">`;
 }
@@ -708,7 +691,7 @@ function obrirPanellEstacio(est) {
     `<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
       <img src="${BASE_R}${logoOpPanell}.svg" style="height:22px;object-fit:contain;flex-shrink:0;"
         onerror="this.style.display='none'">
-      <div style="display:flex;gap:4px;flex-wrap:wrap;align-items:center;">${(est.linies||[]).map(l => logoLinia(l, est.color||'#EE7F00')).join('')}</div>
+      <div style="display:flex;gap:4px;flex-wrap:wrap;align-items:center;">${(est.linies||[]).map(l => logoLinia(l, est.color||'#EE7F00', est.op||'')).join('')}</div>
     </div>`;
   document.getElementById('panell-linies').innerHTML = '';
   const n = est.rutes ? est.rutes.length : 0;
