@@ -218,7 +218,7 @@ def ruta_a_dict(row):
         "descripcio":   v("Descripció_ruta"),
         "advertiments": v("Advertiments"),
         "enllaç_meteocat": str(v("Enllaç_Meteocat")).zfill(6) if v("Enllaç_Meteocat") else "",
-        "enllaç_meteofrance": str(v("Enllaç_Meteofrance")).strip() if v("Enllaç_Meteofrance") else "",
+        "enllaç_meteofrance": str(int(float(v("Enllaç_Meteofrance")))).zfill(6) if v("Enllaç_Meteofrance") else "",
     }
 
 
