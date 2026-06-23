@@ -96,18 +96,6 @@ def carregar_dades():
             sh = gc.open_by_key(SHEET_ID)
             ws = sh.get_worksheet(0)
             df = pd.DataFrame(ws.get_all_records())
-            # Carregar pestanya Senders
-            try:
-                ws_senders = sh.worksheet("Senders")
-                senders_data = ws_senders.get_all_records()
-                _cache_dades["senders_url"] = {
-                    row["Senders"]: row["Enllaç_senders"]
-                    for row in senders_data
-                    if row.get("Senders") and row.get("Enllaç_senders")
-                }
-            except Exception as e:
-                print(f"Error carregant Senders: {e}")
-                _cache_dades["senders_url"] = {}
         else:
             # Fallback local per a desenvolupament
             df = pd.read_excel("SET_excel_app.xlsx")
@@ -117,8 +105,6 @@ def carregar_dades():
 
     _cache_dades["dades"] = df
     _cache_dades["ts"] = ara
-    if "senders_url" not in _cache_dades:
-        _cache_dades["senders_url"] = {}
     return df
 
 
@@ -219,6 +205,7 @@ def ruta_a_dict(row):
         "descripcio":   v("Descripció_ruta"),
         "advertiments": v("Advertiments"),
         "enllaç_meteocat": str(v("Enllaç_Meteocat")).zfill(6) if v("Enllaç_Meteocat") else "",
+        "enllaç_meteofrance": str(v("Enllaç_Meteofrance")).strip() if v("Enllaç_Meteofrance") else "",
     }
 
 
@@ -611,7 +598,6 @@ def fitxa_ruta(ruta_id):
         perfil_eles=json.dumps(eles),
         BASE_LOGOS_OP="https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/logos-operadors/",
         BASE_LOGOS_LI="https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/logos-linies/",
-        senders_url=_cache_dades.get("senders_url", {}),
     )
 
 
