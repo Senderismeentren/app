@@ -602,7 +602,7 @@ async function filtrarPerLinia(valor) {
   for (const { op, linia } of liniesAActivar) {
     const clau = op + '|' + linia;
     if (!capesLinia[clau]) {
-      const NOM_LINIA_MAP = {'r2 nord':'r2n','r2 sud':'r2s','r2nord':'r2n','r2sud':'r2s'};
+      const NOM_LINIA_MAP = {'r2 nord':'r2n','r2 sud':'r2s','r2nord':'r2n','r2sud':'r2s','l9 nord':'l9n','l9 sud':'l9s','l9nord':'l9n','l9sud':'l9s','l10 nord':'l10n','l10 sud':'l10s','l10nord':'l10n','l10sud':'l10s'};
       const lkey = linia.toLowerCase();
       const l = NOM_LINIA_MAP[lkey] || lkey.replace(/[^a-z0-9]/g,'');
       const opGpx = op.replace(/[^a-z]/g,'');
@@ -791,7 +791,7 @@ function toggleCapa(nom, el) {
 const BASE_LOGOS_OP = "https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/logos-operadors/";
 const BASE_LOGOS_LI = "https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/logos-linies/";
 
-const NOM_LINIA_MAP = {'r2 nord':'r2n','r2 sud':'r2s','r2nord':'r2n','r2sud':'r2s'};
+const NOM_LINIA_MAP = {'r2 nord':'r2n','r2 sud':'r2s','r2nord':'r2n','r2sud':'r2s','l9 nord':'l9n','l9 sud':'l9s','l9nord':'l9n','l9sud':'l9s','l10 nord':'l10n','l10 sud':'l10s','l10nord':'l10n','l10sud':'l10s'};
 
 function logoLinia(linia, colorOp, operador) {
   const lkey = linia.toLowerCase();
