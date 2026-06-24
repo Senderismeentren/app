@@ -151,7 +151,7 @@ body { overflow: hidden; }
   <!-- TOOLBAR -->
   <div class="mapa-toolbar">
     <span class="mapa-toolbar-titol">Mapa</span>
-    <select onchange="if(this.value){const est=ESTACIONS.find(e=>e.nom===this.value);if(est){mapa.setView([est.lat,est.lng],14);obrirPanellEstacio(est);}this.value=''}"
+    <select onchange="if(this.value){document.getElementById('filtre-linia-select').value='';filtrarPerLinia('');const est=ESTACIONS.find(e=>e.nom===this.value);if(est){mapa.setView([est.lat,est.lng],14);obrirPanellEstacio(est);}this.value=''}"
       style="border:1.5px solid #3498DB;background:white;color:#333;border-radius:20px;padding:5px 14px;font-size:13px;cursor:pointer;flex:1;max-width:240px;height:34px;font-weight:600;flex-shrink:0;">
       <option value="">🔍 Cerca estació...</option>
       {% for op, ests in estacions_per_op.items() %}
@@ -529,6 +529,10 @@ const LINIES_PER_OP = {
 };
 
 async function filtrarPerLinia(valor) {
+  // Tancar panel d'estació si estava obert
+  const panell = document.getElementById('panell-estacio');
+  if (panell) panell.classList.remove('obert');
+
   // Netejar totes les capes de línies actives
   Object.keys(capesLinia).forEach(clau => {
     if (capesLinia[clau]) capesLinia[clau].forEach(l => mapa.removeLayer(l));
