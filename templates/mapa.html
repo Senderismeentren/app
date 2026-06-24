@@ -433,33 +433,49 @@ const BASE_GPX_LINIES = "https://raw.githubusercontent.com/Senderismeentren/send
 const COLORS_LINIA = {
   // FGC Llobregat-Anoia
   'fgc-r5':'#E2001A','fgc-r6':'#E2001A','fgc-r50':'#E2001A','fgc-r60':'#E2001A',
-  'fgc-rl2':'#E2001A','fgc.rl2':'#E2001A',
+  'fgc-rl2':'#E2001A',
   // FGC Vallès
   'fgc-s1':'#008000','fgc-s2':'#008000','fgc-s3':'#008000','fgc-s4':'#008000',
   'fgc-s8':'#008000','fgc-s9':'#008000',
   // FGC Metro Baix Llobregat
   'fgc-l6':'#0070C0','fgc-l7':'#984B9A','fgc-l8':'#E2001A','fgc-l12':'#009FE3',
-  // FGC cremalleres
+  // FGC cremalleres i funiculars
   'fgc-fc':'#C8A96E','fgc-mm':'#008000','fgc-nu':'#0070C0','fgc-fv':'#0A57A3',
+  'fgc-gelida':'#E2001A','fgc-santacova':'#C8A96E','fgc-santjoan':'#C8A96E',
   // Rodalies colors oficials
-  'rodalies-r1':'#00AEEF',
-  'rodalies-r2nord':'#00A651',
-  'rodalies-r3':'#ED1C24',
+  'rodalies-r1':'#00AEEF','rodalies-r2':'#00A651',
+  'rodalies-r2n':'#00A651','rodalies-r2s':'#00A651',
+  'rodalies-r3':'#ED1C24','rodalies-r4':'#F15A24',
+  'rodalies-r7':'#F7941D','rodalies-r8':'#9B59B6',
+  'rodalies-r11':'#C8A96E','rodalies-r12':'#C8A96E',
+  'rodalies-r13':'#00AEEF','rodalies-r14':'#00AEEF',
+  'rodalies-r15':'#F15A24','rodalies-r16':'#ED1C24','rodalies-r17':'#F7941D',
+  'rodalies-rg1':'#00A651',
+  'rodalies-rl3':'#E2001A','rodalies-rl4':'#E2001A',
+  'rodalies-rt1':'#888888','rodalies-rt2':'#888888',
   // Tram
   'tram-t1':'#78BE20','tram-t2':'#78BE20','tram-t3':'#78BE20',
   'tram-t4':'#78BE20','tram-t5':'#78BE20','tram-t6':'#78BE20',
   // TMB Metro
   'tmb-l1':'#E30613','tmb-l2':'#9B2743','tmb-l3':'#009A44',
   'tmb-l4':'#F5A800','tmb-l5':'#0072BC',
-  'tmb-l9nord':'#F05223','tmb-l9sud':'#F05223',
-  'tmb-l10nord':'#009BDE','tmb-l10sud':'#009BDE',
+  'tmb-l9n':'#F05223','tmb-l9s':'#F05223',
+  'tmb-l10n':'#009BDE','tmb-l10s':'#009BDE',
   'tmb-l11':'#8DC63F','tmb-funicular':'#A05000',
+  // SNCF
+  'sncf-tolosa':'#C0392B','sncf-perpinya':'#C0392B','sncf-trengroc':'#F7DC6F',
+  // ADIF
+  'adif-tav':'#005BAA','adif-canfranero':'#7F8C8D',
+  'adif-murciac1':'#E74C3C','adif-trennaturaleza':'#27AE60',
+  // Tram Alacant
+  'tramalacant-l1':'#E30613','tramalacant-l2':'#F5A800','tramalacant-l3':'#009A44',
+  'tramalacant-l4':'#0072BC','tramalacant-l5':'#9B2743','tramalacant-l9':'#F05223',
 };
 
 function colorLinia(nomFitxer) {
   const clau = nomFitxer.toLowerCase().replace('.gpx','');
   if (COLORS_LINIA[clau]) return COLORS_LINIA[clau];
-  if (clau.startsWith('fgc-r') || clau.startsWith('fgc.r')) return '#E2001A';
+  if (clau.startsWith('fgc-r') || clau.startsWith('fgc-rl')) return '#E2001A';
   if (clau.startsWith('fgc-s')) return '#008000';
   if (clau.startsWith('fgc-l')) return '#0070C0';
   if (clau.startsWith('fgc'))   return '#97D700';
@@ -468,7 +484,7 @@ function colorLinia(nomFitxer) {
   if (clau.startsWith('rodalies-r3')) return '#ED1C24';
   if (clau.startsWith('rodalies-r4')) return '#F15A24';
   if (clau.startsWith('rodalies'))    return '#EE7F00';
-  if (clau === 'tmb-l1') return '#E30613';
+  if (clau.startsWith('tmb-l1')) return '#E30613';
   if (clau.startsWith('tmb-l2')) return '#9B2743';
   if (clau.startsWith('tmb-l3')) return '#009A44';
   if (clau.startsWith('tmb-l4')) return '#F5A800';
@@ -477,18 +493,39 @@ function colorLinia(nomFitxer) {
   if (clau.startsWith('tmb-l10')) return '#009BDE';
   if (clau.startsWith('tmb-l11')) return '#8DC63F';
   if (clau.startsWith('tmb')) return '#E30613';
+  if (clau.startsWith('tram')) return '#78BE20';
+  if (clau.startsWith('sncf')) return '#C0392B';
+  if (clau.startsWith('adif-tav')) return '#005BAA';
+  if (clau.startsWith('adif')) return '#7F8C8D';
+  if (clau.startsWith('tramalacant')) return '#E30613';
   return '#888888';
 }
 
 async function carregarLiniesGPX() {
-  // Llista de fitxers GPX de línies coneguts
   const linies = [
-    'fgc-fc','fgc-fv','fgc-l12','fgc-l6','fgc-l7','fgc-l8','fgc-mm','fgc-nu',
-    'fgc-r5','fgc-r50','fgc-r6','fgc-r60','fgc-rl2',
+    // FGC
+    'fgc-fc','fgc-fv','fgc-gelida','fgc-l12','fgc-l6','fgc-l7','fgc-l8',
+    'fgc-mm','fgc-nu','fgc-r5','fgc-r50','fgc-r6','fgc-r60','fgc-rl2',
     'fgc-s1','fgc-s2','fgc-s3','fgc-s4','fgc-s8','fgc-s9',
-    'rodalies-r2nord',
+    'fgc-santacova','fgc-santjoan',
+    // Rodalies
+    'rodalies-r1','rodalies-r2','rodalies-r2n','rodalies-r2s',
+    'rodalies-r3','rodalies-r4','rodalies-r7','rodalies-r8',
+    'rodalies-r11','rodalies-r13','rodalies-r14','rodalies-r15',
+    'rodalies-r16','rodalies-r17','rodalies-rg1',
+    'rodalies-rl3','rodalies-rl4','rodalies-rt1','rodalies-rt2',
+    // TMB
     'tmb-l1','tmb-l2','tmb-l3','tmb-l4','tmb-l5',
-    'tmb-l9nord','tmb-l9sud','tmb-l10nord','tmb-l10sud','tmb-l11','tmb-funicular'
+    'tmb-l9n','tmb-l9s','tmb-l10n','tmb-l10s','tmb-l11','tmb-funicular',
+    // Tram
+    'tram-t1','tram-t2','tram-t3','tram-t4','tram-t5','tram-t6',
+    // SNCF
+    'sncf-tolosa','sncf-perpinya','sncf-trengroc',
+    // ADIF
+    'adif-canfranero','adif-murciac1','adif-tav','adif-trennaturaleza',
+    // Tram Alacant
+    'tramalacant-l1','tramalacant-l2','tramalacant-l3',
+    'tramalacant-l4','tramalacant-l5','tramalacant-l9',
   ];
   for (const nom of linies) {
     const color = colorLinia(nom + '.gpx');
@@ -516,16 +553,23 @@ const capesOperador = {};
 const operadorsActius = {};
 
 const LINIES_PER_OP = {
-  'rodalies':   ['rodalies-r1','rodalies-r2nord'],
-  'fgc':        ['fgc-fc','fgc-fv','fgc-l12','fgc-l6','fgc-l7','fgc-l8','fgc-mm','fgc-nu',
-                 'fgc-r5','fgc-r50','fgc-r6','fgc-r60','fgc-rl2',
-                 'fgc-s1','fgc-s2','fgc-s3','fgc-s4','fgc-s8','fgc-s9'],
-  'tmb':        ['tmb-l1','tmb-l2','tmb-l3','tmb-l4','tmb-l5',
-                 'tmb-l9nord','tmb-l9sud','tmb-l10nord','tmb-l10sud',
-                 'tmb-l11','tmb-funicular'],
-  'tram':       [],
-  'cremallera': ['fgc-nu','fgc-mm','fgc-fv'],
-  'sncf':       [],
+  'rodalies':     ['rodalies-r1','rodalies-r2','rodalies-r2n','rodalies-r2s',
+                   'rodalies-r3','rodalies-r4','rodalies-r7','rodalies-r8',
+                   'rodalies-r11','rodalies-r13','rodalies-r14','rodalies-r15',
+                   'rodalies-r16','rodalies-r17','rodalies-rg1',
+                   'rodalies-rl3','rodalies-rl4','rodalies-rt1','rodalies-rt2'],
+  'fgc':          ['fgc-fc','fgc-fv','fgc-gelida','fgc-l12','fgc-l6','fgc-l7','fgc-l8',
+                   'fgc-mm','fgc-nu','fgc-r5','fgc-r50','fgc-r6','fgc-r60','fgc-rl2',
+                   'fgc-s1','fgc-s2','fgc-s3','fgc-s4','fgc-s8','fgc-s9',
+                   'fgc-santacova','fgc-santjoan'],
+  'tmb':          ['tmb-l1','tmb-l2','tmb-l3','tmb-l4','tmb-l5',
+                   'tmb-l9n','tmb-l9s','tmb-l10n','tmb-l10s','tmb-l11','tmb-funicular'],
+  'tram':         ['tram-t1','tram-t2','tram-t3','tram-t4','tram-t5','tram-t6'],
+  'sncf':         ['sncf-tolosa','sncf-perpinya','sncf-trengroc'],
+  'adif':         ['adif-canfranero','adif-murciac1','adif-tav','adif-trennaturaleza'],
+  'tramalacant':  ['tramalacant-l1','tramalacant-l2','tramalacant-l3',
+                   'tramalacant-l4','tramalacant-l5','tramalacant-l9'],
+  'cremallera':   ['fgc-nu','fgc-mm','fgc-fv'],
 };
 
 async function filtrarPerLinia(valor) {
