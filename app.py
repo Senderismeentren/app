@@ -182,6 +182,7 @@ def ruta_a_dict(row):
         "enllaç_wp":    v("Enllaç_WP"),
         "destacada":    (v("Destacades") or "").strip().lower() in ("sí", "si", "yes", "1", "x"),
         "punt_interes":  v("Punt_interès") or v("Punt_interes") or "",
+        "element_ferroviari": v("Element_ferroviari") or "",
         "lat_sortida":  vf("Lat_sortida"),
         "lng_sortida":  vf("Lon_sortida"),
         "linies_sortida": [l.strip() for l in v("Linies_sortida").split(";") if l.strip()],
