@@ -151,7 +151,7 @@ body { overflow: hidden; }
   <!-- TOOLBAR -->
   <div class="mapa-toolbar">
     <span class="mapa-toolbar-titol">Mapa</span>
-    <select onchange="if(this.value){document.getElementById('filtre-linia-select').value='';filtrarPerLinia('');const est=ESTACIONS.find(e=>e.nom===this.value);if(est){mapa.setView([est.lat,est.lng],14);obrirPanellEstacio(est);}this.value=''}"
+    <select onchange="if(this.value){document.getElementById('filtre-linia-select').value='';filtrarPerLinia('');const est=ESTACIONS.find(e=>e.nom===this.value);if(est){mapa.setView([est.lat,est.lng],14);}this.value=''}"
       style="border:1.5px solid #3498DB;background:white;color:#333;border-radius:20px;padding:5px 14px;font-size:13px;cursor:pointer;flex:1;max-width:240px;height:34px;font-weight:600;flex-shrink:0;">
       <option value="">🔍 Cerca estació...</option>
       {% for op, ests in estacions_per_op.items() %}
@@ -600,22 +600,27 @@ async function filtrarPerLinia(valor) {
   let liniesAActivar = [];
   if (valor.startsWith('op:')) {
     const op = valor.replace('op:', '');
-    liniesAActivar = (LINIES_PER_OP[op] || []).map(l => ({ op, linia: l }));
+    // LINIES_PER_OP conté els noms dels fitxers GPX directament
+    liniesAActivar = (LINIES_PER_OP[op] || []).map(nomGpx => ({ op, linia: nomGpx, nomGpx }));
   } else {
     const [op, linia] = valor.split('|');
-    liniesAActivar = [{ op, linia }];
+    liniesAActivar = [{ op, linia, nomGpx: null }];
   }
 
   const NOM_LINIA_MAP = {'r2 nord':'r2n','r2 sud':'r2s','r2nord':'r2n','r2sud':'r2s','l9 nord':'l9n','l9 sud':'l9s','l9nord':'l9n','l9sud':'l9s','l10 nord':'l10n','l10 sud':'l10s','l10nord':'l10n','l10sud':'l10s'};
   const GPX_EXPLICIT = {'cremallera de núria':'fgc-nu','cremallera de montserrat':'fgc-mm','funicular de vallvidrera':'fgc-fv','fc':'fgc-fc'};
 
-  for (const { op, linia } of liniesAActivar) {
+  for (const item of liniesAActivar) {
+    const { op, linia } = item;
     const clau = op + '|' + linia;
-    const lkey = linia.toLowerCase();
-    const l = NOM_LINIA_MAP[lkey] || lkey.replace(/[^a-z0-9]/g,'');
-    const opGpx = op.replace(/[^a-z]/g,'');
-    const gpxExplicit = GPX_EXPLICIT[lkey];
-    const nomGpx = gpxExplicit || (opGpx + '-' + l);
+    // Si ve de LINIES_PER_OP, el nomGpx ja és el nom del fitxer
+    let nomGpx = item.nomGpx;
+    if (!nomGpx) {
+      const lkey = linia.toLowerCase();
+      const l = NOM_LINIA_MAP[lkey] || lkey.replace(/[^a-z0-9]/g,'');
+      const opGpx = op.replace(/[^a-z]/g,'');
+      nomGpx = GPX_EXPLICIT[lkey] || (opGpx + '-' + l);
+    }
 
     // Usar caché si disponible, si no fer fetch
     let latlngs = _gpxCache[nomGpx] || null;
@@ -666,17 +671,28 @@ async function filtrarPerLinia(valor) {
     }
   }
 
-  // Filtrar estacions
-  const liniesNoms = new Set(liniesAActivar.map(x => x.linia.toLowerCase()));
+  // Tancar panell estació i resetejar-lo
+  const panellEst = document.getElementById('mapa-panell');
+  if (panellEst) panellEst.classList.remove('obert');
+
+  // Filtrar estacions per línia o per operador
+  const liniesNoms = new Set(liniesAActivar.map(x => {
+    // Si nomGpx, extreure la part de línia (ex: 'rodalies-r1' → 'r1')
+    if (x.nomGpx) {
+      const parts = x.nomGpx.split('-');
+      return parts.slice(1).join('-').toLowerCase();
+    }
+    return x.linia.toLowerCase();
+  }));
   const opNoms = new Set(liniesAActivar.map(x => x.op.toLowerCase()));
   capes.estacions.eachLayer(marker => {
     const est = marker._estacio;
     if (!est) return;
-    const estOp = (est.op || '').toLowerCase();
+    const estOps = (est.op || '').toLowerCase().split(';').map(o => o.trim());
     const estLinies = (est.linies || []).map(l => l.toLowerCase());
-    const mostrar = opNoms.has(estOp) && (
-      valor.startsWith('op:') || estLinies.some(l => liniesNoms.has(l))
-    );
+    const mostrar = valor.startsWith('op:')
+      ? estOps.some(o => opNoms.has(o))
+      : estLinies.some(l => liniesNoms.has(l));
     if (marker._icon) marker._icon.style.opacity = mostrar ? '1' : '0.1';
   });
 
