@@ -649,7 +649,11 @@ def mapa_pagina():
                 if op not in linies_per_op:
                     linies_per_op[op] = set()
                 linies_per_op[op].add(linia)
-    linies_per_op = {op: sorted(lins) for op, lins in linies_per_op.items()}
+    def _ordre_linia(nom):
+        import re
+        m = re.search(r'(\d+)', nom)
+        return (int(m.group(1)) if m else 999, nom)
+    linies_per_op = {op: sorted(lins, key=_ordre_linia) for op, lins in linies_per_op.items()}
     # Ordenar per ordre preferit
     linies_per_op_ord = {}
     for op in OP_ORDER:
