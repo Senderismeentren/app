@@ -177,6 +177,7 @@ def ruta_a_dict(row):
         "wiki":         v("Enllaç_Wikiloc"),
         "sortida":      v("Estació_sortida"),
         "op_sortida":   v("Operador_sortida"),
+        "op2_sortida":  v("Operador2_sortida"),
         "id_sortida":   v("ID_estació_sortida"),
         "enllaç_wp":    v("Enllaç_WP"),
         "destacada":    (v("Destacades") or "").strip().lower() in ("sí", "si", "yes", "1", "x"),
@@ -184,14 +185,17 @@ def ruta_a_dict(row):
         "lat_sortida":  vf("Lat_sortida"),
         "lng_sortida":  vf("Lon_sortida"),
         "linies_sortida": [l.strip() for l in v("Linies_sortida").split(";") if l.strip()],
+        "linies2_sortida": [l.strip() for l in v("Linies2_sortida").split(";") if l.strip()],
         "muni_sortida": v("Municipi_sortida"),
         "comarca_sortida": v("Comarca_sortida"),
         "arribada":     v("Estació_arribada"),
         "op_arribada":  v("Operador_arribada"),
+        "op2_arribada": v("Operador2_arribada"),
         "id_arribada":  v("ID_estació_arribada"),
         "lat_arribada": vf("Lat_arribada"),
         "lng_arribada": vf("Lon_arribada"),
         "linies_arribada": [l.strip() for l in v("Linies_Arribada").split(";") if l.strip()],
+        "linies2_arribada": [l.strip() for l in v("Linies2_Arribada").split(";") if l.strip()],
         "muni_arribada":v("Municipi_arribada"),
         "comarca_arribada": v("Comarca_arribada"),
         "km":           v("km"),
@@ -333,18 +337,20 @@ def get_estacions():
     rutes = get_rutes()
     estacions = {}
     for r in rutes:
-        for camp in [("sortida","op_sortida","lat_sortida","lng_sortida","linies_sortida","color_op_s"),
-                     ("arribada","op_arribada","lat_arribada","lng_arribada","linies_arribada","color_op_a")]:
+        for camp in [("sortida","op_sortida","op2_sortida","lat_sortida","lng_sortida","linies_sortida","linies2_sortida","color_op_s"),
+                     ("arribada","op_arribada","op2_arribada","lat_arribada","lng_arribada","linies_arribada","linies2_arribada","color_op_a")]:
             nom = r[camp[0]]
             if not nom: continue
             if nom not in estacions:
                 estacions[nom] = {
                     "nom": nom,
                     "op": r[camp[1]],
-                    "lat": r[camp[2]],
-                    "lng": r[camp[3]],
-                    "linies": r[camp[4]],
-                    "color": r[camp[5]],
+                    "op2": r[camp[2]],
+                    "lat": r[camp[3]],
+                    "lng": r[camp[4]],
+                    "linies": r[camp[5]],
+                    "linies2": r[camp[6]],
+                    "color": r[camp[7]],
                     "rutes": []
                 }
             if r["id"] not in [x["id"] for x in estacions[nom]["rutes"]]:
@@ -650,17 +656,24 @@ def mapa_pagina():
 
     linies_per_op = {}
     for r in rutes_mapa:
+        # Operador principal
         for camp_op, camp_lin in [("op_sortida","linies_sortida"),("op_arribada","linies_arribada")]:
-            op_raw = r.get(camp_op, "").strip()
-            if not op_raw: continue
-            # Separar operadors múltiples (ex: "SNCF;Rodalies")
-            ops = [o.strip() for o in op_raw.split(";") if o.strip()]
-            for op in ops:
-                for linia in r.get(camp_lin, []):
-                    if not linia: continue
-                    if op not in linies_per_op:
-                        linies_per_op[op] = set()
-                    linies_per_op[op].add(linia)
+            op = r.get(camp_op, "").strip()
+            if not op: continue
+            for linia in r.get(camp_lin, []):
+                if not linia: continue
+                if op not in linies_per_op:
+                    linies_per_op[op] = set()
+                linies_per_op[op].add(linia)
+        # Segon operador
+        for camp_op2, camp_lin2 in [("op2_sortida","linies2_sortida"),("op2_arribada","linies2_arribada")]:
+            op2 = r.get(camp_op2, "").strip()
+            if not op2: continue
+            for linia in r.get(camp_lin2, []):
+                if not linia: continue
+                if op2 not in linies_per_op:
+                    linies_per_op[op2] = set()
+                linies_per_op[op2].add(linia)
 
     def _ordre_linia(op, nom):
         if op == "FGC":
