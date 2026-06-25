@@ -151,7 +151,7 @@ body { overflow: hidden; }
   <!-- TOOLBAR -->
   <div class="mapa-toolbar">
     <span class="mapa-toolbar-titol">Mapa</span>
-    <select onchange="if(this.value){document.getElementById('filtre-linia-select').value='';filtrarPerLinia('');const est=ESTACIONS.find(e=>e.nom===this.value);if(est){mapa.setView([est.lat,est.lng],14);obrirPanellEstacio(est);}this.value=''}"
+    <select onchange="if(this.value){document.getElementById('filtre-linia-select').value='';filtrarPerLinia('');const est=ESTACIONS.find(e=>e.nom===this.value);if(est){mapa.setView([est.lat,est.lng],14);}this.value=''}"
       style="border:1.5px solid #3498DB;background:white;color:#333;border-radius:20px;padding:5px 14px;font-size:13px;cursor:pointer;flex:1;max-width:240px;height:34px;font-weight:600;flex-shrink:0;">
       <option value="">🔍 Cerca estació...</option>
       {% for op, ests in estacions_per_op.items() %}
@@ -633,11 +633,11 @@ async function filtrarPerLinia(valor) {
   capes.estacions.eachLayer(marker => {
     const est = marker._estacio;
     if (!est) return;
-    const estOp = (est.op || '').toLowerCase();
-    const estLinies = (est.linies || []).map(l => l.toLowerCase());
-    const mostrar = opNoms.has(estOp) && (
-      valor.startsWith('op:') || estLinies.some(l => liniesNoms.has(l))
-    );
+    const estOps = [est.op, est.op2].filter(Boolean).map(o => o.toLowerCase());
+    const estLinies = [...(est.linies || []), ...(est.linies2 || [])].map(l => l.toLowerCase());
+    const mostrar = valor.startsWith('op:')
+      ? estOps.some(o => opNoms.has(o))
+      : estLinies.some(l => liniesNoms.has(l));
     if (marker._icon) marker._icon.style.opacity = mostrar ? '1' : '0';
   });
 
