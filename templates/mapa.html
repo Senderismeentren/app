@@ -863,6 +863,7 @@ function resetejaMapa() {
   }
   const btnCims = document.getElementById('btn-cims');
   if (btnCims?.classList.contains('actiu')) toggleCapa('cims', btnCims);
+  mapa.setView([41.8, 2.0], 8);
 }
 
 function tancarPanell() {
