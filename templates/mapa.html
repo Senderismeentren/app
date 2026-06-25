@@ -151,7 +151,7 @@ body { overflow: hidden; }
   <!-- TOOLBAR -->
   <div class="mapa-toolbar">
     <span class="mapa-toolbar-titol">Mapa</span>
-    <select onchange="if(this.value){document.getElementById('filtre-linia-select').value='';filtrarPerLinia('');const est=ESTACIONS.find(e=>e.nom===this.value);if(est){mapa.setView([est.lat,est.lng],14);}this.value=''}"
+    <select onchange="if(this.value){document.getElementById('filtre-linia-select').value='';filtrarPerLinia('');const est=ESTACIONS.find(e=>e.nom===this.value);if(est){mapa.setView([est.lat,est.lng],14);obrirPanellEstacio(est);}this.value=''}"
       style="border:1.5px solid #3498DB;background:white;color:#333;border-radius:20px;padding:5px 14px;font-size:13px;cursor:pointer;flex:1;max-width:240px;height:34px;font-weight:600;flex-shrink:0;">
       <option value="">🔍 Cerca estació...</option>
       {% for op, ests in estacions_per_op.items() %}
@@ -367,7 +367,7 @@ async function toggleTrack(rutaId, btn) {
     const punts = await resp.json();
     if (!punts || punts.length === 0) throw new Error('buit');
     const latlngs = punts.map(p => [p.lat, p.lng]);
-    const layer = L.polyline(latlngs, {color, weight: 4, opacity: 0.9})
+    const layer = L.polyline(latlngs, {color, weight: 5, opacity: 0.9})
       .addTo(mapa)
       .on('click', () => window.location.href = `/ruta/${rutaId}`);
     const iconPunt = (label) => L.divIcon({
@@ -432,27 +432,27 @@ const BASE_GPX_LINIES = "https://raw.githubusercontent.com/Senderismeentren/send
 // Colors corporatius FGC i Rodalies
 const COLORS_LINIA = {
   // FGC Llobregat-Anoia
-  'fgc-r5':'#3dbfc3','fgc-r6':'#b3b3b3','fgc-r50':'#00738a','fgc-r60':'#5b5b5b',
-  'fgc-rl1':'#5e8523','fgc-rl2':'#6eaf25',
+  'fgc-r5':'#E2001A','fgc-r6':'#E2001A','fgc-r50':'#E2001A','fgc-r60':'#E2001A',
+  'fgc-rl2':'#E2001A',
   // FGC Vallès
-  'fgc-s1':'#EF7900','fgc-s2':'#88BB0B','fgc-s3':'#4F868E','fgc-s4':'#A78600',
-  'fgc-s8':'#49C0DE','fgc-s9':'#DF4661',
+  'fgc-s1':'#008000','fgc-s2':'#008000','fgc-s3':'#008000','fgc-s4':'#008000',
+  'fgc-s8':'#008000','fgc-s9':'#008000',
   // FGC Metro Baix Llobregat
-  'fgc-l6':'#797FBC','fgc-l7':'#B2600B','fgc-l8':'#E274AA','fgc-l12':'#b2aed3',
-  // FGC funiculars i cremalleres
-  'fgc-fv':'#0A57A3','fgc-mm':'#008000','fgc-nu':'#0070C0','fgc-fc':'#C8A96E',
-  'fgc-gelida':'#6eaf25','fgc-santacova':'#C8A96E','fgc-santjoan':'#C8A96E',
+  'fgc-l6':'#0070C0','fgc-l7':'#984B9A','fgc-l8':'#E2001A','fgc-l12':'#009FE3',
+  // FGC cremalleres i funiculars
+  'fgc-fc':'#C8A96E','fgc-mm':'#008000','fgc-nu':'#0070C0','fgc-fv':'#0A57A3',
+  'fgc-gelida':'#E2001A','fgc-santacova':'#C8A96E','fgc-santjoan':'#C8A96E',
   // Rodalies colors oficials
-  'rodalies-r1':'#78b3e0','rodalies-r2':'#009640',
-  'rodalies-r2n':'#a2c617','rodalies-r2s':'#005f27',
-  'rodalies-r3':'#e63027','rodalies-r4':'#f6a22d',
-  'rodalies-r7':'#bf7fb5','rodalies-r8':'#870064',
-  'rodalies-r11':'#0064a7','rodalies-r13':'#e8308a',
-  'rodalies-r14':'#6a509d','rodalies-r15':'#9a8b75',
-  'rodalies-r16':'#b20933','rodalies-r17':'#e87200',
-  'rodalies-rg1':'#78b3e0',
-  'rodalies-rl3':'#949300','rodalies-rl4':'#6eaf25',
-  'rodalies-rt1':'#00c4b3','rodalies-rt2':'#e577cb',
+  'rodalies-r1':'#00AEEF','rodalies-r2':'#00A651',
+  'rodalies-r2n':'#00A651','rodalies-r2s':'#00A651',
+  'rodalies-r3':'#ED1C24','rodalies-r4':'#F15A24',
+  'rodalies-r7':'#F7941D','rodalies-r8':'#9B59B6',
+  'rodalies-r11':'#C8A96E','rodalies-r12':'#C8A96E',
+  'rodalies-r13':'#00AEEF','rodalies-r14':'#00AEEF',
+  'rodalies-r15':'#F15A24','rodalies-r16':'#ED1C24','rodalies-r17':'#F7941D',
+  'rodalies-rg1':'#00A651',
+  'rodalies-rl3':'#E2001A','rodalies-rl4':'#E2001A',
+  'rodalies-rt1':'#888888','rodalies-rt2':'#888888',
   // Tram
   'tram-t1':'#78BE20','tram-t2':'#78BE20','tram-t3':'#78BE20',
   'tram-t4':'#78BE20','tram-t5':'#78BE20','tram-t6':'#78BE20',
@@ -541,7 +541,7 @@ async function carregarLiniesGPX() {
         parseFloat(p.getAttribute('lat')),
         parseFloat(p.getAttribute('lon'))
       ]);
-      L.polyline(latlngs, {color, weight: 4, opacity: 0.85})
+      L.polyline(latlngs, {color, weight: 5, opacity: 0.85})
         .addTo(capes.linies)
         .bindTooltip(nom.replace('-', ' ').toUpperCase(), {sticky: true});
     } catch(e) { /* línia no disponible */ }
@@ -616,7 +616,7 @@ async function filtrarPerLinia(valor) {
           const punts = await resp.json();
           if (!punts || !punts.length) continue;
           const color = colorLinia(nom + '.gpx');
-          const poly = L.polyline(punts.map(p => [p.lat, p.lng]), { color, weight: 4, opacity: 0.85 })
+          const poly = L.polyline(punts.map(p => [p.lat, p.lng]), { color, weight: 5, opacity: 0.85 })
             .addTo(mapa).bindTooltip(linia.toUpperCase(), { sticky: true });
           capesLinia[clau].push(poly);
           break;
@@ -633,12 +633,12 @@ async function filtrarPerLinia(valor) {
   capes.estacions.eachLayer(marker => {
     const est = marker._estacio;
     if (!est) return;
-    const estOps = [est.op, est.op2].filter(Boolean).map(o => o.toLowerCase());
-    const estLinies = [...(est.linies || []), ...(est.linies2 || [])].map(l => l.toLowerCase());
-    const mostrar = valor.startsWith('op:')
-      ? estOps.some(o => opNoms.has(o))
-      : estLinies.some(l => liniesNoms.has(l));
-    if (marker._icon) marker._icon.style.opacity = mostrar ? '1' : '0';
+    const estOp = (est.op || '').toLowerCase();
+    const estLinies = (est.linies || []).map(l => l.toLowerCase());
+    const mostrar = opNoms.has(estOp) && (
+      valor.startsWith('op:') || estLinies.some(l => liniesNoms.has(l))
+    );
+    if (marker._icon) marker._icon.style.opacity = mostrar ? '1' : '0.1';
   });
 
   // Ajustar vista al conjunt de línies
@@ -711,7 +711,7 @@ async function toggleLinia(op, linia, pill) {
         if (!punts || punts.length === 0) continue;
         const latlngs = punts.map(p => [p.lat, p.lng]);
         const color = colorLinia(nom + '.gpx');
-        const poly = L.polyline(latlngs, {color, weight: 4, opacity: 0.85}).addTo(mapa)
+        const poly = L.polyline(latlngs, {color, weight: 5, opacity: 0.85}).addTo(mapa)
           .bindTooltip(linia.toUpperCase(), {sticky: true});
         capesLinia[clau].push(poly);
         break;
@@ -769,7 +769,7 @@ async function toggleOperador(op, imgEl) {
         if (!punts || punts.length === 0) return;
         const latlngs = punts.map(p => [p.lat, p.lng]);
         const color = colorLinia(nom + '.gpx');
-        const poly = L.polyline(latlngs, {color, weight: 4, opacity: 0.85}).addTo(mapa)
+        const poly = L.polyline(latlngs, {color, weight: 5, opacity: 0.85}).addTo(mapa)
           .bindTooltip(nom.replace(/[-_.]/g,' ').toUpperCase(), {sticky:true});
         capesOperador[op].push(poly);
       } catch(e) {}
