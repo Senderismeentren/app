@@ -771,6 +771,16 @@ function toggleCapa(nom, el) {
   capesActives[nom] = el.classList.contains('actiu');
   if (capesActives[nom]) capes[nom].addTo(mapa);
   else mapa.removeLayer(capes[nom]);
+  // Quan s'activa/desactiva 100 Cims, filtrar estacions
+  if (nom === 'cims') {
+    capes.estacions.eachLayer(marker => {
+      const est = marker._estacio;
+      if (!est) return;
+      if (marker._icon) marker._icon.style.opacity = capesActives['cims']
+        ? (est.te_cims ? '1' : '0')
+        : '1';
+    });
+  }
 }
 
 // ── LOGOS LÍNIES ──
