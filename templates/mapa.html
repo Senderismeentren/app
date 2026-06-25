@@ -639,7 +639,7 @@ async function filtrarPerLinia(valor) {
         .addTo(mapa).bindTooltip(linia.toUpperCase(), { sticky: true });
       capesLinia[clau].push(poly);
 
-      // Logo als extrems (només si filtrem per una sola línia)
+      // Logo desplaçat dels extrems (evita solapament amb estació terminal)
       if (liniesAActivar.length === 1) {
         const prefix = opGpx.includes('fgc') || opGpx.includes('cremallera') ? 'fgc'
           : opGpx.includes('tmb') ? 'tmb'
@@ -654,7 +654,11 @@ async function filtrarPerLinia(valor) {
           html: `<img src="${logoUrl}" style="height:20px;max-width:40px;object-fit:contain;filter:drop-shadow(0 1px 3px rgba(0,0,0,0.5));" onerror="this.style.display='none'">`,
           className: '', iconSize: [40, 20], iconAnchor: [20, 10]
         });
-        [latlngs[0], latlngs[latlngs.length - 1]].forEach(pt => {
+        // Agafar el punt a ~300m de cada extrem per evitar solapament
+        const offsetPunts = 15;
+        const ptInici = latlngs[Math.min(offsetPunts, Math.floor(latlngs.length * 0.05))];
+        const ptFinal = latlngs[Math.max(latlngs.length - 1 - offsetPunts, Math.floor(latlngs.length * 0.95))];
+        [ptInici, ptFinal].forEach(pt => {
           const m = L.marker(pt, { icon: iconLogo, zIndexOffset: 500 }).addTo(mapa);
           window._logoExtremsLayers.push(m);
         });
