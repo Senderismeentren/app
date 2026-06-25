@@ -351,10 +351,13 @@ def get_estacions():
                     "linies": r[camp[5]],
                     "linies2": r[camp[6]],
                     "color": r[camp[7]],
+                    "te_cims": False,
                     "rutes": []
                 }
             if r["id"] not in [x["id"] for x in estacions[nom]["rutes"]]:
                 estacions[nom]["rutes"].append({"id": r["id"], "nom": r["nom"]})
+            if r.get("cims"):
+                estacions[nom]["te_cims"] = True
     return estacions
 
 
