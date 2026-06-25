@@ -151,7 +151,11 @@ body { overflow: hidden; }
   <!-- TOOLBAR -->
   <div class="mapa-toolbar">
     <span class="mapa-toolbar-titol">Mapa</span>
-    <select onchange="if(this.value){document.getElementById('filtre-linia-select').value='';filtrarPerLinia('');const est=ESTACIONS.find(e=>e.nom===this.value);if(est){mapa.setView([est.lat,est.lng],14);obrirPanellEstacio(est);}this.value=''}"
+    <button id="btn-cims" onclick="toggleCapa('cims', this)"
+      style="border:1.5px solid #888;background:white;color:#555;border-radius:20px;padding:5px 12px;font-size:13px;cursor:pointer;height:34px;font-weight:600;white-space:nowrap;flex-shrink:0;">
+      <i class="ti ti-mountain" style="font-size:13px;" aria-hidden="true"></i> 100 Cims
+    </button>
+    <select onchange="if(this.value){document.getElementById('filtre-linia-select').value='';filtrarPerLinia('');const est=ESTACIONS.find(e=>e.nom===this.value);if(est){mapa.setView([est.lat,est.lng],14);}this.value=''}"
       style="border:1.5px solid #3498DB;background:white;color:#333;border-radius:20px;padding:5px 14px;font-size:13px;cursor:pointer;flex:1;max-width:240px;height:34px;font-weight:600;flex-shrink:0;">
       <option value="">🔍 Cerca estació...</option>
       {% for op, ests in estacions_per_op.items() %}
@@ -174,38 +178,6 @@ body { overflow: hidden; }
       </optgroup>
       {% endfor %}
     </select>
-    <div class="filtre-wrap">
-      <button class="filtre-btn" id="filtre-btn" onclick="toggleFiltrePanell(event)">
-        <i class="ti ti-adjustments-horizontal" style="font-size:15px;" aria-hidden="true"></i>
-        Filtres
-        <span class="filtre-badge" id="filtre-badge" style="display:none;">0</span>
-      </button>
-      <div class="filtre-panell" id="filtre-panell">
-    <div class="filtre-panell-titol">Capes</div>
-    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;">
-      <span class="op-capa-pill actiu" id="tcapa-estacions" onclick="toggleCapa('estacions', this)"><i class="ti ti-map-pin" style="font-size:13px;" aria-hidden="true"></i> Estacions</span>
-      <span class="op-capa-pill" id="tcapa-cims" onclick="toggleCapa('cims', this)"><i class="ti ti-mountain" style="font-size:13px;" aria-hidden="true"></i> 100 Cims</span>
-    </div>
-    <div class="filtre-panell-titol">Línies</div>
-    {% set BASE = "https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/" %}
-    {% set logos = {"Rodalies": "logo-rodalies", "FGC": "logo-fgc", "TMB": "logo-tmb", "Tram": "logo-tram", "SNCF": "logo-sncf"} %}
-    {% for op, linies in linies_per_op.items() %}
-    <div class="op-grup">
-      <div class="op-cap" onclick="toggleOpGrup(this)" data-op="{{ op|lower|replace(' ','-') }}">
-        <img src="https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/logos-operadors/{{ logos.get(op, 'logo-rodalies') }}.svg" alt="{{ op }}"
-          onerror="this.style.display='none'">
-        {{ op }}
-        <span class="op-cap-arrow">▼</span>
-      </div>
-      <div class="op-linies-expand">
-        {% for linia in linies %}
-        <span class="linia-pill" onclick="toggleLinia('{{ op|lower|replace(' ','-') }}','{{ linia }}',this)">{{ linia }}</span>
-        {% endfor %}
-      </div>
-    </div>
-    {% endfor %}
-      </div>
-    </div>
     <span class="mapa-recompte" id="mapa-recompte">{{ rutes|length }} rutes</span>
   </div>
 
@@ -573,9 +545,8 @@ const LINIES_PER_OP = {
 };
 
 async function filtrarPerLinia(valor) {
-  // Tancar panel d'estació si estava obert
-  const panell = document.getElementById('panell-estacio');
-  if (panell) panell.classList.remove('obert');
+  // Tancar panell d'estació si estava obert
+  document.getElementById('mapa-panell')?.classList.remove('obert');
 
   // Netejar totes les capes de línies actives
   Object.keys(capesLinia).forEach(clau => {
