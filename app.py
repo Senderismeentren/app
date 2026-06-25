@@ -638,23 +638,48 @@ def mapa_pagina():
     espais_mapa = sorted(set(r["espai"] for r in rutes_mapa if r["espai"]))
 
     # Línies per operador (només les que apareixen al portal)
-    OP_ORDER = ["Rodalies", "FGC", "TMB", "Tram", "SNCF"]
+    OP_ORDER = ["Rodalies", "FGC", "TMB", "Tram", "SNCF", "ADIF"]
+    # Ordre fix per FGC
+    FGC_ORDER = ["L6","L7","L8","L12","S1","S2","S3","S4","S8","S9",
+                 "R5","R50","R6","R60","Funicular de Vallvidrera",
+                 "Cremallera de Núria","Cremallera de Montserrat"]
+    # Ordre fix per Rodalies (RG1 després R1, RT al final)
+    RODALIES_ORDER_PREFIX = ["R1","R2","R2 Nord","R2 Sud","R3","R4",
+                              "R7","R8","R11","R13","R14","R15","R16","R17",
+                              "RG1","RL3","RL4","RT1","RT2"]
+
     linies_per_op = {}
     for r in rutes_mapa:
         for camp_op, camp_lin in [("op_sortida","linies_sortida"),("op_arribada","linies_arribada")]:
-            op = r.get(camp_op, "").strip()
-            if not op: continue
-            for linia in r.get(camp_lin, []):
-                if not linia: continue
-                if op not in linies_per_op:
-                    linies_per_op[op] = set()
-                linies_per_op[op].add(linia)
-    def _ordre_linia(nom):
+            op_raw = r.get(camp_op, "").strip()
+            if not op_raw: continue
+            # Separar operadors múltiples (ex: "SNCF;Rodalies")
+            ops = [o.strip() for o in op_raw.split(";") if o.strip()]
+            for op in ops:
+                for linia in r.get(camp_lin, []):
+                    if not linia: continue
+                    if op not in linies_per_op:
+                        linies_per_op[op] = set()
+                    linies_per_op[op].add(linia)
+
+    def _ordre_linia(op, nom):
+        if op == "FGC":
+            try: return (FGC_ORDER.index(nom), nom)
+            except ValueError: return (999, nom)
+        if op == "Rodalies":
+            try: return (RODALIES_ORDER_PREFIX.index(nom), nom)
+            except ValueError:
+                import re
+                m = re.search(r'(\d+)', nom)
+                return (500 + (int(m.group(1)) if m else 999), nom)
         import re
         m = re.search(r'(\d+)', nom)
         return (int(m.group(1)) if m else 999, nom)
-    linies_per_op = {op: sorted(lins, key=_ordre_linia) for op, lins in linies_per_op.items()}
-    # Ordenar per ordre preferit
+
+    linies_per_op = {op: sorted(lins, key=lambda n: _ordre_linia(op, n))
+                     for op, lins in linies_per_op.items()}
+
+    # Ordenar operadors per ordre preferit
     linies_per_op_ord = {}
     for op in OP_ORDER:
         if op in linies_per_op:
