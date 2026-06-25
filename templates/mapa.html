@@ -134,18 +134,12 @@ body { overflow: hidden; }
 @media (max-width: 768px) {
   body { overflow: auto; }
   .mapa-page { height: calc(100vh - var(--mob-nav-h)); overflow: hidden; }
-  .mapa-toolbar {
-    flex-wrap: wrap;
-    padding: 6px 10px;
-    gap: 6px;
-    height: auto;
-  }
-  .mapa-toolbar::-webkit-scrollbar { display: none; }
+  .mapa-toolbar { flex-wrap: wrap; padding: 6px 10px; gap: 5px; height: auto; overflow-x: visible; }
   .mapa-recompte { display: none; }
   .toolbar-fila1 { display: flex; align-items: center; gap: 6px; width: 100%; }
   .toolbar-fila2 { display: flex; align-items: center; gap: 6px; width: 100%; }
   .toolbar-fila2 select { flex: 1; max-width: none !important; font-size: 12px !important; }
-  .toolbar-fila1-desktop { display: none; }
+  .toolbar-desktop { display: none !important; }
   .filtre-panell { left: 8px; right: 8px; transform: none; width: auto; }
   .mapa-panell { width: 100%; border-radius: 16px 16px 0 0; top: auto; bottom: 0; right: 0; left: 0; max-height: 60vh; transform: translateY(100%); }
   .mapa-panell.obert { transform: translateY(0); }
@@ -158,40 +152,44 @@ body { overflow: hidden; }
 
   <!-- TOOLBAR -->
   <div class="mapa-toolbar">
-    <!-- Fila 1 (mòbil) / tots els elements (escriptori) -->
-    <span class="mapa-toolbar-titol toolbar-fila1">Mapa</span>
-    <button id="btn-cims" class="toolbar-fila1" onclick="toggleCapa('cims', this)"
-      style="border:1.5px solid #888;background:white;color:#555;border-radius:20px;padding:5px 12px;font-size:13px;cursor:pointer;height:34px;font-weight:600;white-space:nowrap;flex-shrink:0;">
-      <i class="ti ti-mountain" style="font-size:13px;" aria-hidden="true"></i> 100 Cims
-    </button>
-    <button onclick="resetejaMapa()" class="toolbar-fila1"
-      style="border:1.5px solid #E74C3C;background:white;color:#E74C3C;border-radius:20px;padding:5px 12px;font-size:13px;cursor:pointer;height:34px;font-weight:600;white-space:nowrap;flex-shrink:0;">
-      ✕ Reseteja
-    </button>
-    <!-- Desplegables: fila 2 al mòbil, mateixa fila a escriptori -->
-    <select class="toolbar-fila2" onchange="if(this.value){document.getElementById('filtre-linia-select').value='';filtrarPerLinia('');const est=ESTACIONS.find(e=>e.nom===this.value);if(est){mapa.setView([est.lat,est.lng],14);}this.value=''}"
-      style="border:1.5px solid #3498DB;background:white;color:#333;border-radius:20px;padding:5px 14px;font-size:13px;cursor:pointer;flex:1;max-width:240px;height:34px;font-weight:600;flex-shrink:0;">
-      <option value="">🔍 Cerca estació...</option>
-      {% for op, ests in estacions_per_op.items() %}
-      <optgroup label="{{ op }}">
-        {% for est in ests %}
-        <option value="{{ est.nom }}">{{ est.nom }}</option>
+    <!-- Fila 1 mòbil: títol + 100 Cims + Reseteja -->
+    <div class="toolbar-fila1">
+      <span class="mapa-toolbar-titol">Mapa</span>
+      <button id="btn-cims" onclick="toggleCapa('cims', this)"
+        style="border:1.5px solid #888;background:white;color:#555;border-radius:20px;padding:5px 12px;font-size:13px;cursor:pointer;height:34px;font-weight:600;white-space:nowrap;flex-shrink:0;">
+        <i class="ti ti-mountain" style="font-size:13px;" aria-hidden="true"></i> 100 Cims
+      </button>
+      <button onclick="resetejaMapa()"
+        style="border:1.5px solid #E74C3C;background:white;color:#E74C3C;border-radius:20px;padding:5px 12px;font-size:13px;cursor:pointer;height:34px;font-weight:600;white-space:nowrap;flex-shrink:0;">
+        ✕ Reseteja
+      </button>
+    </div>
+    <!-- Fila 2 mòbil: desplegables -->
+    <div class="toolbar-fila2">
+      <select onchange="if(this.value){document.getElementById('filtre-linia-select').value='';filtrarPerLinia('');const est=ESTACIONS.find(e=>e.nom===this.value);if(est){mapa.setView([est.lat,est.lng],14);}this.value=''}"
+        style="border:1.5px solid #3498DB;background:white;color:#333;border-radius:20px;padding:5px 14px;font-size:13px;cursor:pointer;flex:1;max-width:240px;height:34px;font-weight:600;flex-shrink:0;">
+        <option value="">🔍 Cerca estació...</option>
+        {% for op, ests in estacions_per_op.items() %}
+        <optgroup label="{{ op }}">
+          {% for est in ests %}
+          <option value="{{ est.nom }}">{{ est.nom }}</option>
+          {% endfor %}
+        </optgroup>
         {% endfor %}
-      </optgroup>
-      {% endfor %}
-    </select>
-    <select id="filtre-linia-select" class="toolbar-fila2" onchange="filtrarPerLinia(this.value)"
-      style="border:1.5px solid #27AE60;background:white;color:#333;border-radius:20px;padding:5px 14px;font-size:13px;cursor:pointer;flex:1;max-width:220px;height:34px;font-weight:600;flex-shrink:0;">
-      <option value="">🚆 Filtra per línia...</option>
-      {% for op, linies in linies_per_op.items() %}
-      <optgroup label="{{ op }}">
-        <option value="op:{{ op|lower|replace(' ','-') }}">— Tot {{ op }} —</option>
-        {% for linia in linies %}
-        <option value="{{ op|lower|replace(' ','-') }}|{{ linia }}">{{ linia }}</option>
+      </select>
+      <select id="filtre-linia-select" onchange="filtrarPerLinia(this.value)"
+        style="border:1.5px solid #27AE60;background:white;color:#333;border-radius:20px;padding:5px 14px;font-size:13px;cursor:pointer;flex:1;max-width:220px;height:34px;font-weight:600;flex-shrink:0;">
+        <option value="">🚆 Filtra per línia...</option>
+        {% for op, linies in linies_per_op.items() %}
+        <optgroup label="{{ op }}">
+          <option value="op:{{ op|lower|replace(' ','-') }}">— Tot {{ op }} —</option>
+          {% for linia in linies %}
+          <option value="{{ op|lower|replace(' ','-') }}|{{ linia }}">{{ linia }}</option>
+          {% endfor %}
+        </optgroup>
         {% endfor %}
-      </optgroup>
-      {% endfor %}
-    </select>
+      </select>
+    </div>
     <span class="mapa-recompte" id="mapa-recompte">{{ rutes|length }} rutes</span>
   </div>
 
@@ -852,23 +850,17 @@ function obrirPanellEstacio(est) {
 }
 
 function resetejaMapa() {
-  // Resetejar desplegables
   document.getElementById('filtre-linia-select').value = '';
-  document.querySelectorAll('.mapa-toolbar select').forEach(s => s.value = '');
-  // Tancar panell estació
+  document.querySelectorAll('.toolbar-fila2 select').forEach(s => s.value = '');
   document.getElementById('mapa-panell')?.classList.remove('obert');
-  // Mostrar totes les estacions
   capes.estacions.eachLayer(m => { if (m._icon) m._icon.style.opacity = '1'; });
-  // Treure totes les línies filtrades
   Object.keys(capesLinia).forEach(clau => {
     if (capesLinia[clau]) capesLinia[clau].forEach(l => mapa.removeLayer(l));
   });
-  // Treure logos extrems
   if (window._logoExtremsLayers) {
     window._logoExtremsLayers.forEach(l => mapa.removeLayer(l));
     window._logoExtremsLayers = [];
   }
-  // Desactivar 100 Cims si estava actiu
   const btnCims = document.getElementById('btn-cims');
   if (btnCims?.classList.contains('actiu')) toggleCapa('cims', btnCims);
 }
