@@ -311,6 +311,21 @@
       </div>
     </div>
 
+    {% if ruta.element_ferroviari %}
+    {% set ef_parts = ruta.element_ferroviari.split(';') %}
+    <div class="bloc">
+      <div class="bloc-cap"><span class="bloc-icon">🚂</span><span class="bloc-titol">Element ferroviari d'interès</span></div>
+      <div class="bloc-cos">
+        {% if ef_parts|length > 1 %}
+        <p style="font-size:14px;font-weight:700;color:#111;margin:0 0 4px;">{{ ef_parts[0].strip() }}</p>
+        <p style="font-size:13px;color:#555;line-height:1.7;margin:0;">{{ ef_parts[1].strip() }}</p>
+        {% else %}
+        <p style="font-size:13px;color:#555;line-height:1.7;margin:0;">{{ ef_parts[0].strip() }}</p>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+
     <!-- SENDERS -->
     {% if ruta.senders %}
     <div class="bloc">
