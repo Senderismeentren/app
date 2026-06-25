@@ -611,7 +611,7 @@ async function filtrarPerLinia(valor) {
 
   // Netejar filtre
   if (!valor) {
-    capes.estacions.eachLayer(m => { if (m._icon) m._icon.style.opacity = '1'; });
+    capes.estacions.eachLayer(m => { const el = m.getElement(); if (el) el.style.opacity = '1'; });
     return;
   }
 
@@ -695,24 +695,18 @@ async function filtrarPerLinia(valor) {
   if (panellEst) panellEst.classList.remove('obert');
 
   // Filtrar estacions per línia o per operador
-  const liniesNoms = new Set(liniesAActivar.map(x => {
-    // Si nomGpx, extreure la part de línia (ex: 'rodalies-r1' → 'r1')
-    if (x.nomGpx) {
-      const parts = x.nomGpx.split('-');
-      return parts.slice(1).join('-').toLowerCase();
-    }
-    return x.linia.toLowerCase();
-  }));
+  const liniesNoms = new Set(liniesAActivar.map(x => x.linia.toLowerCase()));
   const opNoms = new Set(liniesAActivar.map(x => x.op.toLowerCase()));
   capes.estacions.eachLayer(marker => {
     const est = marker._estacio;
     if (!est) return;
-    const estOps = (est.op || '').toLowerCase().split(';').map(o => o.trim());
-    const estLinies = (est.linies || []).map(l => l.toLowerCase());
+    const estOps = [est.op, est.op2].filter(Boolean).map(o => o.toLowerCase());
+    const estLinies = [...(est.linies || []), ...(est.linies2 || [])].map(l => l.toLowerCase());
     const mostrar = valor.startsWith('op:')
       ? estOps.some(o => opNoms.has(o))
       : estLinies.some(l => liniesNoms.has(l));
-    if (marker._icon) marker._icon.style.opacity = mostrar ? '1' : '0';
+    const el = marker.getElement();
+    if (el) el.style.opacity = mostrar ? '1' : '0';
   });
 
   // Ajustar vista
