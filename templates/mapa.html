@@ -151,7 +151,7 @@ body { overflow: hidden; }
   <!-- TOOLBAR -->
   <div class="mapa-toolbar">
     <span class="mapa-toolbar-titol">Mapa</span>
-    <select onchange="if(this.value){document.getElementById('filtre-linia-select').value='';filtrarPerLinia('');const est=ESTACIONS.find(e=>e.nom===this.value);if(est){mapa.setView([est.lat,est.lng],14);}this.value=''}"
+    <select onchange="if(this.value){document.getElementById('filtre-linia-select').value='';filtrarPerLinia('');const est=ESTACIONS.find(e=>e.nom===this.value);if(est){mapa.setView([est.lat,est.lng],14);obrirPanellEstacio(est);}this.value=''}"
       style="border:1.5px solid #3498DB;background:white;color:#333;border-radius:20px;padding:5px 14px;font-size:13px;cursor:pointer;flex:1;max-width:240px;height:34px;font-weight:600;flex-shrink:0;">
       <option value="">🔍 Cerca estació...</option>
       {% for op, ests in estacions_per_op.items() %}
@@ -432,27 +432,27 @@ const BASE_GPX_LINIES = "https://raw.githubusercontent.com/Senderismeentren/send
 // Colors corporatius FGC i Rodalies
 const COLORS_LINIA = {
   // FGC Llobregat-Anoia
-  'fgc-r5':'#3dbfc3','fgc-r6':'#b3b3b3','fgc-r50':'#00738a','fgc-r60':'#5b5b5b',
-  'fgc-rl1':'#5e8523','fgc-rl2':'#6eaf25',
+  'fgc-r5':'#E2001A','fgc-r6':'#E2001A','fgc-r50':'#E2001A','fgc-r60':'#E2001A',
+  'fgc-rl2':'#E2001A',
   // FGC Vallès
-  'fgc-s1':'#EF7900','fgc-s2':'#88BB0B','fgc-s3':'#4F868E','fgc-s4':'#A78600',
-  'fgc-s8':'#49C0DE','fgc-s9':'#DF4661',
+  'fgc-s1':'#008000','fgc-s2':'#008000','fgc-s3':'#008000','fgc-s4':'#008000',
+  'fgc-s8':'#008000','fgc-s9':'#008000',
   // FGC Metro Baix Llobregat
-  'fgc-l6':'#797FBC','fgc-l7':'#B2600B','fgc-l8':'#E274AA','fgc-l12':'#b2aed3',
-  // FGC funiculars i cremalleres
-  'fgc-fv':'#0A57A3','fgc-mm':'#008000','fgc-nu':'#0070C0','fgc-fc':'#C8A96E',
-  'fgc-gelida':'#6eaf25','fgc-santacova':'#C8A96E','fgc-santjoan':'#C8A96E',
+  'fgc-l6':'#0070C0','fgc-l7':'#984B9A','fgc-l8':'#E2001A','fgc-l12':'#009FE3',
+  // FGC cremalleres i funiculars
+  'fgc-fc':'#C8A96E','fgc-mm':'#008000','fgc-nu':'#0070C0','fgc-fv':'#0A57A3',
+  'fgc-gelida':'#E2001A','fgc-santacova':'#C8A96E','fgc-santjoan':'#C8A96E',
   // Rodalies colors oficials
-  'rodalies-r1':'#78b3e0','rodalies-r2':'#009640',
-  'rodalies-r2n':'#a2c617','rodalies-r2s':'#005f27',
-  'rodalies-r3':'#e63027','rodalies-r4':'#f6a22d',
-  'rodalies-r7':'#bf7fb5','rodalies-r8':'#870064',
-  'rodalies-r11':'#0064a7','rodalies-r13':'#e8308a',
-  'rodalies-r14':'#6a509d','rodalies-r15':'#9a8b75',
-  'rodalies-r16':'#b20933','rodalies-r17':'#e87200',
-  'rodalies-rg1':'#009640',
-  'rodalies-rl3':'#949300','rodalies-rl4':'#6eaf25',
-  'rodalies-rt1':'#00c4b3','rodalies-rt2':'#e577cb',
+  'rodalies-r1':'#00AEEF','rodalies-r2':'#00A651',
+  'rodalies-r2n':'#00A651','rodalies-r2s':'#00A651',
+  'rodalies-r3':'#ED1C24','rodalies-r4':'#F15A24',
+  'rodalies-r7':'#F7941D','rodalies-r8':'#9B59B6',
+  'rodalies-r11':'#C8A96E','rodalies-r12':'#C8A96E',
+  'rodalies-r13':'#00AEEF','rodalies-r14':'#00AEEF',
+  'rodalies-r15':'#F15A24','rodalies-r16':'#ED1C24','rodalies-r17':'#F7941D',
+  'rodalies-rg1':'#00A651',
+  'rodalies-rl3':'#E2001A','rodalies-rl4':'#E2001A',
+  'rodalies-rt1':'#888888','rodalies-rt2':'#888888',
   // Tram
   'tram-t1':'#78BE20','tram-t2':'#78BE20','tram-t3':'#78BE20',
   'tram-t4':'#78BE20','tram-t5':'#78BE20','tram-t6':'#78BE20',
@@ -475,34 +475,15 @@ const COLORS_LINIA = {
 function colorLinia(nomFitxer) {
   const clau = nomFitxer.toLowerCase().replace('.gpx','');
   if (COLORS_LINIA[clau]) return COLORS_LINIA[clau];
-  if (clau.startsWith('fgc-r5') || clau.startsWith('fgc-r6')) return '#3dbfc3';
-  if (clau.startsWith('fgc-rl')) return '#6eaf25';
-  if (clau.startsWith('fgc-s1')) return '#EF7900';
-  if (clau.startsWith('fgc-s2')) return '#88BB0B';
-  if (clau.startsWith('fgc-s')) return '#4F868E';
-  if (clau.startsWith('fgc-l6')) return '#797FBC';
-  if (clau.startsWith('fgc-l7')) return '#B2600B';
-  if (clau.startsWith('fgc-l8')) return '#E274AA';
-  if (clau.startsWith('fgc-l')) return '#b2aed3';
-  if (clau.startsWith('fgc')) return '#6eaf25';
-  if (clau === 'rodalies-r1') return '#78b3e0';
-  if (clau === 'rodalies-r2') return '#009640';
-  if (clau === 'rodalies-r2n') return '#a2c617';
-  if (clau === 'rodalies-r2s') return '#005f27';
-  if (clau.startsWith('rodalies-r3')) return '#e63027';
-  if (clau.startsWith('rodalies-r4')) return '#f6a22d';
-  if (clau.startsWith('rodalies-r7')) return '#bf7fb5';
-  if (clau.startsWith('rodalies-r8')) return '#870064';
-  if (clau.startsWith('rodalies-r11')) return '#0064a7';
-  if (clau.startsWith('rodalies-r13')) return '#e8308a';
-  if (clau.startsWith('rodalies-r14')) return '#6a509d';
-  if (clau.startsWith('rodalies-r15')) return '#9a8b75';
-  if (clau.startsWith('rodalies-r16')) return '#b20933';
-  if (clau.startsWith('rodalies-r17')) return '#e87200';
-  if (clau.startsWith('rodalies-rt1')) return '#00c4b3';
-  if (clau.startsWith('rodalies-rt2')) return '#e577cb';
-  if (clau.startsWith('rodalies-rl3')) return '#949300';
-  if (clau.startsWith('rodalies')) return '#78b3e0';
+  if (clau.startsWith('fgc-r') || clau.startsWith('fgc-rl')) return '#E2001A';
+  if (clau.startsWith('fgc-s')) return '#008000';
+  if (clau.startsWith('fgc-l')) return '#0070C0';
+  if (clau.startsWith('fgc'))   return '#97D700';
+  if (clau.startsWith('rodalies-r1')) return '#00AEEF';
+  if (clau.startsWith('rodalies-r2')) return '#00A651';
+  if (clau.startsWith('rodalies-r3')) return '#ED1C24';
+  if (clau.startsWith('rodalies-r4')) return '#F15A24';
+  if (clau.startsWith('rodalies'))    return '#EE7F00';
   if (clau.startsWith('tmb-l1')) return '#E30613';
   if (clau.startsWith('tmb-l2')) return '#9B2743';
   if (clau.startsWith('tmb-l3')) return '#009A44';
@@ -519,9 +500,6 @@ function colorLinia(nomFitxer) {
   if (clau.startsWith('tramalacant')) return '#E30613';
   return '#888888';
 }
-
-// Caché de punts GPX per línia — evita re-fetch a filtrarPerLinia
-const _gpxCache = {};
 
 async function carregarLiniesGPX() {
   const linies = [
@@ -563,7 +541,6 @@ async function carregarLiniesGPX() {
         parseFloat(p.getAttribute('lat')),
         parseFloat(p.getAttribute('lon'))
       ]);
-      _gpxCache[nom] = latlngs;  // guardar a caché
       L.polyline(latlngs, {color, weight: 4, opacity: 0.85})
         .addTo(capes.linies)
         .bindTooltip(nom.replace('-', ' ').toUpperCase(), {sticky: true});
@@ -600,18 +577,14 @@ async function filtrarPerLinia(valor) {
   const panell = document.getElementById('panell-estacio');
   if (panell) panell.classList.remove('obert');
 
-  // Netejar capes de línies actives i logos d'extrems
+  // Netejar totes les capes de línies actives
   Object.keys(capesLinia).forEach(clau => {
     if (capesLinia[clau]) capesLinia[clau].forEach(l => mapa.removeLayer(l));
   });
-  if (window._logoExtremsLayers) {
-    window._logoExtremsLayers.forEach(l => mapa.removeLayer(l));
-  }
-  window._logoExtremsLayers = [];
 
-  // Netejar filtre
+  // Netejar filtre (mostrar totes les estacions)
   if (!valor) {
-    capes.estacions.eachLayer(m => { const el = m.getElement(); if (el) el.style.opacity = '1'; });
+    capes.estacions.eachLayer(m => { if (m._icon) m._icon.style.opacity = '1'; });
     return;
   }
 
@@ -619,97 +592,56 @@ async function filtrarPerLinia(valor) {
   let liniesAActivar = [];
   if (valor.startsWith('op:')) {
     const op = valor.replace('op:', '');
-    // LINIES_PER_OP conté els noms dels fitxers GPX directament
-    liniesAActivar = (LINIES_PER_OP[op] || []).map(nomGpx => ({ op, linia: nomGpx, nomGpx }));
+    liniesAActivar = (LINIES_PER_OP[op] || []).map(l => ({ op, linia: l }));
   } else {
     const [op, linia] = valor.split('|');
-    liniesAActivar = [{ op, linia, nomGpx: null }];
+    liniesAActivar = [{ op, linia }];
   }
 
-  const NOM_LINIA_MAP = {'r2 nord':'r2n','r2 sud':'r2s','r2nord':'r2n','r2sud':'r2s','l9 nord':'l9n','l9 sud':'l9s','l9nord':'l9n','l9sud':'l9s','l10 nord':'l10n','l10 sud':'l10s','l10nord':'l10n','l10sud':'l10s'};
-  const GPX_EXPLICIT = {'cremallera de núria':'fgc-nu','cremallera de montserrat':'fgc-mm','funicular de vallvidrera':'fgc-fv','fc':'fgc-fc'};
-
-  for (const item of liniesAActivar) {
-    const { op, linia } = item;
+  // Carregar i mostrar els GPX de les línies
+  for (const { op, linia } of liniesAActivar) {
     const clau = op + '|' + linia;
-    // Si ve de LINIES_PER_OP, el nomGpx ja és el nom del fitxer
-    let nomGpx = item.nomGpx;
-    if (!nomGpx) {
+    if (!capesLinia[clau]) {
+      const NOM_LINIA_MAP = {'r2 nord':'r2n','r2 sud':'r2s','r2nord':'r2n','r2sud':'r2s','l9 nord':'l9n','l9 sud':'l9s','l9nord':'l9n','l9sud':'l9s','l10 nord':'l10n','l10 sud':'l10s','l10nord':'l10n','l10sud':'l10s'};
       const lkey = linia.toLowerCase();
       const l = NOM_LINIA_MAP[lkey] || lkey.replace(/[^a-z0-9]/g,'');
       const opGpx = op.replace(/[^a-z]/g,'');
-      nomGpx = GPX_EXPLICIT[lkey] || (opGpx + '-' + l);
-    }
-
-    // Usar caché si disponible, si no fer fetch
-    let latlngs = _gpxCache[nomGpx] || null;
-    if (!latlngs) {
-      try {
-        const resp = await fetch('/api/gpx/linia/' + nomGpx);
-        if (resp.ok) {
+      const gpxExplicit = { 'cremallera de núria':'fgc-nu','cremallera de montserrat':'fgc-mm','funicular de vallvidrera':'fgc-fv','fc':'fgc-fc' }[lkey];
+      const candidates = gpxExplicit ? [gpxExplicit] : [opGpx + '-' + l, l];
+      capesLinia[clau] = [];
+      for (const nom of candidates) {
+        try {
+          const resp = await fetch('/api/gpx/linia/' + nom);
+          if (!resp.ok) continue;
           const punts = await resp.json();
-          if (punts && punts.length) {
-            latlngs = punts.map(p => [p.lat, p.lng]);
-            _gpxCache[nomGpx] = latlngs;
-          }
-        }
-      } catch(e) {}
-    }
-
-    if (latlngs && latlngs.length) {
-      const color = colorLinia(nomGpx + '.gpx');
-      capesLinia[clau] = capesLinia[clau] || [];
-      const poly = L.polyline(latlngs, { color, weight: 5, opacity: 0.9 })
-        .addTo(mapa).bindTooltip(linia.toUpperCase(), { sticky: true });
-      capesLinia[clau].push(poly);
-
-      // Logo desplaçat dels extrems (evita solapament amb estació terminal)
-      if (liniesAActivar.length === 1) {
-        const prefix = opGpx.includes('fgc') || opGpx.includes('cremallera') ? 'fgc'
-          : opGpx.includes('tmb') ? 'tmb'
-          : opGpx.includes('tram') ? 'tram'
-          : opGpx.includes('sncf') ? 'sncf'
-          : opGpx.includes('adif') ? 'adif'
-          : opGpx.includes('tramalacant') ? 'tramalacant'
-          : 'rodalies';
-        const logoNom = NOM_LINIA_MAP[lkey] || l;
-        const logoUrl = `${BASE_LOGOS_LI}logo-${prefix}-${logoNom}.svg`;
-        const iconLogo = L.divIcon({
-          html: `<img src="${logoUrl}" style="height:20px;max-width:40px;object-fit:contain;filter:drop-shadow(0 1px 3px rgba(0,0,0,0.5));" onerror="this.style.display='none'">`,
-          className: '', iconSize: [40, 20], iconAnchor: [20, 10]
-        });
-        // Agafar el punt a ~300m de cada extrem per evitar solapament
-        const offsetPunts = 15;
-        const ptInici = latlngs[Math.min(offsetPunts, Math.floor(latlngs.length * 0.05))];
-        const ptFinal = latlngs[Math.max(latlngs.length - 1 - offsetPunts, Math.floor(latlngs.length * 0.95))];
-        [ptInici, ptFinal].forEach(pt => {
-          const m = L.marker(pt, { icon: iconLogo, zIndexOffset: 500 }).addTo(mapa);
-          window._logoExtremsLayers.push(m);
-        });
+          if (!punts || !punts.length) continue;
+          const color = colorLinia(nom + '.gpx');
+          const poly = L.polyline(punts.map(p => [p.lat, p.lng]), { color, weight: 4, opacity: 0.85 })
+            .addTo(mapa).bindTooltip(linia.toUpperCase(), { sticky: true });
+          capesLinia[clau].push(poly);
+          break;
+        } catch(e) {}
       }
+    } else {
+      capesLinia[clau].forEach(l => l.addTo(mapa));
     }
   }
 
-  // Tancar panell estació i resetejar-lo
-  const panellEst = document.getElementById('mapa-panell');
-  if (panellEst) panellEst.classList.remove('obert');
-
-  // Filtrar estacions per línia o per operador
+  // Filtrar estacions: mostrar només les de les línies triades
   const liniesNoms = new Set(liniesAActivar.map(x => x.linia.toLowerCase()));
   const opNoms = new Set(liniesAActivar.map(x => x.op.toLowerCase()));
   capes.estacions.eachLayer(marker => {
     const est = marker._estacio;
     if (!est) return;
-    const estOps = [est.op, est.op2].filter(Boolean).map(o => o.toLowerCase());
-    const estLinies = [...(est.linies || []), ...(est.linies2 || [])].map(l => l.toLowerCase());
-    const mostrar = valor.startsWith('op:')
-      ? estOps.some(o => opNoms.has(o))
-      : estLinies.some(l => liniesNoms.has(l));
-    const el = marker.getElement();
-    if (el) el.style.opacity = mostrar ? '1' : '0';
+    const estOp = (est.op || '').toLowerCase();
+    const estLinies = (est.linies || []).map(l => l.toLowerCase());
+    const mostrar = opNoms.has(estOp) && (
+      valor.startsWith('op:') || estLinies.some(l => liniesNoms.has(l))
+    );
+    if (marker._icon) marker._icon.style.opacity = mostrar ? '1' : '0.1';
   });
 
-  // Ajustar vista
+  // Ajustar vista al conjunt de línies
   const totsElsPunts = liniesAActivar.flatMap(({ op, linia }) => {
     const clau = op + '|' + linia;
     return (capesLinia[clau] || []).flatMap(poly => poly.getLatLngs());
