@@ -425,7 +425,7 @@ const COLORS_LINIA = {
   'fgc-l6':'#797FBC','fgc-l7':'#B2600B','fgc-l8':'#E274AA','fgc-l12':'#b2aed3',
   // FGC funiculars i cremalleres
   'fgc-fc':'#C8A96E','fgc-mm':'#008000','fgc-nu':'#0070C0','fgc-fv':'#0A57A3',
-  'fgc-gelida':'#6eaf25','fgc-santacova':'#C8A96E','fgc-santjoan':'#C8A96E',
+  'fgc-gelida':'#6eaf25','fgc-santacova':'#008000','fgc-santjoan':'#008000',
   // Rodalies colors oficials
   'rodalies-r1':'#78b3e0','rodalies-r2':'#009640',
   'rodalies-r2n':'#a2c617','rodalies-r2s':'#005f27',
@@ -600,7 +600,7 @@ async function filtrarPerLinia(valor) {
       const lkey = linia.toLowerCase();
       const l = NOM_LINIA_MAP[lkey] || lkey.replace(/[^a-z0-9]/g,'');
       const opGpx = op.replace(/[^a-z]/g,'');
-      const gpxExplicit = { 'cremallera de núria':'fgc-nu','cremallera de montserrat':'fgc-mm','funicular de vallvidrera':'fgc-fv','fc':'fgc-fc','la tor de querol - tolosa':'sncf-tolosa','cervera - perpinyà':'sncf-perpinya','tren groc':'sncf-trengroc' }[lkey];
+      const gpxExplicit = { 'cremallera de núria':'fgc-nu','cremallera de montserrat':'fgc-mm','funicular de vallvidrera':'fgc-fv','funicular de sant joan':'fgc-santjoan','funicular de la santa cova':'fgc-santacova','fc':'fgc-fc','la tor de querol - tolosa':'sncf-tolosa','cervera - perpinyà':'sncf-perpinya','tren groc':'sncf-trengroc' }[lkey];
       const candidates = gpxExplicit ? [gpxExplicit] : [opGpx + '-' + l, l];
       capesLinia[clau] = [];
       for (const nom of candidates) {
@@ -684,6 +684,8 @@ async function toggleLinia(op, linia, pill) {
     'cremallera de núria': 'fgc-nu',
     'cremallera de montserrat': 'fgc-mm',
     'funicular de vallvidrera': 'fgc-fv',
+    'funicular de sant joan': 'fgc-santjoan',
+    'funicular de la santa cova': 'fgc-santacova',
     'fc': 'fgc-fc',
     'la tor de querol - tolosa': 'sncf-tolosa',
     'cervera - perpinyà': 'sncf-perpinya',
