@@ -137,8 +137,8 @@ body { overflow: hidden; }
   .mapa-toolbar { flex-wrap: wrap; padding: 6px 10px; gap: 5px; height: auto; overflow-x: visible; }
   .mapa-recompte { display: none; }
   .toolbar-fila1 { display: flex; align-items: center; gap: 6px; width: 100%; }
-  .toolbar-fila2 { display: flex; align-items: center; gap: 6px; width: 100%; }
-  .toolbar-fila2 select { flex: 1; max-width: none !important; font-size: 12px !important; }
+  .toolbar-fila2 { display: flex; align-items: center; gap: 4px; width: 100%; }
+  .toolbar-fila2 select { flex: 1; min-width: 0; max-width: none !important; font-size: 11px !important; padding: 4px 6px !important; height: 32px !important; }
   .toolbar-desktop { display: none !important; }
   .filtre-panell { left: 8px; right: 8px; transform: none; width: auto; }
   .mapa-panell { width: 100%; border-radius: 16px 16px 0 0; top: auto; bottom: 0; right: 0; left: 0; max-height: 60vh; transform: translateY(100%); }
@@ -627,12 +627,12 @@ async function filtrarPerLinia(valor) {
   capes.estacions.eachLayer(marker => {
     const est = marker._estacio;
     if (!est) return;
-    const estOps = [est.op, est.op2].filter(Boolean).map(o => o.toLowerCase());
-    const estLinies = [...(est.linies || []), ...(est.linies2 || [])].map(l => l.toLowerCase());
-    const mostrar = valor.startsWith('op:')
-      ? estOps.some(o => opNoms.has(o))
-      : estLinies.some(l => liniesNoms.has(l));
-    if (marker._icon) marker._icon.style.opacity = mostrar ? '1' : '0';
+    const estOp = (est.op || '').toLowerCase();
+    const estLinies = (est.linies || []).map(l => l.toLowerCase());
+    const mostrar = opNoms.has(estOp) && (
+      valor.startsWith('op:') || estLinies.some(l => liniesNoms.has(l))
+    );
+    if (marker._icon) marker._icon.style.opacity = mostrar ? '1' : '0.1';
   });
 
   // Ajustar vista al conjunt de línies
