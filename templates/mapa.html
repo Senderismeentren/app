@@ -427,16 +427,16 @@ const COLORS_LINIA = {
   'fgc-fc':'#C8A96E','fgc-mm':'#008000','fgc-nu':'#0070C0','fgc-fv':'#0A57A3',
   'fgc-gelida':'#E2001A','fgc-santacova':'#C8A96E','fgc-santjoan':'#C8A96E',
   // Rodalies colors oficials
-  'rodalies-r1':'#00AEEF','rodalies-r2':'#00A651',
-  'rodalies-r2n':'#00A651','rodalies-r2s':'#00A651',
-  'rodalies-r3':'#ED1C24','rodalies-r4':'#F15A24',
-  'rodalies-r7':'#F7941D','rodalies-r8':'#9B59B6',
-  'rodalies-r11':'#C8A96E','rodalies-r12':'#C8A96E',
-  'rodalies-r13':'#00AEEF','rodalies-r14':'#00AEEF',
-  'rodalies-r15':'#F15A24','rodalies-r16':'#ED1C24','rodalies-r17':'#F7941D',
-  'rodalies-rg1':'#00A651',
-  'rodalies-rl3':'#E2001A','rodalies-rl4':'#E2001A',
-  'rodalies-rt1':'#888888','rodalies-rt2':'#888888',
+  'rodalies-r1':'#78b3e0','rodalies-r2':'#009640',
+  'rodalies-r2n':'#a2c617','rodalies-r2s':'#005f27',
+  'rodalies-r3':'#e63027','rodalies-r4':'#f6a22d',
+  'rodalies-r7':'#bf7fb5','rodalies-r8':'#870064',
+  'rodalies-r11':'#0064a7',
+  'rodalies-r13':'#e8308a','rodalies-r14':'#6a509d',
+  'rodalies-r15':'#9a8b75','rodalies-r16':'#b20933','rodalies-r17':'#e87200',
+  'rodalies-rg1':'#78b3e0',
+  'rodalies-rl3':'#949300','rodalies-rl4':'#6eaf25',
+  'rodalies-rt1':'#00c4b3','rodalies-rt2':'#e577cb',
   // Tram
   'tram-t1':'#78BE20','tram-t2':'#78BE20','tram-t3':'#78BE20',
   'tram-t4':'#78BE20','tram-t5':'#78BE20','tram-t6':'#78BE20',
@@ -463,10 +463,24 @@ function colorLinia(nomFitxer) {
   if (clau.startsWith('fgc-s')) return '#008000';
   if (clau.startsWith('fgc-l')) return '#0070C0';
   if (clau.startsWith('fgc'))   return '#97D700';
-  if (clau.startsWith('rodalies-r1')) return '#00AEEF';
-  if (clau.startsWith('rodalies-r2')) return '#00A651';
-  if (clau.startsWith('rodalies-r3')) return '#ED1C24';
-  if (clau.startsWith('rodalies-r4')) return '#F15A24';
+  if (clau === 'rodalies-r1') return '#78b3e0';
+  if (clau === 'rodalies-r2') return '#009640';
+  if (clau === 'rodalies-r2n') return '#a2c617';
+  if (clau === 'rodalies-r2s') return '#005f27';
+  if (clau.startsWith('rodalies-r3')) return '#e63027';
+  if (clau.startsWith('rodalies-r4')) return '#f6a22d';
+  if (clau.startsWith('rodalies-r7')) return '#bf7fb5';
+  if (clau.startsWith('rodalies-r8')) return '#870064';
+  if (clau.startsWith('rodalies-r11')) return '#0064a7';
+  if (clau.startsWith('rodalies-r13')) return '#e8308a';
+  if (clau.startsWith('rodalies-r14')) return '#6a509d';
+  if (clau.startsWith('rodalies-r15')) return '#9a8b75';
+  if (clau.startsWith('rodalies-r16')) return '#b20933';
+  if (clau.startsWith('rodalies-r17')) return '#e87200';
+  if (clau.startsWith('rodalies-rt1')) return '#00c4b3';
+  if (clau.startsWith('rodalies-rt2')) return '#e577cb';
+  if (clau.startsWith('rodalies-rl3')) return '#949300';
+  if (clau.startsWith('rodalies')) return '#78b3e0';
   if (clau.startsWith('rodalies'))    return '#EE7F00';
   if (clau.startsWith('tmb-l1')) return '#E30613';
   if (clau.startsWith('tmb-l2')) return '#9B2743';
