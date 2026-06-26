@@ -258,7 +258,7 @@ def get_rutes():
                 rutes.append(r)
         except Exception as e:
             print(f"Error processant ruta: {e}")
-    return sorted(rutes, key=lambda x: x["id"])
+    return sorted(rutes, key=lambda x: x["id"], reverse=True)
 
 
 # ── FOTOS ────────────────────────────────────────────────────────────
