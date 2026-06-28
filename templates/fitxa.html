@@ -313,7 +313,7 @@
 
     {% if rutes_relacionades %}
     <div class="bloc">
-      <div class="bloc-cap"><span class="bloc-icon">🚉</span><span class="bloc-titol">Més rutes des d'aquestes estacions</span></div>
+      <div class="bloc-cap"><span class="bloc-icon">🚉</span><span class="bloc-titol">{% if mateixa_estacio %}Més rutes d'aquesta estació{% else %}Més rutes des d'aquestes estacions{% endif %}</span></div>
       <div class="bloc-cos" style="padding-top:4px;">
         {% set colors_dif = {'Molt fàcil':'#27AE60','Fàcil':'#2ECC71','Moderada':'#F39C12','Exigent':'#E67E22','Molt exigent':'#E74C3C'} %}
         {% for grup in rutes_relacionades %}
