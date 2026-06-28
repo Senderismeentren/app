@@ -625,13 +625,29 @@ def fitxa_ruta(ruta_id):
     gpx_punts = obtenir_gpx(ruta_id)
     dists, eles = gpx_a_perfil(gpx_punts) if gpx_punts else ([], [])
 
-    # Rutes des de les mateixes estacions (màx 6, excloent la ruta actual)
-    estacions_ruta = {ruta["sortida"], ruta["arribada"]} - {""}
-    rutes_relacionades = [
-        r for r in rutes
-        if r["id"] != ruta_id
-        and ({r["sortida"], r["arribada"]} & estacions_ruta)
-    ][:6]
+    # Rutes des de les mateixes estacions, separades per estació
+    def rutes_per_estacio(est):
+        if not est: return []
+        ids_vistos = set()
+        resultat = []
+        for r in rutes:
+            if r["id"] == ruta_id: continue
+            if r["id"] in ids_vistos: continue
+            if est in (r["sortida"], r["arribada"]):
+                ids_vistos.add(r["id"])
+                resultat.append({
+                    "id": r["id"],
+                    "nom": r["nom"],
+                    "dificultat": r["dificultat"],
+                })
+        return resultat[:5]
+
+    rutes_relacionades = []
+    for est in [ruta["sortida"], ruta["arribada"]]:
+        if not est: continue
+        rutes_est = rutes_per_estacio(est)
+        if rutes_est:
+            rutes_relacionades.append({"estacio": est, "rutes": rutes_est})
 
     return render_template("fitxa.html",
         ruta=ruta,
