@@ -316,22 +316,15 @@
       <div class="bloc-cap"><span class="bloc-icon">🚉</span><span class="bloc-titol">Més rutes des d'aquestes estacions</span></div>
       <div class="bloc-cos" style="padding-top:4px;">
         {% set colors_dif = {'Molt fàcil':'#27AE60','Fàcil':'#2ECC71','Moderada':'#F39C12','Exigent':'#E67E22','Molt exigent':'#E74C3C'} %}
-        {% set estacions_vistes = [] %}
-        {% for estacio in [ruta.sortida, ruta.arribada] if estacio %}
-          {% set rutes_est = rutes_relacionades | selectattr('sortida', 'equalto', estacio) | list +
-                             rutes_relacionades | selectattr('arribada', 'equalto', estacio) | list %}
-          {% set rutes_est_unic = [] %}
-          {% for r in rutes_est %}{% if r.id not in rutes_est_unic | map(attribute='id') | list %}{% set _ = rutes_est_unic.append(r) %}{% endif %}{% endfor %}
-          {% if rutes_est_unic %}
-          <p style="font-size:11px;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:0.5px;margin:10px 0 4px;">Estació de {{ estacio }}</p>
-          {% for r in rutes_est_unic %}
-          <a href="/ruta/{{ r.id }}" style="text-decoration:none;display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #f5f5f5;color:#333;">
-            <span style="width:7px;height:7px;border-radius:50%;background:{{ colors_dif.get(r.dificultat,'#aaa') }};flex-shrink:0;"></span>
-            <span style="font-size:11px;color:#aaa;font-weight:700;flex-shrink:0;">ST{{ r.id | string | zfill(3) }}</span>
-            <span style="font-size:13px;word-break:break-word;">{{ r.nom }}</span>
-          </a>
-          {% endfor %}
-          {% endif %}
+        {% for grup in rutes_relacionades %}
+        <p style="font-size:11px;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:0.5px;margin:10px 0 4px;">Estació de {{ grup.estacio }}</p>
+        {% for r in grup.rutes %}
+        <a href="/ruta/{{ r.id }}" style="text-decoration:none;display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #f5f5f5;color:#333;">
+          <span style="width:7px;height:7px;border-radius:50%;background:{{ colors_dif.get(r.dificultat,'#aaa') }};flex-shrink:0;"></span>
+          <span style="font-size:11px;color:#aaa;font-weight:700;flex-shrink:0;">ST{{ '%03d' | format(r.id) }}</span>
+          <span style="font-size:13px;word-break:break-word;">{{ r.nom }}</span>
+        </a>
+        {% endfor %}
         {% endfor %}
       </div>
     </div>
