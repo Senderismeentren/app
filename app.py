@@ -651,7 +651,7 @@ def fitxa_ruta(ruta_id):
         if rutes_est:
             rutes_relacionades.append({"estacio": est, "rutes": rutes_est})
 
-    mateixa_estacio = ruta["sortida"] and ruta["sortida"] == ruta["arribada"]
+    mateixa_estacio = len(rutes_relacionades) <= 1
 
     return render_template("fitxa.html",
         ruta=ruta,
