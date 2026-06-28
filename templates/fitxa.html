@@ -54,7 +54,7 @@
 }
 .fitxa-dada:last-child { border-right: none; }
 .fitxa-dada-l { font-size: 10px; color: #aaa; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700; }
-.fitxa-dada-v { font-size: 15px; font-weight: 700; color: #111; margin-top: 2px; white-space: nowrap; }
+.fitxa-dada-v { font-size: 15px; font-weight: 700; color: #111; margin-top: 2px; }
 
 /* ── LAYOUT DOS COLUMNES ────────────────────────────────────────── */
 .fitxa-body {
@@ -316,12 +316,22 @@
       <div class="bloc-cap"><span class="bloc-icon">🚉</span><span class="bloc-titol">Més rutes des d'aquestes estacions</span></div>
       <div class="bloc-cos" style="padding-top:4px;">
         {% set colors_dif = {'Molt fàcil':'#27AE60','Fàcil':'#2ECC71','Moderada':'#F39C12','Exigent':'#E67E22','Molt exigent':'#E74C3C'} %}
-        {% for r in rutes_relacionades %}
-        <a href="/ruta/{{ r.id }}" style="text-decoration:none;display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid #f0f0f0;color:#333;min-width:0;">
-          <span style="width:7px;height:7px;border-radius:50%;background:{{ colors_dif.get(r.dificultat,'#aaa') }};flex-shrink:0;"></span>
-          <span style="font-size:11px;color:#aaa;font-weight:700;flex-shrink:0;min-width:44px;">{{ r.id }}</span>
-          <span style="font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;">{{ r.nom }}</span>
-        </a>
+        {% set estacions_vistes = [] %}
+        {% for estacio in [ruta.sortida, ruta.arribada] if estacio %}
+          {% set rutes_est = rutes_relacionades | selectattr('sortida', 'equalto', estacio) | list +
+                             rutes_relacionades | selectattr('arribada', 'equalto', estacio) | list %}
+          {% set rutes_est_unic = [] %}
+          {% for r in rutes_est %}{% if r.id not in rutes_est_unic | map(attribute='id') | list %}{% set _ = rutes_est_unic.append(r) %}{% endif %}{% endfor %}
+          {% if rutes_est_unic %}
+          <p style="font-size:11px;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:0.5px;margin:10px 0 4px;">Estació de {{ estacio }}</p>
+          {% for r in rutes_est_unic %}
+          <a href="/ruta/{{ r.id }}" style="text-decoration:none;display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #f5f5f5;color:#333;">
+            <span style="width:7px;height:7px;border-radius:50%;background:{{ colors_dif.get(r.dificultat,'#aaa') }};flex-shrink:0;"></span>
+            <span style="font-size:11px;color:#aaa;font-weight:700;flex-shrink:0;">ST{{ r.id | string | zfill(3) }}</span>
+            <span style="font-size:13px;word-break:break-word;">{{ r.nom }}</span>
+          </a>
+          {% endfor %}
+          {% endif %}
         {% endfor %}
       </div>
     </div>
