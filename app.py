@@ -642,12 +642,16 @@ def fitxa_ruta(ruta_id):
                 })
         return resultat[:5]
 
+    estacions_vistes = set()
     rutes_relacionades = []
     for est in [ruta["sortida"], ruta["arribada"]]:
-        if not est: continue
+        if not est or est in estacions_vistes: continue
+        estacions_vistes.add(est)
         rutes_est = rutes_per_estacio(est)
         if rutes_est:
             rutes_relacionades.append({"estacio": est, "rutes": rutes_est})
+
+    mateixa_estacio = ruta["sortida"] and ruta["sortida"] == ruta["arribada"]
 
     return render_template("fitxa.html",
         ruta=ruta,
@@ -659,6 +663,7 @@ def fitxa_ruta(ruta_id):
         BASE_LOGOS_LI="https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/logos-linies/",
         senders_url=_cache_dades.get("senders_url", {}),
         rutes_relacionades=rutes_relacionades,
+        mateixa_estacio=mateixa_estacio,
     )
 
 
