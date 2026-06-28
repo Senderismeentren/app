@@ -625,6 +625,14 @@ def fitxa_ruta(ruta_id):
     gpx_punts = obtenir_gpx(ruta_id)
     dists, eles = gpx_a_perfil(gpx_punts) if gpx_punts else ([], [])
 
+    # Rutes des de les mateixes estacions (màx 6, excloent la ruta actual)
+    estacions_ruta = {ruta["sortida"], ruta["arribada"]} - {""}
+    rutes_relacionades = [
+        r for r in rutes
+        if r["id"] != ruta_id
+        and ({r["sortida"], r["arribada"]} & estacions_ruta)
+    ][:6]
+
     return render_template("fitxa.html",
         ruta=ruta,
         fotos=fotos,
@@ -634,6 +642,7 @@ def fitxa_ruta(ruta_id):
         BASE_LOGOS_OP="https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/logos-operadors/",
         BASE_LOGOS_LI="https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/logos-linies/",
         senders_url=_cache_dades.get("senders_url", {}),
+        rutes_relacionades=rutes_relacionades,
     )
 
 
