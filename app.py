@@ -269,14 +269,19 @@ def obtenir_fotos(ruta_id):
         return _cache_fotos[ruta_id]
     fotos = []
     for n in range(1, MAX_FOTOS + 1):
-        url = BASE_FOTO_URL.format(id=ruta_id, n=n)
-        try:
-            r = requests.head(url, timeout=3)
-            if r.status_code == 200:
-                fotos.append(url)
-            else:
+        url = None
+        for ext in ['jpg', 'JPG']:
+            u = BASE_FOTO_URL.format(id=ruta_id, n=n).replace('.jpg', f'.{ext}')
+            try:
+                r = requests.head(u, timeout=3)
+                if r.status_code == 200:
+                    url = u
+                    break
+            except:
                 break
-        except:
+        if url:
+            fotos.append(url)
+        else:
             break
     _cache_fotos[ruta_id] = fotos
     return fotos
