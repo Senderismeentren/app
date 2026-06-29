@@ -454,17 +454,23 @@ def get_filtres(rutes):
     espais = sorted(set(e for r in rutes for e in r["espai"] if e))
     millors = sorted(set(r["millors"] for r in rutes if r["millors"]))
 
+    # Mapeig explícit per espais que no es poden deduir automàticament
+    ESPAI_PROV_EXPLICIT = {
+        "Parc Natural de les Muntanyes de Prades": "Tarragona",
+        "PN Regional dels Pirineus Catalans": "Catalunya Nord",
+    }
+
     # Deduir província de cada espai natural a partir de les comarques de les rutes
-    espai_a_prov = {}
+    espai_a_prov = dict(ESPAI_PROV_EXPLICIT)
     for r in rutes:
         for espai in r.get("espai", []):
             if not espai or espai in espai_a_prov:
                 continue
-        for comarca in [r.get("comarca_sortida"), r.get("comarca_arribada")]:
-            prov = _COMARCA_A_PROV.get(comarca)
-            if prov:
-                espai_a_prov[espai] = prov
-                break
+            for comarca in [r.get("comarca_sortida"), r.get("comarca_arribada")]:
+                prov = _COMARCA_A_PROV.get(comarca)
+                if prov:
+                    espai_a_prov[espai] = prov
+                    break
 
     return {
         "dificultats": dificultats,
