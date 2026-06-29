@@ -230,7 +230,7 @@
     <div class="fitxa-hero-badges">
       <span class="fitxa-badge fitxa-badge-dif">● {{ ruta.dificultat }}</span>
       {% if ruta.cims %}<span class="fitxa-badge fitxa-badge-cims">🏔 100 Cims</span>{% endif %}
-      {% if ruta.espai %}<span class="fitxa-badge fitxa-badge-espai">🌿 {{ ruta.espai }}</span>{% endif %}
+      {% for e in ruta.espai %}<span class="fitxa-badge fitxa-badge-espai">🌿 {{ e }}</span>{% endfor %}
     </div>
     <h1 class="fitxa-nom">{{ ruta.nom }}</h1>
   </div>
