@@ -217,7 +217,7 @@ def ruta_a_dict(row):
         "lat_cim":      v("Lat_100cims"),
         "lng_cim":      v("Lon_100cims"),
         "senders":      senders,
-        "espai":        v("Espai_natural"),
+        "espai":        [e.strip() for e in v("Espai_natural").split(";") if e.strip()],
         "punts_interes": punts_interes,
         "millors":      v("Millors_rutes"),
         "descripcio":   v("Descripció_ruta"),
@@ -451,15 +451,15 @@ def get_filtres(rutes):
         for camp in [r["op_sortida"], r["op_arribada"]] if camp
         for op in camp.split(";") if op.strip()
     ))
-    espais = sorted(set(r["espai"] for r in rutes if r["espai"]))
+    espais = sorted(set(e for r in rutes for e in r["espai"] if e))
     millors = sorted(set(r["millors"] for r in rutes if r["millors"]))
 
     # Deduir província de cada espai natural a partir de les comarques de les rutes
     espai_a_prov = {}
     for r in rutes:
-        espai = r.get("espai")
-        if not espai or espai in espai_a_prov:
-            continue
+        for espai in r.get("espai", []):
+            if not espai or espai in espai_a_prov:
+                continue
         for comarca in [r.get("comarca_sortida"), r.get("comarca_arribada")]:
             prov = _COMARCA_A_PROV.get(comarca)
             if prov:
@@ -572,7 +572,7 @@ def rutes_pagina():
     if dif:     rutes = [r for r in rutes if r["dificultat"] == dif]
     if comarca: rutes = [r for r in rutes if comarca in [r["comarca_sortida"], r["comarca_arribada"]]]
     if operador:rutes = [r for r in rutes if any(operador == op.strip() for camp in [r["op_sortida"] or "", r["op_arribada"] or ""] for op in camp.split(";"))]
-    if espai:   rutes = [r for r in rutes if r["espai"] == espai]
+    if espai:   rutes = [r for r in rutes if espai in r["espai"]]
     if cims:    rutes = [r for r in rutes if r["cims"]]
     if millors: rutes = [r for r in rutes if r["millors"] == millors]
     if estacio: rutes = [r for r in rutes if estacio in [r["sortida"], r["arribada"]]]
@@ -692,7 +692,7 @@ def mapa_pagina():
     estacions_per_op = dict(sorted(estacions_per_op.items()))
 
     # Espais naturals únics per als filtres
-    espais_mapa = sorted(set(r["espai"] for r in rutes_mapa if r["espai"]))
+    espais_mapa = sorted(set(e for r in rutes_mapa for e in r["espai"] if e))
 
     # Línies per operador (només les que apareixen al portal)
     OP_ORDER = ["Rodalies", "FGC", "TMB", "Tram", "SNCF", "ADIF"]
