@@ -548,7 +548,7 @@ def inici():
         "n_cims": sum(1 for r in rutes if r["cims"]),
         "n_estacions": len(estacions_uniques),
         "n_linies": len(linies_uniques),
-        "total_km": round(total_km),
+        "total_km": f"{round(total_km):,}".replace(",", "."),
         "total_desn": total_desn,
     }
     return render_template("inici.html",
