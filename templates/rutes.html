@@ -297,7 +297,7 @@
     {% if filtres_actius %}
     <div class="filtres-actius">
       {% for k, v in filtres_actius.items() %}
-      <span class="filtre-actiu-pill">{{ v }} <a href="/rutes" style="color:inherit;margin-left:2px;">✕</a></span>
+      <span class="filtre-actiu-pill">{{ v }} <a href="/rutes?{% for k2, v2 in filtres_actius.items() if k2 != k %}{{ k2 }}={{ v2 }}&{% endfor %}" style="color:inherit;margin-left:2px;">✕</a></span>
       {% endfor %}
       <a class="btn-netejar" href="/rutes">✕ Netejar tot</a>
     </div>
