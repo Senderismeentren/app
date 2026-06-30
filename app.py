@@ -819,9 +819,10 @@ def articles_pagina():
         resp = requests.get(f"{WP_BASE}/posts",
             params={"categories": CAT_ARTICLES, "per_page": 20,
                     "_fields": "id,title,excerpt,date,slug,link,featured_media"},
-            timeout=8)
+            timeout=12)
         articles = resp.json()
         if not isinstance(articles, list):
+            print(f"[/articles] Resposta inesperada de WP (status {resp.status_code}): {str(articles)[:300]}")
             articles = []
         for a in articles:
             a["titol"] = __import__("html").unescape(a.get("title", {}).get("rendered", ""))
@@ -837,7 +838,8 @@ def articles_pagina():
                     a["imatge"] = mr.json().get("source_url", "")
                 except Exception:
                     pass
-    except Exception:
+    except Exception as e:
+        print(f"[/articles] Excepció: {repr(e)}")
         articles = []
     return render_template("llista_articles.html", articles=articles)
 
