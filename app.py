@@ -816,14 +816,24 @@ CAT_ARTICLES = 208
 def articles_pagina():
     """Llista d'articles del WP."""
     try:
-        resp = requests.get(f"{WP_BASE}/posts",
-            params={"categories": CAT_ARTICLES, "per_page": 20,
-                    "_fields": "id,title,excerpt,date,slug,link,featured_media"},
-            timeout=12)
-        articles = resp.json()
-        if not isinstance(articles, list):
-            print(f"[/articles] Resposta inesperada de WP (status {resp.status_code}): {str(articles)[:300]}")
-            articles = []
+        articles = []
+        for intent in range(3):
+            try:
+                resp = requests.get(f"{WP_BASE}/posts",
+                    params={"categories": CAT_ARTICLES, "per_page": 20,
+                            "_fields": "id,title,excerpt,date,slug,link,featured_media"},
+                    timeout=12)
+                articles = resp.json()
+                if not isinstance(articles, list):
+                    print(f"[/articles] Resposta inesperada de WP (status {resp.status_code}): {str(articles)[:300]}")
+                    articles = []
+                break
+            except Exception as e:
+                print(f"[/articles] Intent {intent+1}/3 fallit: {repr(e)}")
+                if intent < 2:
+                    time.sleep(1)
+                else:
+                    raise
         for a in articles:
             a["titol"] = __import__("html").unescape(a.get("title", {}).get("rendered", ""))
             a["extracte"] = a.get("excerpt", {}).get("rendered", "")
