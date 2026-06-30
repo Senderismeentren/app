@@ -842,16 +842,12 @@ def articles_pagina():
             a["imatge"] = ""
             media_id = a.get("featured_media", 0)
             if media_id:
-                for intent in range(3):
-                    try:
-                        mr = requests.get(f"{WP_BASE}/media/{media_id}",
-                            params={"_fields": "source_url"}, timeout=5)
-                        a["imatge"] = mr.json().get("source_url", "")
-                        break
-                    except Exception as e:
-                        print(f"[/articles] Imatge {media_id} intent {intent+1}/3 fallit: {repr(e)}")
-                        if intent < 2:
-                            time.sleep(1)
+                try:
+                    mr = requests.get(f"{WP_BASE}/media/{media_id}",
+                        params={"_fields": "source_url"}, timeout=5)
+                    a["imatge"] = mr.json().get("source_url", "")
+                except Exception as e:
+                    print(f"[/articles] Imatge {media_id} fallida: {repr(e)}")
     except Exception as e:
         print(f"[/articles] Excepció: {repr(e)}")
         articles = []
