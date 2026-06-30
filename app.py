@@ -516,20 +516,28 @@ def inici():
 
     # Articles recents del WP
     articles_recents = []
-    try:
-        resp = requests.get("https://senderismeentren.cat/wp-json/wp/v2/posts",
-            params={"categories": CAT_ARTICLES, "per_page": 3,
-                    "_fields": "id,title,excerpt,date"},
-            timeout=5)
-        for a in resp.json():
-            articles_recents.append({
-                "id": a.get("id"),
-                "titol": h.unescape(a.get("title", {}).get("rendered", "")),
-                "extracte": a.get("excerpt", {}).get("rendered", ""),
-                "data": a.get("date", "")[:10],
-            })
-    except Exception:
-        pass
+    for intent in range(3):
+        try:
+            resp = requests.get("https://senderismeentren.cat/wp-json/wp/v2/posts",
+                params={"categories": CAT_ARTICLES, "per_page": 3,
+                        "_fields": "id,title,excerpt,date"},
+                timeout=8)
+            dades = resp.json()
+            if not isinstance(dades, list):
+                print(f"[inici] Resposta inesperada de WP (status {resp.status_code}): {str(dades)[:300]}")
+                dades = []
+            for a in dades:
+                articles_recents.append({
+                    "id": a.get("id"),
+                    "titol": h.unescape(a.get("title", {}).get("rendered", "")),
+                    "extracte": a.get("excerpt", {}).get("rendered", ""),
+                    "data": a.get("date", "")[:10],
+                })
+            break
+        except Exception as e:
+            print(f"[inici] Articles recents, intent {intent+1}/3 fallit: {repr(e)}")
+            if intent < 2:
+                time.sleep(1)
 
     # Stats
     estacions_uniques = set()
