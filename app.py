@@ -829,8 +829,9 @@ def articles_pagina():
             try:
                 resp = requests.get(f"{WP_BASE}/posts",
                     params={"categories": CAT_ARTICLES, "per_page": 20,
-                            "_fields": "id,title,excerpt,date,slug,link,featured_media"},
-                    timeout=12)
+                            "_embed": "wp:featuredmedia",
+                            "_fields": "id,title,excerpt,date,slug,link,featured_media,_embedded"},
+                    timeout=15)
                 articles = resp.json()
                 if not isinstance(articles, list):
                     print(f"[/articles] Resposta inesperada de WP (status {resp.status_code}): {str(articles)[:300]}")
@@ -846,16 +847,11 @@ def articles_pagina():
             a["titol"] = __import__("html").unescape(a.get("title", {}).get("rendered", ""))
             a["extracte"] = a.get("excerpt", {}).get("rendered", "")
             a["data"] = a.get("date", "")[:10]
-            # Imatge destacada via crida directa a media
-            a["imatge"] = ""
-            media_id = a.get("featured_media", 0)
-            if media_id:
-                try:
-                    mr = requests.get(f"{WP_BASE}/media/{media_id}",
-                        params={"_fields": "source_url"}, timeout=5)
-                    a["imatge"] = mr.json().get("source_url", "")
-                except Exception as e:
-                    print(f"[/articles] Imatge {media_id} fallida: {repr(e)}")
+            # Imatge destacada inclosa directament al _embedded (una sola crida per tots)
+            try:
+                a["imatge"] = a["_embedded"]["wp:featuredmedia"][0]["source_url"]
+            except (KeyError, IndexError, TypeError):
+                a["imatge"] = ""
     except Exception as e:
         print(f"[/articles] Excepció: {repr(e)}")
         articles = []
