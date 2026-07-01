@@ -829,8 +829,7 @@ def articles_pagina():
             try:
                 resp = requests.get(f"{WP_BASE}/posts",
                     params={"categories": CAT_ARTICLES, "per_page": 20,
-                            "_embed": "wp:featuredmedia",
-                            "_fields": "id,title,excerpt,date,slug,link,featured_media,_embedded"},
+                            "_embed": "wp:featuredmedia"},
                     timeout=15)
                 articles = resp.json()
                 if not isinstance(articles, list):
