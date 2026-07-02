@@ -821,15 +821,14 @@ function obrirPanellEstacio(est) {
   const prep = /^[AEIOUaeiouàèéíïóòúü]/i.test(est.nom) ? "d'" : "de ";
   document.getElementById('panell-nom').textContent = '🚉 Estació ' + prep + est.nom;
   // Logo operador + línies junts, sense text redundant
-  const BASE_R = 'https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/';
+  const BASE_R = 'https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/logos-operadors/';
   const logoOperador = (opNom) => {
     const op = (opNom||'').toLowerCase();
     if (op.includes('fgc')) return 'logo-fgc';
-    if (op.includes('cremallera')) return 'logo-cremalleranuria';
-    if (op.includes('llacs')) return 'logo-trendelsllacs';
     if (op.includes('tmb')||op.includes('metro')) return 'logo-tmb';
     if (op.includes('tram')) return 'logo-tram';
     if (op.includes('sncf')) return 'logo-sncf';
+    if (op.includes('adif') || op.includes('alta velocitat')) return 'logo-adif-tav';
     if (op.includes('renfe')) return 'logo-renfe';
     return 'logo-rodalies';
   };
