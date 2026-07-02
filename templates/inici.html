@@ -318,6 +318,11 @@ body.amb-avis .nav { top: 32px; }
     <div class="grid-3">
       {% for a in articles_recents %}
       <a class="card" href="/article/{{ a.id }}" style="text-decoration:none;">
+        {% if a.imatge %}
+        <img src="{{ a.imatge }}" alt="{{ a.titol }}" loading="lazy"
+             style="width:100%;height:160px;object-fit:cover;display:block;"
+             onerror="this.style.display='none'">
+        {% endif %}
         <div class="art-cos" style="padding:20px;">
           <div class="art-meta">{{ a.data }}</div>
           <div class="art-titol">{{ a.titol }}</div>
