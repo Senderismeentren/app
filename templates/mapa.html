@@ -821,8 +821,9 @@ function obrirPanellEstacio(est) {
   const prep = /^[AEIOUaeiouàèéíïóòúü]/i.test(est.nom) ? "d'" : "de ";
   document.getElementById('panell-nom').textContent = '🚉 Estació ' + prep + est.nom;
   // Logo operador + línies junts, sense text redundant
-  const logoOpPanell = (() => {
-    const op = (est.op||'').toLowerCase();
+  const BASE_R = 'https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/';
+  const logoOperador = (opNom) => {
+    const op = (opNom||'').toLowerCase();
     if (op.includes('fgc')) return 'logo-fgc';
     if (op.includes('cremallera')) return 'logo-cremalleranuria';
     if (op.includes('llacs')) return 'logo-trendelsllacs';
@@ -831,14 +832,19 @@ function obrirPanellEstacio(est) {
     if (op.includes('sncf')) return 'logo-sncf';
     if (op.includes('renfe')) return 'logo-renfe';
     return 'logo-rodalies';
-  })();
-  const BASE_R = 'https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/';
-  document.getElementById('panell-op').innerHTML =
-    `<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
-      <img src="${BASE_R}${logoOpPanell}.svg" style="height:22px;object-fit:contain;flex-shrink:0;"
+  };
+  const filaOperador = (opNom, linies) => `
+    <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+      <img src="${BASE_R}${logoOperador(opNom)}.svg" style="height:22px;object-fit:contain;flex-shrink:0;"
         onerror="this.style.display='none'">
-      <div style="display:flex;gap:4px;flex-wrap:wrap;align-items:center;">${(est.linies||[]).map(l => logoLinia(l, est.color||'#EE7F00', est.op||'')).join('')}</div>
+      <div style="display:flex;gap:4px;flex-wrap:wrap;align-items:center;">${(linies||[]).map(l => logoLinia(l, est.color||'#EE7F00', opNom||'')).join('')}</div>
     </div>`;
+  let panellOpHTML = filaOperador(est.op, est.linies);
+  if (est.op2 && est.linies2 && est.linies2.length) {
+    panellOpHTML += filaOperador(est.op2, est.linies2);
+  }
+  document.getElementById('panell-op').innerHTML =
+    `<div style="display:flex;flex-direction:column;gap:6px;">${panellOpHTML}</div>`;
   document.getElementById('panell-linies').innerHTML = '';
   const n = est.rutes ? est.rutes.length : 0;
   document.getElementById('panell-subtitol').textContent = `${n} ruta${n===1?'':'s'}`;
