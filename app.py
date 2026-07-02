@@ -514,30 +514,8 @@ def inici():
         colleccions.append({"nom": k, "n": len(v_list), "foto": foto, "url": f"/rutes?millors={k}"})
     # Totes les col·leccions (inici.html en mostra 4 i la resta amb botó)
 
-    # Articles recents del WP
-    articles_recents = []
-    for intent in range(3):
-        try:
-            resp = requests.get("https://senderismeentren.cat/wp-json/wp/v2/posts",
-                params={"categories": CAT_ARTICLES, "per_page": 3,
-                        "_fields": "id,title,excerpt,date"},
-                timeout=8)
-            dades = resp.json()
-            if not isinstance(dades, list):
-                print(f"[inici] Resposta inesperada de WP (status {resp.status_code}): {str(dades)[:300]}")
-                dades = []
-            for a in dades:
-                articles_recents.append({
-                    "id": a.get("id"),
-                    "titol": h.unescape(a.get("title", {}).get("rendered", "")),
-                    "extracte": a.get("excerpt", {}).get("rendered", ""),
-                    "data": a.get("date", "")[:10],
-                })
-            break
-        except Exception as e:
-            print(f"[inici] Articles recents, intent {intent+1}/3 fallit: {repr(e)}")
-            if intent < 2:
-                time.sleep(1)
+    # Articles recents del WP (reutilitza la caché de get_articles)
+    articles_recents = get_articles()[:3]
 
     # Stats
     estacions_uniques = set()
@@ -819,41 +797,66 @@ _cache_gpx_linies = {}
 # ── ARTICLES ─────────────────────────────────────────────────────
 WP_BASE = "https://senderismeentren.cat/wp-json/wp/v2"
 CAT_ARTICLES = 208
+ARTICLES_CACHE_TTL = 3600  # 1 hora
+
+_cache_articles = {"articles": None, "ts": 0}
+
+def _fetch_articles_wp():
+    """Consulta WP i retorna la llista d'articles processats. Llença excepció si falla."""
+    dades = []
+    for intent in range(3):
+        try:
+            resp = requests.get(f"{WP_BASE}/posts",
+                params={"categories": CAT_ARTICLES, "per_page": 20,
+                        "_embed": "wp:featuredmedia"},
+                timeout=15)
+            dades = resp.json()
+            if not isinstance(dades, list):
+                print(f"[articles] Resposta inesperada de WP (status {resp.status_code}): {str(dades)[:300]}")
+                dades = []
+            break
+        except Exception as e:
+            print(f"[articles] Intent {intent+1}/3 fallit: {repr(e)}")
+            if intent < 2:
+                time.sleep(1)
+            else:
+                raise
+    articles = []
+    for a in dades:
+        try:
+            imatge = a["_embedded"]["wp:featuredmedia"][0]["source_url"]
+        except (KeyError, IndexError, TypeError):
+            imatge = ""
+        articles.append({
+            "id": a.get("id"),
+            "titol": h.unescape(a.get("title", {}).get("rendered", "")),
+            "extracte": a.get("excerpt", {}).get("rendered", ""),
+            "data": a.get("date", "")[:10],
+            "imatge": imatge,
+        })
+    return articles
+
+def get_articles():
+    """Retorna articles des de caché (TTL 1h). Si la caché és buida o caducada, consulta WP."""
+    ara = time.time()
+    if _cache_articles["articles"] is not None and ara - _cache_articles["ts"] < ARTICLES_CACHE_TTL:
+        return _cache_articles["articles"]
+    try:
+        articles = _fetch_articles_wp()
+        _cache_articles["articles"] = articles
+        _cache_articles["ts"] = ara
+        print(f"[articles] Caché actualitzada ({len(articles)} articles)")
+    except Exception as e:
+        print(f"[articles] Error consultant WP: {repr(e)}")
+        if _cache_articles["articles"] is not None:
+            print("[articles] Servint dades de caché antiga")
+            return _cache_articles["articles"]
+    return _cache_articles["articles"] or []
 
 @app.route("/articles")
 def articles_pagina():
     """Llista d'articles del WP."""
-    try:
-        articles = []
-        for intent in range(3):
-            try:
-                resp = requests.get(f"{WP_BASE}/posts",
-                    params={"categories": CAT_ARTICLES, "per_page": 20,
-                            "_embed": "wp:featuredmedia"},
-                    timeout=15)
-                articles = resp.json()
-                if not isinstance(articles, list):
-                    print(f"[/articles] Resposta inesperada de WP (status {resp.status_code}): {str(articles)[:300]}")
-                    articles = []
-                break
-            except Exception as e:
-                print(f"[/articles] Intent {intent+1}/3 fallit: {repr(e)}")
-                if intent < 2:
-                    time.sleep(1)
-                else:
-                    raise
-        for a in articles:
-            a["titol"] = __import__("html").unescape(a.get("title", {}).get("rendered", ""))
-            a["extracte"] = a.get("excerpt", {}).get("rendered", "")
-            a["data"] = a.get("date", "")[:10]
-            # Imatge destacada inclosa directament al _embedded (una sola crida per tots)
-            try:
-                a["imatge"] = a["_embedded"]["wp:featuredmedia"][0]["source_url"]
-            except (KeyError, IndexError, TypeError):
-                a["imatge"] = ""
-    except Exception as e:
-        print(f"[/articles] Excepció: {repr(e)}")
-        articles = []
+    articles = get_articles()
     return render_template("llista_articles.html", articles=articles)
 
 @app.route("/article/<int:post_id>")
