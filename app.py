@@ -13,6 +13,7 @@ from google.oauth2.service_account import Credentials
 from concurrent.futures import ThreadPoolExecutor
 from functools import lru_cache
 import time
+import html as h
 
 app = Flask(__name__)
 
@@ -824,16 +825,19 @@ def _fetch_articles_wp():
     articles = []
     for a in dades:
         try:
-            imatge = a["_embedded"]["wp:featuredmedia"][0]["source_url"]
-        except (KeyError, IndexError, TypeError):
-            imatge = ""
-        articles.append({
-            "id": a.get("id"),
-            "titol": h.unescape(a.get("title", {}).get("rendered", "")),
-            "extracte": a.get("excerpt", {}).get("rendered", ""),
-            "data": a.get("date", "")[:10],
-            "imatge": imatge,
-        })
+            try:
+                imatge = a["_embedded"]["wp:featuredmedia"][0]["source_url"]
+            except (KeyError, IndexError, TypeError):
+                imatge = ""
+            articles.append({
+                "id": a.get("id"),
+                "titol": h.unescape(a.get("title", {}).get("rendered", "")),
+                "extracte": a.get("excerpt", {}).get("rendered", ""),
+                "data": a.get("date", "")[:10],
+                "imatge": imatge,
+            })
+        except Exception as e:
+            print(f"[articles] Article {a.get('id')} descartat per error: {repr(e)}")
     return articles
 
 def get_articles():
