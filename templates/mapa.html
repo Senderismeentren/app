@@ -586,40 +586,48 @@ async function filtrarPerLinia(valor) {
   let liniesAActivar = [];
   if (valor.startsWith('op:')) {
     const op = valor.replace('op:', '');
-    liniesAActivar = (LINIES_PER_OP[op] || []).map(l => ({ op, linia: l }));
+    // LINIES_PER_OP ja conté els slugs GPX complets i correctes (ex. "rodalies-r2n")
+    liniesAActivar = (LINIES_PER_OP[op] || []).map(slug => ({ op, linia: slug, gpxSlug: slug }));
   } else {
     const [op, linia] = valor.split('|');
     liniesAActivar = [{ op, linia }];
   }
 
-  // Carregar i mostrar els GPX de les línies
-  for (const { op, linia } of liniesAActivar) {
+  // Carregar i mostrar els GPX de les línies (en paral·lel per anar més ràpid)
+  await Promise.all(liniesAActivar.map(async ({ op, linia, gpxSlug }) => {
     const clau = op + '|' + linia;
-    if (!capesLinia[clau]) {
+    if (capesLinia[clau]) {
+      capesLinia[clau].forEach(l => l.addTo(mapa));
+      return;
+    }
+    let candidates;
+    if (gpxSlug) {
+      // Filtratge per operador sencer: el slug ja és el nom exacte del fitxer GPX
+      candidates = [gpxSlug];
+    } else {
       const NOM_LINIA_MAP = {'r2 nord':'r2n','r2 sud':'r2s','r2nord':'r2n','r2sud':'r2s','l9 nord':'l9n','l9 sud':'l9s','l9nord':'l9n','l9sud':'l9s','l10 nord':'l10n','l10 sud':'l10s','l10nord':'l10n','l10sud':'l10s'};
       const lkey = linia.toLowerCase();
       const l = NOM_LINIA_MAP[lkey] || lkey.replace(/[^a-z0-9]/g,'');
       const opGpx = op.replace(/[^a-z]/g,'');
       const gpxExplicit = { 'cremallera de núria':'fgc-nu','cremallera de montserrat':'fgc-mm','funicular de vallvidrera':'fgc-fv','funicular de sant joan':'fgc-santjoan','funicular de la santa cova':'fgc-santacova','fc':'fgc-fc','la tor de querol - tolosa':'sncf-tolosa','cervera - perpinyà':'sncf-perpinya','tren groc':'sncf-trengroc' }[lkey];
-      const candidates = gpxExplicit ? [gpxExplicit] : [opGpx + '-' + l, l];
-      capesLinia[clau] = [];
-      for (const nom of candidates) {
-        try {
-          const resp = await fetch('/api/gpx/linia/' + nom);
-          if (!resp.ok) continue;
-          const punts = await resp.json();
-          if (!punts || !punts.length) continue;
-          const color = colorLinia(nom + '.gpx');
-          const poly = L.polyline(punts.map(p => [p.lat, p.lng]), { color, weight: 6, opacity: 0.85 })
-            .addTo(mapa).bindTooltip(linia.toUpperCase(), { sticky: true });
-          capesLinia[clau].push(poly);
-          break;
-        } catch(e) {}
-      }
-    } else {
-      capesLinia[clau].forEach(l => l.addTo(mapa));
+      candidates = gpxExplicit ? [gpxExplicit] : [opGpx + '-' + l, l];
     }
-  }
+    capesLinia[clau] = [];
+    for (const nom of candidates) {
+      try {
+        const resp = await fetch('/api/gpx/linia/' + nom);
+        if (!resp.ok) continue;
+        const punts = await resp.json();
+        if (!punts || !punts.length) continue;
+        const color = colorLinia(nom + '.gpx');
+        const etiqueta = gpxSlug ? nom.split('-').slice(1).join('-').toUpperCase() : linia.toUpperCase();
+        const poly = L.polyline(punts.map(p => [p.lat, p.lng]), { color, weight: 6, opacity: 0.85 })
+          .addTo(mapa).bindTooltip(etiqueta, { sticky: true });
+        capesLinia[clau].push(poly);
+        break;
+      } catch(e) {}
+    }
+  }));
 
   // Filtrar estacions: mostrar només les de les línies triades
   const liniesNoms = new Set(liniesAActivar.map(x => x.linia.toLowerCase()));
