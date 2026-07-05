@@ -207,11 +207,11 @@
   .meteo-wrap { height: auto !important; }
   .meteo-iframe { width: 100% !important; height: 200px !important; transform: none !important; }
 
-  /* Barra de dades: salt de línia (2 columnes) en lloc de scroll lateral */
+  /* Barra de dades: salt de línia (3 columnes) en lloc de scroll lateral */
   .fitxa-dades-bar { flex-wrap: wrap; overflow-x: visible; }
-  .fitxa-dada { width: 50%; flex-shrink: 1; box-sizing: border-box; border-bottom: 1px solid #f0f0f0; }
-  .fitxa-dada:nth-child(even) { border-right: none; }
-  .fitxa-dada:nth-last-child(-n+2) { border-bottom: none; }
+  .fitxa-dada { width: 33.333%; flex-shrink: 1; box-sizing: border-box; border-bottom: 1px solid #f0f0f0; }
+  .fitxa-dada:nth-child(3n) { border-right: none; }
+  .fitxa-dada:nth-last-child(-n+3) { border-bottom: none; }
 }
 </style>
 {% endblock %}
