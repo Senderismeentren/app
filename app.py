@@ -24,7 +24,7 @@ BASE_FOTO_URL   = "https://raw.githubusercontent.com/Senderismeentren/imatges/ma
 BASE_GPX_URL    = "https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/gpx-rutes/ruta-{id:03d}.gpx"
 BASE_LOGO_OPERADOR_URL = "https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/logos-operadors/logo-{operador}.svg"
 BASE_LOGO_LINIA_URL    = "https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/logos-linies/logo-{operador}-{linia}.svg"
-MAX_FOTOS       = 20
+MAX_FOTOS       = 40
 CACHE_TTL       = 1800   # 30 min
 
 # ── COLORS DIFICULTAT ───────────────────────────────────────────────
