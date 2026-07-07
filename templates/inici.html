@@ -200,7 +200,7 @@ body.amb-avis .nav { top: 32px; }
       <a class="card" href="/ruta/{{ r.id }}" style="text-decoration:none;">
         <div class="card-dest-img">
           <img src="https://raw.githubusercontent.com/Senderismeentren/imatges/main/ruta-{{ '%03d'|format(r.id) }}/foto1.jpg"
-               onerror="this.style.display='none'"
+               onerror="if(!this.dataset.provatMaj){this.dataset.provatMaj=1;this.src=this.src.replace('foto1.jpg','foto1.JPG');}else{this.style.display='none';}"
                alt="{{ r.nom }}" loading="lazy">
           <div style="position:absolute;top:10px;left:10px;background:{{ r.color_dif }};color:white;border-radius:6px;padding:2px 7px;font-size:11px;font-weight:800;letter-spacing:0.3px;box-shadow:0 2px 6px rgba(0,0,0,0.3);">{{ r.codi }}</div>
           <span class="card-dest-badge" style="background:{{ r.color_dif }};position:absolute;bottom:10px;left:10px;top:auto;">{{ r.dificultat }}</span>
@@ -225,7 +225,7 @@ body.amb-avis .nav { top: 32px; }
         <a class="card" href="/ruta/{{ r.id }}" style="text-decoration:none;">
           <div class="card-dest-img">
             <img src="https://raw.githubusercontent.com/Senderismeentren/imatges/main/ruta-{{ '%03d'|format(r.id) }}/foto1.jpg"
-                 onerror="this.style.display='none'" alt="{{ r.nom }}" loading="lazy">
+                 onerror="if(!this.dataset.provatMaj){this.dataset.provatMaj=1;this.src=this.src.replace('foto1.jpg','foto1.JPG');}else{this.style.display='none';}" alt="{{ r.nom }}" loading="lazy">
             <div style="position:absolute;top:10px;left:10px;background:{{ r.color_dif }};color:white;border-radius:6px;padding:2px 7px;font-size:11px;font-weight:800;letter-spacing:0.3px;box-shadow:0 2px 6px rgba(0,0,0,0.3);">{{ r.codi }}</div>
             <span class="card-dest-badge" style="background:{{ r.color_dif }};position:absolute;bottom:10px;left:10px;top:auto;">{{ r.dificultat }}</span>
           </div>
@@ -265,7 +265,7 @@ body.amb-avis .nav { top: 32px; }
       <a class="card" href="{{ c.url }}" style="text-decoration:none;">
         {% if c.foto %}
         <div class="col-card-img">
-          <img src="{{ c.foto }}" alt="{{ c.nom }}" loading="lazy" onerror="this.parentElement.style.background='#e8eaf0';this.style.display='none'">
+          <img src="{{ c.foto }}" alt="{{ c.nom }}" loading="lazy" onerror="if(!this.dataset.provatMaj){this.dataset.provatMaj=1;this.src=this.src.replace('.jpg','.JPG');}else{this.parentElement.style.background='#e8eaf0';this.style.display='none';}">
           <div class="col-card-overlay"></div>
           <div class="col-card-n">{{ c.n }} ruta{{ 's' if c.n != 1 else '' }}</div>
         </div>
@@ -286,7 +286,7 @@ body.amb-avis .nav { top: 32px; }
           <a class="card" href="{{ c.url }}" style="text-decoration:none;">
             {% if c.foto %}
             <div class="col-card-img">
-              <img src="{{ c.foto }}" alt="{{ c.nom }}" loading="lazy" onerror="this.parentElement.style.background='#e8eaf0';this.style.display='none'">
+              <img src="{{ c.foto }}" alt="{{ c.nom }}" loading="lazy" onerror="if(!this.dataset.provatMaj){this.dataset.provatMaj=1;this.src=this.src.replace('.jpg','.JPG');}else{this.parentElement.style.background='#e8eaf0';this.style.display='none';}">
               <div class="col-card-overlay"></div>
               <div class="col-card-n">{{ c.n }} ruta{{ 's' if c.n != 1 else '' }}</div>
             </div>
