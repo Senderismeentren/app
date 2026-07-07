@@ -228,7 +228,7 @@
 <div class="fitxa-hero">
   <img class="fitxa-hero-img"
     src="https://raw.githubusercontent.com/Senderismeentren/imatges/main/ruta-{{ '%03d'|format(ruta.id) }}/foto1.jpg"
-    onerror="this.src='https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=1200&q=80'"
+    onerror="if(!this.dataset.provatMaj){this.dataset.provatMaj=1;this.src=this.src.replace('foto1.jpg','foto1.JPG');}else{this.onerror=null;this.src='https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=1200&q=80';}"
     alt="{{ ruta.nom }}">
   <div class="fitxa-hero-overlay"></div>
   <div style="position:absolute;top:12px;left:12px;background:{{ ruta.color_dif }};color:white;border-radius:6px;padding:3px 10px;font-size:13px;font-weight:800;letter-spacing:0.3px;box-shadow:0 2px 8px rgba(0,0,0,0.3);">{{ ruta.codi }}</div>
