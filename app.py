@@ -14,6 +14,7 @@ from concurrent.futures import ThreadPoolExecutor
 from functools import lru_cache
 import time
 import html as h
+import re
 
 app = Flask(__name__)
 
@@ -266,24 +267,30 @@ def get_rutes():
 _cache_fotos = {}
 
 def obtenir_fotos(ruta_id):
+    """Llista les fotos reals d'una ruta amb una sola crida a l'API de GitHub
+    (en lloc de provar foto1.jpg, foto1.JPG, foto2.jpg... una a una)."""
     if ruta_id in _cache_fotos:
         return _cache_fotos[ruta_id]
     fotos = []
-    for n in range(1, MAX_FOTOS + 1):
-        url = None
-        for ext in ['jpg', 'JPG']:
-            u = BASE_FOTO_URL.format(id=ruta_id, n=n).replace('.jpg', f'.{ext}')
-            try:
-                r = requests.head(u, timeout=3)
-                if r.status_code == 200:
-                    url = u
-                    break
-            except:
-                break
-        if url:
-            fotos.append(url)
+    try:
+        api_url = f"https://api.github.com/repos/Senderismeentren/imatges/contents/ruta-{ruta_id:03d}"
+        r = requests.get(api_url, timeout=6, headers={"Accept": "application/vnd.github+json"})
+        if r.status_code == 200:
+            arxius = r.json()
+            candidats = []
+            for a in arxius:
+                nom = a.get("name", "")
+                m = re.match(r'foto(\d+)\.(jpg|jpeg|png)$', nom, re.IGNORECASE)
+                if m:
+                    candidats.append((int(m.group(1)), a.get("download_url") or ""))
+            candidats.sort(key=lambda x: x[0])
+            fotos = [url for _, url in candidats if url][:MAX_FOTOS]
+        elif r.status_code == 404:
+            fotos = []  # la ruta no té carpeta de fotos
         else:
-            break
+            print(f"[fotos] Resposta inesperada de GitHub per ruta-{ruta_id:03d}: status {r.status_code}")
+    except Exception as e:
+        print(f"[fotos] Error llistant fotos de ruta-{ruta_id:03d}: {repr(e)}")
     _cache_fotos[ruta_id] = fotos
     return fotos
 
