@@ -109,14 +109,44 @@ def carregar_dades():
             except Exception as e:
                 print(f"Error carregant Senders: {e}")
                 _cache_dades["senders_url"] = {}
+            # Carregar pestanya Estacions (dades úniques per estació)
+            try:
+                ws_est = sh.worksheet("Estacions")
+                estacions_info = {}
+                for erow in ws_est.get_all_records():
+                    nom = str(erow.get("Nom_estació", "")).strip()
+                    if not nom:
+                        continue
+                    def parse_llista(val):
+                        return [x.strip() for x in str(val or "").split(";") if x.strip()]
+                    def parse_float(val):
+                        try: return float(str(val).strip())
+                        except: return 0.0
+                    estacions_info[nom] = {
+                        "op": str(erow.get("Operador_sortida", "")).strip(),
+                        "op2": str(erow.get("Operador2_sortida", "")).strip(),
+                        "linies": parse_llista(erow.get("Linies_sortida", "")),
+                        "linies2": parse_llista(erow.get("Linies2_sortida", "")),
+                        "id": str(erow.get("ID_estació_sortida", "")).strip(),
+                        "lat": parse_float(erow.get("Lat_sortida", "")),
+                        "lng": parse_float(erow.get("Lon_sortida", "")),
+                        "municipi": str(erow.get("Municipi_sortida", "")).strip(),
+                        "comarca": str(erow.get("Comarca_sortida", "")).strip(),
+                    }
+                _cache_dades["estacions_info"] = estacions_info
+            except Exception as e:
+                print(f"Error carregant Estacions: {e}")
+                _cache_dades["estacions_info"] = {}
         else:
             # Fallback local per a desenvolupament
             df = pd.read_excel("SET_excel_app.xlsx")
             _cache_dades["senders_url"] = {}
+            _cache_dades["estacions_info"] = {}
     except Exception as e:
         print(f"Error carregant dades: {e}")
         df = pd.DataFrame()
         _cache_dades["senders_url"] = {}
+        _cache_dades["estacions_info"] = {}
 
     _cache_dades["dades"] = df
     _cache_dades["ts"] = ara
@@ -159,6 +189,13 @@ def ruta_a_dict(row):
     dif = v("Dificultat")
     senders = [s.strip() for s in v("Senders").split(";") if s.strip()]
 
+    # Dades d'estació: prioritat a la pestanya "Estacions"; si no hi és, fallback a les columnes de Rutes
+    estacions_info = _cache_dades.get("estacions_info") or {}
+    nom_sortida_v = v("Estació_sortida")
+    nom_arribada_v = v("Estació_arribada")
+    info_s = estacions_info.get(nom_sortida_v, {})
+    info_a = estacions_info.get(nom_arribada_v, {})
+
     # Ordenar senders: GR → PR → SL → altres
     def ordre_sender(s):
         su = s.upper()
@@ -178,29 +215,29 @@ def ruta_a_dict(row):
         "nom":          v("Nom_ruta"),
         "wiki":         v("Enllaç_Wikiloc"),
         "sortida":      v("Estació_sortida"),
-        "op_sortida":   v("Operador_sortida"),
-        "op2_sortida":  v("Operador2_sortida"),
-        "id_sortida":   v("ID_estació_sortida"),
+        "op_sortida":   info_s.get("op") or v("Operador_sortida"),
+        "op2_sortida":  info_s.get("op2") or v("Operador2_sortida"),
+        "id_sortida":   info_s.get("id") or v("ID_estació_sortida"),
         "enllaç_wp":    v("Enllaç_WP"),
         "destacada":    (v("Destacades") or "").strip().lower() in ("sí", "si", "yes", "1", "x"),
         "punt_interes":  v("Punt_interès") or v("Punt_interes") or "",
         "element_ferroviari": v("Element_ferroviari") or "",
-        "lat_sortida":  vf("Lat_sortida"),
-        "lng_sortida":  vf("Lon_sortida"),
-        "linies_sortida": [l.strip() for l in v("Linies_sortida").split(";") if l.strip()],
-        "linies2_sortida": [l.strip() for l in v("Linies2_sortida").split(";") if l.strip()],
-        "muni_sortida": v("Municipi_sortida"),
-        "comarca_sortida": v("Comarca_sortida"),
+        "lat_sortida":  info_s.get("lat") or vf("Lat_sortida"),
+        "lng_sortida":  info_s.get("lng") or vf("Lon_sortida"),
+        "linies_sortida": info_s.get("linies") or [l.strip() for l in v("Linies_sortida").split(";") if l.strip()],
+        "linies2_sortida": info_s.get("linies2") or [l.strip() for l in v("Linies2_sortida").split(";") if l.strip()],
+        "muni_sortida": info_s.get("municipi") or v("Municipi_sortida"),
+        "comarca_sortida": info_s.get("comarca") or v("Comarca_sortida"),
         "arribada":     v("Estació_arribada"),
-        "op_arribada":  v("Operador_arribada"),
-        "op2_arribada": v("Operador2_arribada"),
-        "id_arribada":  v("ID_estació_arribada"),
-        "lat_arribada": vf("Lat_arribada"),
-        "lng_arribada": vf("Lon_arribada"),
-        "linies_arribada": [l.strip() for l in v("Linies_Arribada").split(";") if l.strip()],
-        "linies2_arribada": [l.strip() for l in v("Linies2_Arribada").split(";") if l.strip()],
-        "muni_arribada":v("Municipi_arribada"),
-        "comarca_arribada": v("Comarca_arribada"),
+        "op_arribada":  info_a.get("op") or v("Operador_arribada"),
+        "op2_arribada": info_a.get("op2") or v("Operador2_arribada"),
+        "id_arribada":  info_a.get("id") or v("ID_estació_arribada"),
+        "lat_arribada": info_a.get("lat") or vf("Lat_arribada"),
+        "lng_arribada": info_a.get("lng") or vf("Lon_arribada"),
+        "linies_arribada": info_a.get("linies") or [l.strip() for l in v("Linies_Arribada").split(";") if l.strip()],
+        "linies2_arribada": info_a.get("linies2") or [l.strip() for l in v("Linies2_Arribada").split(";") if l.strip()],
+        "muni_arribada":info_a.get("municipi") or v("Municipi_arribada"),
+        "comarca_arribada": info_a.get("comarca") or v("Comarca_arribada"),
         "km":           v("km"),
         "desn_txt":     desn_txt,
         "desn_p":       int(desn_p),
@@ -208,8 +245,8 @@ def ruta_a_dict(row):
         "tipus":        v("Tipus_ruta"),
         "dificultat":   dif,
         "color_dif":    color_dif(dif),
-        "color_op_s":   color_op(v("Operador_sortida")),
-        "color_op_a":   color_op(v("Operador_arribada")),
+        "color_op_s":   color_op(info_s.get("op") or v("Operador_sortida")),
+        "color_op_a":   color_op(info_a.get("op") or v("Operador_arribada")),
         "temps":        temps_fmt,
         "epoca":        v("Millor_època"),
         "punt_alt":     v("Punt_mes_alt"),
