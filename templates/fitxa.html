@@ -285,6 +285,12 @@
               <img src="{{ BASE_LOGOS_OP }}{{ logo_fitxa(ruta.op_sortida) }}.svg" style="height:18px;max-width:44px;object-fit:contain;" onerror="this.style.display='none'">
               {{ linies_fitxa(ruta.op_sortida, ruta.linies_sortida) }}
             </div>
+            {% if ruta.op2_sortida and ruta.linies2_sortida %}
+            <div style="display:flex;align-items:center;gap:6px;margin-top:5px;flex-wrap:wrap;">
+              <img src="{{ BASE_LOGOS_OP }}{{ logo_fitxa(ruta.op2_sortida) }}.svg" style="height:18px;max-width:44px;object-fit:contain;" onerror="this.style.display='none'">
+              {{ linies_fitxa(ruta.op2_sortida, ruta.linies2_sortida) }}
+            </div>
+            {% endif %}
           </div></div>
           {% else %}
           <div class="dt-item"><div class="dt-icon">🚉</div><div>
@@ -294,6 +300,12 @@
               <img src="{{ BASE_LOGOS_OP }}{{ logo_fitxa(ruta.op_sortida) }}.svg" style="height:18px;max-width:44px;object-fit:contain;" onerror="this.style.display='none'">
               {{ linies_fitxa(ruta.op_sortida, ruta.linies_sortida) }}
             </div>
+            {% if ruta.op2_sortida and ruta.linies2_sortida %}
+            <div style="display:flex;align-items:center;gap:6px;margin-top:5px;flex-wrap:wrap;">
+              <img src="{{ BASE_LOGOS_OP }}{{ logo_fitxa(ruta.op2_sortida) }}.svg" style="height:18px;max-width:44px;object-fit:contain;" onerror="this.style.display='none'">
+              {{ linies_fitxa(ruta.op2_sortida, ruta.linies2_sortida) }}
+            </div>
+            {% endif %}
           </div></div>
           <div class="dt-item"><div class="dt-icon">🏁</div><div>
             <div class="dt-label">Estació d'arribada</div>
@@ -302,6 +314,12 @@
               <img src="{{ BASE_LOGOS_OP }}{{ logo_fitxa(ruta.op_arribada) }}.svg" style="height:18px;max-width:44px;object-fit:contain;" onerror="this.style.display='none'">
               {{ linies_fitxa(ruta.op_arribada, ruta.linies_arribada) }}
             </div>
+            {% if ruta.op2_arribada and ruta.linies2_arribada %}
+            <div style="display:flex;align-items:center;gap:6px;margin-top:5px;flex-wrap:wrap;">
+              <img src="{{ BASE_LOGOS_OP }}{{ logo_fitxa(ruta.op2_arribada) }}.svg" style="height:18px;max-width:44px;object-fit:contain;" onerror="this.style.display='none'">
+              {{ linies_fitxa(ruta.op2_arribada, ruta.linies2_arribada) }}
+            </div>
+            {% endif %}
           </div></div>
           {% endif %}
           {% if ruta.comarca_sortida and ruta.comarca_arribada and ruta.comarca_sortida == ruta.comarca_arribada %}
