@@ -62,6 +62,7 @@ def color_op(op):
 
 # ── CÀRREGA DE DADES ────────────────────────────────────────────────
 _cache_dades = {"dades": None, "ts": 0}
+_avisats_fallback = set()
 
 def carregar_dades():
     """Carrega les dades del Google Sheet amb cache de 30 min."""
@@ -149,6 +150,7 @@ def carregar_dades():
         _cache_dades["estacions_info"] = {}
 
     _cache_dades["dades"] = df
+    _avisats_fallback.clear()
     _cache_dades["ts"] = ara
     return df
 
@@ -195,6 +197,12 @@ def ruta_a_dict(row):
     nom_arribada_v = v("Estació_arribada")
     info_s = estacions_info.get(nom_sortida_v, {})
     info_a = estacions_info.get(nom_arribada_v, {})
+    if nom_sortida_v and not info_s and nom_sortida_v not in _avisats_fallback:
+        print(f"[Estacions] FALLBACK a Rutes per a l'estació de sortida: '{nom_sortida_v}' (no trobada a la pestanya Estacions)")
+        _avisats_fallback.add(nom_sortida_v)
+    if nom_arribada_v and not info_a and nom_arribada_v not in _avisats_fallback:
+        print(f"[Estacions] FALLBACK a Rutes per a l'estació d'arribada: '{nom_arribada_v}' (no trobada a la pestanya Estacions)")
+        _avisats_fallback.add(nom_arribada_v)
 
     # Ordenar senders: GR → PR → SL → altres
     def ordre_sender(s):
