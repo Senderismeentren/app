@@ -652,7 +652,7 @@ def inici():
     total_desn = sum(int(r["desn_p"] or 0) for r in rutes)
     stats = {
         "n_rutes": len(rutes),
-        "n_cims": sum(1 for r in rutes if r["cims"]),
+        "n_cims": len({n.strip() for r in rutes if r["cims"] and r["nom_cim"] for n in r["nom_cim"].split(";") if n.strip()}),
         "n_estacions": len(estacions_uniques),
         "n_linies": len(linies_uniques),
         "total_km": f"{round(total_km):,}".replace(",", "."),
