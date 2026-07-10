@@ -807,6 +807,41 @@ def mapa_pagina():
     # Espais naturals únics per als filtres
     espais_mapa = sorted(set(e for r in rutes_mapa for e in r["espai"] if e))
 
+    # Cims (100 Cims): deduplicats per nom, amb les rutes que hi passen
+    cims_info = _cache_dades.get("cims_info") or {}
+    cims_dict = {}
+    for r in rutes_mapa:
+        if not r["cims"] or not r["nom_cim"]:
+            continue
+        noms = [n.strip() for n in r["nom_cim"].split(";") if n.strip()]
+        for nom in noms:
+            info = cims_info.get(nom)
+            if info and info.get("lat") and info.get("lng"):
+                lat, lng = info["lat"], info["lng"]
+            else:
+                # Fallback si el cim encara no és a la pestanya 100cims
+                idx = noms.index(nom)
+                lats_fb = str(r["lat_cim"]).split(";")
+                lngs_fb = str(r["lng_cim"]).split(";")
+                try:
+                    lat = float(lats_fb[idx] if idx < len(lats_fb) else lats_fb[0])
+                    lng = float(lngs_fb[idx] if idx < len(lngs_fb) else lngs_fb[0])
+                except (ValueError, IndexError):
+                    continue
+            if not lat or not lng:
+                continue
+            if nom not in cims_dict:
+                cims_dict[nom] = {
+                    "nom": nom,
+                    "lat": lat, "lng": lng,
+                    "categoria": (info or {}).get("categoria", ""),
+                    "alcada": (info or {}).get("alcada", ""),
+                    "rutes": [],
+                }
+            if r["id"] not in [x["id"] for x in cims_dict[nom]["rutes"]]:
+                cims_dict[nom]["rutes"].append({"id": r["id"], "nom": r["nom"]})
+    cims_llista = sorted(cims_dict.values(), key=lambda x: x["nom"])
+
     # Línies per operador (només les que apareixen al portal)
     OP_ORDER = ["Rodalies", "FGC", "TMB", "Tram", "SNCF", "ADIF"]
     # Ordre fix per FGC
@@ -871,6 +906,7 @@ def mapa_pagina():
         estacions_per_op=estacions_per_op,
         espais_mapa=espais_mapa,
         linies_per_op=linies_per_op_ord,
+        cims_llista=cims_llista,
     )
 
 
