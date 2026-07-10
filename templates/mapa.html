@@ -391,18 +391,21 @@ RUTES.filter(r => r.cims).forEach(r => {
   const lats = String(r.lat_cim || r.lat_s || '').split(';');
   const lngs = String(r.lng_cim || r.lng_s || '').split(';');
   const noms = String(r.nom_cim || r.nom || '').split(';');
+  const categories = String(r.categoria_cim || '').split(';');
   lats.forEach((latStr, i) => {
     const lat = parseFloat(latStr);
     const lng = parseFloat(lngs[i] || lngs[0]);
     if (!lat || !lng) return;
     const nom_cim = (noms[i] || noms[0]).trim();
+    const categoria = (categories[i] || categories[0] || '').trim().toLowerCase();
+    const color = categoria === 'essencial' ? '#74C263' : (categoria === 'secundari' ? '#D5121E' : '#0F6E56');
     const icon = L.divIcon({
-      html: `<div style="background:#0F6E56;color:white;border-radius:6px;padding:2px 6px;font-size:9px;font-weight:700;border:1.5px solid white;box-shadow:0 2px 4px rgba(0,0,0,0.3);white-space:nowrap;">🏔 ${nom_cim}</div>`,
+      html: `<div style="background:${color};color:white;border-radius:6px;padding:2px 6px;font-size:9px;font-weight:700;border:1.5px solid white;box-shadow:0 2px 4px rgba(0,0,0,0.3);white-space:nowrap;">🏔 ${nom_cim}</div>`,
       className: '', iconSize: [120,20], iconAnchor: [10,10]
     });
     L.marker([lat, lng], {icon})
       .addTo(capes.cims)
-      .bindTooltip(`<b>${nom_cim}</b><br><small>${r.nom}</small>`, {direction: 'top'});
+      .bindTooltip(`<b>${nom_cim}</b>${categoria ? ` <small>(${categoria})</small>` : ''}<br><small>${r.nom}</small>`, {direction: 'top'});
   });
 });
 
