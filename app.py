@@ -138,21 +138,68 @@ def carregar_dades():
             except Exception as e:
                 print(f"Error carregant Estacions: {e}")
                 _cache_dades["estacions_info"] = {}
+            # Carregar pestanya 100cims (dades úniques per cim)
+            try:
+                ws_cims = sh.worksheet("100cims")
+                cims_info = {}
+                for crow in ws_cims.get_all_records():
+                    nom = str(crow.get("Nom_100cims", "")).strip()
+                    if not nom:
+                        continue
+                    def parse_float_c(val):
+                        try: return float(str(val).strip())
+                        except: return 0.0
+                    cims_info[nom] = {
+                        "categoria": str(crow.get("Categoria", "")).strip(),
+                        "alcada": str(crow.get("Alçada", "")).strip(),
+                        "comarca": str(crow.get("Comarca", "")).strip(),
+                        "lat": parse_float_c(crow.get("Lat_100cims", "")),
+                        "lng": parse_float_c(crow.get("Lon_100cims", "")),
+                    }
+                _cache_dades["cims_info"] = cims_info
+            except Exception as e:
+                print(f"Error carregant 100cims: {e}")
+                _cache_dades["cims_info"] = {}
         else:
             # Fallback local per a desenvolupament
             df = pd.read_excel("SET_excel_app.xlsx")
             _cache_dades["senders_url"] = {}
             _cache_dades["estacions_info"] = {}
+            _cache_dades["cims_info"] = {}
     except Exception as e:
         print(f"Error carregant dades: {e}")
         df = pd.DataFrame()
         _cache_dades["senders_url"] = {}
         _cache_dades["estacions_info"] = {}
+        _cache_dades["cims_info"] = {}
 
     _cache_dades["dades"] = df
     _avisats_fallback.clear()
     _cache_dades["ts"] = ara
     return df
+
+
+def _resol_cims_camp(noms_cim_str, camp, vf_fallback=""):
+    """Per a un o més cims (separats per ';'), retorna el valor demanat
+    (lat/lng/categoria/alcada) de la pestanya 100cims, o el fallback si no es troba."""
+    if not noms_cim_str:
+        return ""
+    cims_info = _cache_dades.get("cims_info") or {}
+    noms = [n.strip() for n in str(noms_cim_str).split(";") if n.strip()]
+    fallbacks = [f.strip() for f in str(vf_fallback).split(";")] if vf_fallback else []
+    resultats = []
+    for i, nom in enumerate(noms):
+        info = cims_info.get(nom)
+        if info is not None and info.get(camp) not in (None, ""):
+            resultats.append(str(info[camp]))
+        elif i < len(fallbacks) and fallbacks[i]:
+            resultats.append(fallbacks[i])
+            if nom not in _avisats_fallback:
+                print(f"[100cims] FALLBACK a Rutes per al cim: '{nom}' (no trobat a la pestanya 100cims)")
+                _avisats_fallback.add(nom)
+        else:
+            resultats.append("")
+    return ";".join(resultats)
 
 
 def ruta_a_dict(row):
@@ -261,8 +308,10 @@ def ruta_a_dict(row):
         "alcada_alt":   int(vf("Alçada_punt_alt")),
         "cims":         v("100cims").lower() in ("si", "sí", "yes", "1", "true"),
         "nom_cim":      v("Nom_100cims"),
-        "lat_cim":      v("Lat_100cims"),
-        "lng_cim":      v("Lon_100cims"),
+        "lat_cim":      _resol_cims_camp(v("Nom_100cims"), "lat", vf_fallback=v("Lat_100cims")),
+        "lng_cim":      _resol_cims_camp(v("Nom_100cims"), "lng", vf_fallback=v("Lon_100cims")),
+        "categoria_cim": _resol_cims_camp(v("Nom_100cims"), "categoria", vf_fallback=""),
+        "alcada_cim":   _resol_cims_camp(v("Nom_100cims"), "alcada", vf_fallback=""),
         "senders":      senders,
         "espai":        [e.strip() for e in v("Espai_natural").split(";") if e.strip()],
         "punts_interes": punts_interes,
