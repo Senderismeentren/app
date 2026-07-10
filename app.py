@@ -202,6 +202,24 @@ def _resol_cims_camp(noms_cim_str, camp, vf_fallback=""):
     return ";".join(resultats)
 
 
+def _detall_cims(noms_cim_str):
+    """Retorna una llista de dicts {nom, alcada, categoria} per a cada cim d'una ruta,
+    llegint de la pestanya 100cims. Facilita mostrar-ho a les plantilles."""
+    if not noms_cim_str:
+        return []
+    cims_info = _cache_dades.get("cims_info") or {}
+    noms = [n.strip() for n in str(noms_cim_str).split(";") if n.strip()]
+    detall = []
+    for nom in noms:
+        info = cims_info.get(nom, {})
+        detall.append({
+            "nom": nom,
+            "alcada": info.get("alcada", ""),
+            "categoria": info.get("categoria", ""),
+        })
+    return detall
+
+
 def ruta_a_dict(row):
     """Converteix una fila del DataFrame a diccionari net per a les plantilles."""
     def v(camp):
@@ -312,6 +330,7 @@ def ruta_a_dict(row):
         "lng_cim":      _resol_cims_camp(v("Nom_100cims"), "lng", vf_fallback=v("Lon_100cims")),
         "categoria_cim": _resol_cims_camp(v("Nom_100cims"), "categoria", vf_fallback=""),
         "alcada_cim":   _resol_cims_camp(v("Nom_100cims"), "alcada", vf_fallback=""),
+        "cims_detall":  _detall_cims(v("Nom_100cims")),
         "senders":      senders,
         "espai":        [e.strip() for e in v("Espai_natural").split(";") if e.strip()],
         "punts_interes": punts_interes,
