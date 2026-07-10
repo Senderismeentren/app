@@ -328,7 +328,11 @@
           {% if ruta.comarca_sortida %}<div class="dt-item"><div class="dt-icon">🗺</div><div><div class="dt-label">Comarca sortida</div><div class="dt-val">{{ ruta.comarca_sortida }}</div></div></div>{% endif %}
           {% if ruta.comarca_arribada %}<div class="dt-item"><div class="dt-icon">🗺</div><div><div class="dt-label">Comarca arribada</div><div class="dt-val">{{ ruta.comarca_arribada }}</div></div></div>{% endif %}
           {% endif %}
-          {% if ruta.cims and ruta.nom_cim %}<div class="dt-item"><div class="dt-icon">⛰️</div><div><div class="dt-label">100 Cims</div><div class="dt-val">{% for cim in ruta.nom_cim.split(';') %}<div>{{ cim.strip() }}</div>{% endfor %}</div></div></div>{% endif %}
+          {% if ruta.cims and ruta.cims_detall %}<div class="dt-item"><div class="dt-icon">⛰️</div><div><div class="dt-label">100 Cims</div><div class="dt-val">{% for cim in ruta.cims_detall %}<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+            <span>{{ cim.nom }}</span>
+            {% if cim.alcada %}<span style="font-weight:400;color:#888;font-size:13px;">{{ cim.alcada }} m</span>{% endif %}
+            {% if cim.categoria %}<span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;padding:2px 7px;border-radius:20px;{% if cim.categoria|lower == 'essencial' %}background:#E1F5EE;color:#0F6E56;{% else %}background:#FDECEC;color:#C0392B;{% endif %}">{{ cim.categoria }}</span>{% endif %}
+          </div>{% endfor %}</div></div></div>{% endif %}
 
           {% if ruta.millors %}<div class="dt-item"><div class="dt-icon">⭐</div><div><div class="dt-label">Col·lecció</div><div class="dt-val">{{ ruta.millors }}</div></div></div>{% endif %}
         </div>
