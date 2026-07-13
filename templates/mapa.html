@@ -893,6 +893,9 @@ function resetejaMapa() {
     window._logoExtremsLayers.forEach(l => mapa.removeLayer(l));
     window._logoExtremsLayers = [];
   }
+  // Netejar els tracks individuals de ruta carregats amb el botó "Track" del panell
+  netejarTracks();
+  Object.keys(tracksCarregats).forEach(rutaId => delete tracksCarregats[rutaId]);
   const btnCims = document.getElementById('btn-cims');
   if (btnCims?.classList.contains('actiu')) toggleCapa('cims', btnCims);
   mapa.setView([41.8, 2.0], 8);
