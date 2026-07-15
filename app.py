@@ -133,6 +133,8 @@ def carregar_dades():
                         "lng": parse_float(erow.get("Lon_sortida", "")),
                         "municipi": str(erow.get("Municipi_sortida", "")).strip(),
                         "comarca": str(erow.get("Comarca_sortida", "")).strip(),
+                        "meteocat": str(erow.get("Enllaç_Meteocat", "")).strip(),
+                        "meteofrance": str(erow.get("Enllaç_Meteofrance", "")).strip(),
                     }
                 _cache_dades["estacions_info"] = estacions_info
             except Exception as e:
@@ -337,8 +339,11 @@ def ruta_a_dict(row):
         "millors":      v("Millors_rutes"),
         "descripcio":   v("Descripció_ruta"),
         "advertiments": v("Advertiments"),
-        "enllaç_meteocat": str(v("Enllaç_Meteocat")).zfill(6) if v("Enllaç_Meteocat") else "",
-        "enllaç_meteofrance": str(int(float(v("Enllaç_Meteofrance")))).zfill(6) if v("Enllaç_Meteofrance") else "",
+        "enllaç_meteocat": str(info_s.get("meteocat") or v("Enllaç_Meteocat")).zfill(6) if (info_s.get("meteocat") or v("Enllaç_Meteocat")) else "",
+        "enllaç_meteofrance": (
+            str(int(float(info_s.get("meteofrance")))).zfill(6) if info_s.get("meteofrance")
+            else (str(int(float(v("Enllaç_Meteofrance")))).zfill(6) if v("Enllaç_Meteofrance") else "")
+        ),
     }
 
 
