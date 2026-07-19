@@ -21,6 +21,7 @@ app = Flask(__name__)
 # ── CONFIGURACIÓ ────────────────────────────────────────────────────
 SHEET_ID        = os.environ.get("SHEET_ID", "")
 GOOGLE_CREDS    = os.environ.get("GOOGLE_CREDS", "")   # JSON de credencials
+GITHUB_TOKEN    = os.environ.get("GITHUB_TOKEN", "")   # per pujar el límit de l'API de 60/h a 5.000/h
 BASE_FOTO_URL   = "https://raw.githubusercontent.com/Senderismeentren/imatges/main/ruta-{id:03d}/foto{n}.jpg"
 BASE_GPX_URL    = "https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/gpx-rutes/ruta-{id:03d}.gpx"
 BASE_LOGO_OPERADOR_URL = "https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/logos-operadors/logo-{operador}.svg"
@@ -393,7 +394,10 @@ def obtenir_fotos(ruta_id):
     fotos = []
     try:
         api_url = f"https://api.github.com/repos/Senderismeentren/imatges/contents/ruta-{ruta_id:03d}"
-        r = requests.get(api_url, timeout=6, headers={"Accept": "application/vnd.github+json"})
+        headers = {"Accept": "application/vnd.github+json"}
+        if GITHUB_TOKEN:
+            headers["Authorization"] = f"Bearer {GITHUB_TOKEN}"
+        r = requests.get(api_url, timeout=6, headers=headers)
         if r.status_code == 200:
             arxius = r.json()
             candidats = []
@@ -408,8 +412,10 @@ def obtenir_fotos(ruta_id):
             fotos = []  # la ruta no té carpeta de fotos
         else:
             print(f"[fotos] Resposta inesperada de GitHub per ruta-{ruta_id:03d}: status {r.status_code}")
+            return []  # error temporal (p. ex. 403 per rate limit): no cachejar, es reintentarà
     except Exception as e:
         print(f"[fotos] Error llistant fotos de ruta-{ruta_id:03d}: {repr(e)}")
+        return []  # error temporal: no cachejar, es reintentarà
     _cache_fotos[ruta_id] = fotos
     return fotos
 
