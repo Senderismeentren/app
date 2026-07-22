@@ -815,6 +815,8 @@ function logoLinia(linia, colorOp, operador) {
     : op.includes('tmb') || op.includes('metro') ? 'tmb'
     : op.includes('tram') ? 'tram'
     : op.includes('sncf') ? 'sncf'
+    : op.includes('adif') || op.includes('alta velocitat') || op.includes('tav') ? 'adif-tav'
+    : op.includes('cercanias') || op.includes('cercanías') ? 'cercanias'
     : 'rodalies';
   const url = `${BASE_LOGOS_LI}logo-${prefix}-${l}.svg`;
   return `<img src="${url}" alt="${linia}" style="height:22px;object-fit:contain;vertical-align:middle;"
