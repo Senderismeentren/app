@@ -303,6 +303,7 @@ ESTACIONS.forEach(est => {
   else if (opLower.includes('tram'))                             logoOp = 'logo-tram';
   else if (opLower.includes('sncf'))                             logoOp = 'logo-sncf';
   else if (opLower.includes('adif') || opLower.includes('alta velocitat') || opLower.includes('tav')) logoOp = 'logo-adif-tav';
+  else if (opLower.includes('cercanias') || opLower.includes('cercanías'))     logoOp = 'logo-cercanias';
   else if (opLower.includes('renfe'))                            logoOp = 'logo-renfe';
   else if (opLower.includes('rodalies'))                         logoOp = 'logo-rodalies';
   const logoOpUrl = `https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/logos-operadors/${logoOp}.svg`;
@@ -833,6 +834,7 @@ function obrirPanellEstacio(est) {
     if (op.includes('tram')) return 'logo-tram';
     if (op.includes('sncf')) return 'logo-sncf';
     if (op.includes('adif') || op.includes('alta velocitat') || op.includes('tav')) return 'logo-adif-tav';
+    if (op.includes('cercanias') || op.includes('cercanías')) return 'logo-cercanias';
     if (op.includes('renfe')) return 'logo-renfe';
     return 'logo-rodalies';
   };
