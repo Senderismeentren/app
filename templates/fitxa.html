@@ -819,7 +819,9 @@ async function actualitzarHoraris(tipus, idEst, colorOp) {
   el.innerHTML = '<div class="horaris-loading">⏳ Carregant...</div>';
   try {
     const esSNCF = (tipus === 'sortida' ? OP_SORTIDA : OP_ARRIBADA).includes('sncf') || (tipus === 'sortida' ? OP_SORTIDA : OP_ARRIBADA).includes('groc');
-    const endpointHoraris = esSNCF ? `/api/horaris-sncf/${idEst}` : `/api/horaris/${idEst}`;
+    const opActual = (tipus === 'sortida' ? OP_SORTIDA : OP_ARRIBADA).toLowerCase();
+    const esCercaniesMD = opActual.includes('cercanias') || opActual.includes('cercanías') || opActual.includes('media distancia') || opActual.includes('mitjana distància') || opActual.trim() === 'md';
+    const endpointHoraris = esSNCF ? `/api/horaris-sncf/${idEst}` : esCercaniesMD ? `/api/horaris-renfe/${idEst}` : `/api/horaris/${idEst}`;
     const resp = await fetch(endpointHoraris);
     const data = await resp.json();
 
