@@ -1290,6 +1290,52 @@ def api_horaris(id_estacio):
         return jsonify({"horaris": [], "error": str(e)})
 
 
+@app.route("/api/horaris-renfe/<path:id_estacio>")
+def api_horaris_renfe(id_estacio):
+    """Horaris en temps real per a Cercanías/Media Distancia (fora de Catalunya),
+    via el feed GTFS-Realtime oficial de Renfe (gtfsrt.renfe.com/trip_updates.json).
+    Nota: aquest feed només dona hora i retard, no destinació; la línia es dedueix
+    del sufix del tripId (p. ex. "...C8b" -> "C-8b") quan és possible."""
+    from datetime import datetime
+    import zoneinfo
+    tz_cat = zoneinfo.ZoneInfo("Europe/Madrid")
+
+    try:
+        resp = requests.get("https://gtfsrt.renfe.com/trip_updates.json", timeout=8)
+        data = resp.json()
+        horaris = []
+        vists = set()
+        for entity in data.get("entity", []):
+            tu = entity.get("tripUpdate", {})
+            trip_id = tu.get("trip", {}).get("tripId", "")
+            m_linia = re.search(r'C(\d+)[a-z]?$', trip_id, re.IGNORECASE)
+            linia = f"C-{m_linia.group(1)}" if m_linia else "Cercanías"
+            for stu in tu.get("stopTimeUpdate", []):
+                if str(stu.get("stopId", "")) != str(id_estacio):
+                    continue
+                arribada = stu.get("arrival", {})
+                ts = arribada.get("time")
+                if not ts:
+                    continue
+                hora = datetime.fromtimestamp(int(ts), tz_cat).strftime("%H:%M")
+                retard_seg = int(arribada.get("delay", 0) or 0)
+                retard_min = max(0, round(retard_seg / 60))
+                clau = f"{hora}_{linia}"
+                if clau not in vists:
+                    vists.add(clau)
+                    horaris.append({
+                        "hora": hora,
+                        "linia": linia,
+                        "destinacio": "",
+                        "retard": retard_min,
+                        "ara": False
+                    })
+        horaris.sort(key=lambda h: h["hora"])
+        return jsonify({"horaris": horaris[:8], "operador": "Cercanías"})
+    except Exception as e:
+        return jsonify({"horaris": [], "error": str(e)})
+
+
 
 @app.route("/api/horaris-sncf/<path:id_estacio>")
 def api_horaris_sncf(id_estacio):
