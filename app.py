@@ -22,6 +22,8 @@ app = Flask(__name__)
 SHEET_ID        = os.environ.get("SHEET_ID", "")
 GOOGLE_CREDS    = os.environ.get("GOOGLE_CREDS", "")   # JSON de credencials
 GITHUB_TOKEN    = os.environ.get("GITHUB_TOKEN", "")   # per pujar el límit de l'API de 60/h a 5.000/h
+TMB_APP_ID      = os.environ.get("TMB_APP_ID", "")
+TMB_APP_KEY     = os.environ.get("TMB_APP_KEY", "")
 BASE_FOTO_URL   = "https://raw.githubusercontent.com/Senderismeentren/imatges/main/ruta-{id:03d}/foto{n}.jpg"
 BASE_GPX_URL    = "https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/gpx-rutes/ruta-{id:03d}.gpx"
 BASE_LOGO_OPERADOR_URL = "https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/logos-operadors/logo-{operador}.svg"
@@ -1332,6 +1334,46 @@ def api_horaris_renfe(id_estacio):
                     })
         horaris.sort(key=lambda h: h["hora"])
         return jsonify({"horaris": horaris[:8], "operador": "Cercanías"})
+    except Exception as e:
+        return jsonify({"horaris": [], "error": str(e)})
+
+
+
+@app.route("/api/horaris-tmb/<path:id_estacio>")
+def api_horaris_tmb(id_estacio):
+    """Horaris en temps real del Metro de Barcelona via l'API i-Metro de TMB."""
+    from datetime import datetime
+    import zoneinfo
+    tz_cat = zoneinfo.ZoneInfo("Europe/Madrid")
+
+    if not TMB_APP_ID or not TMB_APP_KEY:
+        return jsonify({"horaris": [], "error": "Falten les credencials TMB_APP_ID/TMB_APP_KEY"})
+
+    try:
+        url = "https://api.tmb.cat/v1/itransit/metro/estacions"
+        params = {"estacions": id_estacio, "app_id": TMB_APP_ID, "app_key": TMB_APP_KEY}
+        r = requests.get(url, params=params, timeout=8)
+        data = r.json()
+        horaris = []
+        for linia in data.get("linies", []):
+            nom_linia = linia.get("nom_linia", "")
+            for estacio in linia.get("estacions", []):
+                for trajecte in estacio.get("linies_trajectes", []):
+                    desti = trajecte.get("desti_trajecte", "")
+                    for tren in trajecte.get("propers_trens", []):
+                        ts_ms = tren.get("temps_arribada")
+                        if not ts_ms:
+                            continue
+                        hora = datetime.fromtimestamp(int(ts_ms) / 1000, tz_cat).strftime("%H:%M")
+                        horaris.append({
+                            "hora": hora,
+                            "linia": nom_linia,
+                            "destinacio": desti,
+                            "retard": 0,
+                            "ara": False
+                        })
+        horaris.sort(key=lambda h: h["hora"])
+        return jsonify({"horaris": horaris[:8], "operador": "TMB"})
     except Exception as e:
         return jsonify({"horaris": [], "error": str(e)})
 
