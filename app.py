@@ -15,6 +15,8 @@ from functools import lru_cache
 import time
 import html as h
 import re
+import zipfile
+import io
 
 app = Flask(__name__)
 
@@ -1373,6 +1375,129 @@ def api_horaris_tmb(id_estacio):
                             "ara": False
                         })
         horaris.sort(key=lambda h: h["hora"])
+        return jsonify({"horaris": horaris[:8], "operador": "TMB"})
+    except Exception as e:
+        return jsonify({"horaris": [], "error": str(e)})
+
+
+_cache_gtfs_tmb = {"dades": None, "carregat_a": 0}
+GTFS_TMB_TTL = 24 * 3600  # el GTFS de TMB s'actualitza setmanalment; refresquem cada dia
+
+def _carregar_gtfs_tmb():
+    """Descarrega i parseja el GTFS estàtic de TMB (només un cop al dia, es queda en memòria)."""
+    ara = time.time()
+    if _cache_gtfs_tmb["dades"] and (ara - _cache_gtfs_tmb["carregat_a"] < GTFS_TMB_TTL):
+        return _cache_gtfs_tmb["dades"]
+
+    url = "https://api.tmb.cat/v1/static/datasets/gtfs.zip"
+    r = requests.get(url, params={"app_id": TMB_APP_ID, "app_key": TMB_APP_KEY}, timeout=30)
+    z = zipfile.ZipFile(io.BytesIO(r.content))
+
+    stops = pd.read_csv(z.open("stops.txt"), dtype=str)
+    routes = pd.read_csv(z.open("routes.txt"), dtype=str)
+    trips = pd.read_csv(z.open("trips.txt"), dtype=str)
+    stop_times = pd.read_csv(z.open("stop_times.txt"), dtype=str)
+    calendar = pd.read_csv(z.open("calendar.txt"), dtype=str) if "calendar.txt" in z.namelist() else None
+    calendar_dates = pd.read_csv(z.open("calendar_dates.txt"), dtype=str) if "calendar_dates.txt" in z.namelist() else None
+
+    dades = {
+        "stops": stops, "routes": routes, "trips": trips,
+        "stop_times": stop_times, "calendar": calendar, "calendar_dates": calendar_dates
+    }
+    _cache_gtfs_tmb["dades"] = dades
+    _cache_gtfs_tmb["carregat_a"] = ara
+    return dades
+
+
+def _serveis_actius_avui(calendar, calendar_dates):
+    """Retorna el conjunt de service_id vàlids per avui, segons calendar.txt + excepcions."""
+    from datetime import date
+    avui = date.today()
+    avui_str = avui.strftime("%Y%m%d")
+    dies = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
+    dia_setmana = dies[avui.weekday()]
+
+    actius = set()
+    if calendar is not None:
+        for _, row in calendar.iterrows():
+            if row.get(dia_setmana) == "1" and row["start_date"] <= avui_str <= row["end_date"]:
+                actius.add(row["service_id"])
+    if calendar_dates is not None:
+        avui_exc = calendar_dates[calendar_dates["date"] == avui_str]
+        for _, row in avui_exc.iterrows():
+            if row["exception_type"] == "1":
+                actius.add(row["service_id"])
+            elif row["exception_type"] == "2" and row["service_id"] in actius:
+                actius.discard(row["service_id"])
+    return actius
+
+
+@app.route("/api/horaris-tmb-gtfs/<path:id_estacio>")
+def api_horaris_tmb_gtfs(id_estacio):
+    """Horaris programats (GTFS estàtic oficial) per a L9 i L10 (Nord i Sud),
+    on l'i-Metro en temps real no dona cobertura. Com que són línies automàtiques
+    sense conductor, l'horari programat és pràcticament exacte."""
+    from datetime import datetime, timedelta
+    import zoneinfo
+    tz_cat = zoneinfo.ZoneInfo("Europe/Madrid")
+
+    if not TMB_APP_ID or not TMB_APP_KEY:
+        return jsonify({"horaris": [], "error": "Falten les credencials TMB_APP_ID/TMB_APP_KEY"})
+
+    try:
+        dades = _carregar_gtfs_tmb()
+        stops, routes, trips = dades["stops"], dades["routes"], dades["trips"]
+        stop_times = dades["stop_times"]
+
+        # Trobar el/s stop_id que coincideixin amb el codi d'estació (stop_id o stop_code)
+        coincidents = stops[(stops["stop_id"] == str(id_estacio)) | (stops.get("stop_code") == str(id_estacio))]
+        if coincidents.empty:
+            return jsonify({"horaris": [], "error": f"Estació {id_estacio} no trobada al GTFS"})
+        stop_ids = set(coincidents["stop_id"])
+
+        # Només L9/L10 (Nord i Sud)
+        rutes_l9l10 = routes[routes["route_short_name"].isin(["L9N", "L9S", "L10N", "L10S"])]
+        route_ids = set(rutes_l9l10["route_id"])
+        if not route_ids:
+            return jsonify({"horaris": [], "error": "No s'han trobat les línies L9/L10 al GTFS"})
+
+        trips_l9l10 = trips[trips["route_id"].isin(route_ids)]
+        trip_id_a_linia = dict(zip(trips_l9l10["trip_id"], trips_l9l10["route_id"]))
+        trip_id_a_desti = dict(zip(trips_l9l10["trip_id"], trips_l9l10.get("trip_headsign", "")))
+        trip_id_a_servei = dict(zip(trips_l9l10["trip_id"], trips_l9l10["service_id"]))
+        route_id_a_nom = dict(zip(routes["route_id"], routes["route_short_name"]))
+
+        serveis_avui = _serveis_actius_avui(dades["calendar"], dades["calendar_dates"])
+
+        pas = stop_times[stop_times["stop_id"].isin(stop_ids) & stop_times["trip_id"].isin(trip_id_a_linia.keys())]
+
+        ara = datetime.now(tz_cat)
+        avui_str = ara.strftime("%Y%m%d")
+        horaris = []
+        for _, row in pas.iterrows():
+            trip_id = row["trip_id"]
+            if trip_id_a_servei.get(trip_id) not in serveis_avui:
+                continue
+            hora_txt = row.get("departure_time") or row.get("arrival_time")
+            if not hora_txt:
+                continue
+            hh, mm, ss = [int(x) for x in hora_txt.split(":")]
+            moment = datetime.strptime(avui_str, "%Y%m%d").replace(
+                hour=0, minute=0, second=0, tzinfo=tz_cat
+            ) + timedelta(hours=hh, minutes=mm, seconds=ss)  # gestiona hores >=24 (servei nocturn)
+            if moment < ara:
+                continue
+            horaris.append({
+                "hora": moment.strftime("%H:%M"),
+                "linia": route_id_a_nom.get(trip_id_a_linia.get(trip_id), ""),
+                "destinacio": trip_id_a_desti.get(trip_id, ""),
+                "retard": 0,
+                "ara": False,
+                "_ordre": moment
+            })
+        horaris.sort(key=lambda x: x["_ordre"])
+        for hh in horaris:
+            del hh["_ordre"]
         return jsonify({"horaris": horaris[:8], "operador": "TMB"})
     except Exception as e:
         return jsonify({"horaris": [], "error": str(e)})
