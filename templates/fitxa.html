@@ -822,7 +822,9 @@ async function actualitzarHoraris(tipus, idEst, colorOp) {
     const opActual = (tipus === 'sortida' ? OP_SORTIDA : OP_ARRIBADA).toLowerCase();
     const esCercaniesMD = opActual.includes('cercanias') || opActual.includes('cercanías') || opActual.includes('media distancia') || opActual.includes('mitjana distància') || opActual.trim() === 'md';
     const esTMB = opActual.includes('tmb') || opActual.includes('metro');
-    const endpointHoraris = esSNCF ? `/api/horaris-sncf/${idEst}` : esCercaniesMD ? `/api/horaris-renfe/${idEst}` : esTMB ? `/api/horaris-tmb/${idEst}` : `/api/horaris/${idEst}`;
+    const liniesActuals = tipus === 'sortida' ? LINIES_SORTIDA : LINIES_ARRIBADA;
+    const esL9L10 = liniesActuals.some(l => /L\s*-?9|L\s*-?10/i.test(l));
+    const endpointHoraris = esSNCF ? `/api/horaris-sncf/${idEst}` : esCercaniesMD ? `/api/horaris-renfe/${idEst}` : (esTMB && esL9L10) ? `/api/horaris-tmb-gtfs/${idEst}` : esTMB ? `/api/horaris-tmb/${idEst}` : `/api/horaris/${idEst}`;
     const resp = await fetch(endpointHoraris);
     const data = await resp.json();
 
