@@ -1354,6 +1354,8 @@ def api_horaris_tmb(id_estacio):
         params = {"estacions": id_estacio, "app_id": TMB_APP_ID, "app_key": TMB_APP_KEY}
         r = requests.get(url, params=params, timeout=8)
         data = r.json()
+        if request.args.get("debug"):
+            return jsonify({"status_tmb": r.status_code, "resposta_bruta": data})
         horaris = []
         for linia in data.get("linies", []):
             nom_linia = linia.get("nom_linia", "")
