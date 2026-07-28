@@ -433,13 +433,16 @@ def obtenir_fotos(ruta_id):
 _cache_gpx = {}
 
 def obtenir_gpx(ruta_id):
+    ara = time.time()
     if ruta_id in _cache_gpx:
-        return _cache_gpx[ruta_id]
+        punts, ts = _cache_gpx[ruta_id]
+        if ara - ts < CACHE_TTL:
+            return punts
     url = BASE_GPX_URL.format(id=ruta_id)
     try:
         r = requests.get(url, timeout=5)
         if r.status_code != 200:
-            _cache_gpx[ruta_id] = None
+            _cache_gpx[ruta_id] = (None, ara)
             return None
         gpx = gpxpy.parse(r.text)
         punts = []
@@ -451,11 +454,14 @@ def obtenir_gpx(ruta_id):
                         "lng": round(p.longitude, 6),
                         "ele": round(p.elevation or 0, 1)
                     })
-        _cache_gpx[ruta_id] = punts
+        _cache_gpx[ruta_id] = (punts, ara)
         return punts
     except Exception as e:
         print(f"Error GPX {ruta_id}: {e}")
-        _cache_gpx[ruta_id] = None
+        # Si ja teníem una versió vàlida en cache, la mantenim (millor mostrar
+        # dades una mica antigues que res); si no, no cachegem l'error.
+        if ruta_id in _cache_gpx and _cache_gpx[ruta_id][0] is not None:
+            return _cache_gpx[ruta_id][0]
         return None
 
 
