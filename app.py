@@ -50,6 +50,7 @@ def color_dif(dif):
 COLORS_OP = {
     "rodalies":      "#EE7F00",
     "fgc":           "#97D700",
+    "fgv":           "#F58220",
     "metro":         "#E30613",
     "tram":          "#78BE20",
     "alta velocitat":"#8B0000",
@@ -870,7 +871,7 @@ def mapa_pagina():
     cims_llista = sorted(cims_dict.values(), key=lambda x: x["nom"])
 
     # Línies per operador (només les que apareixen al portal)
-    OP_ORDER = ["Rodalies", "FGC", "TMB", "Tram", "SNCF", "TAV", "Cercanias", "MD"]
+    OP_ORDER = ["Rodalies", "FGC", "FGV", "TMB", "Tram", "SNCF", "TAV", "Cercanias", "MD"]
     # Ordre fix per FGC
     FGC_ORDER = ["L6","L7","L8","L12","S1","S2","S3","S4","S8","S9",
                  "R5","R50","R6","R60","Funicular de Vallvidrera",
