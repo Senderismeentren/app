@@ -297,7 +297,7 @@ ESTACIONS.forEach(est => {
   const opLower = (est.op || '').toLowerCase();
   let logoOp = 'logo-rodalies';
   if (opLower.includes('fgc'))                                   logoOp = 'logo-fgc';
-  else if (opLower.includes('fgv'))                              logoOp = 'logo-fgv';
+  else if (opLower.includes('fgv'))                              logoOp = 'logo-fgv-tram';
   else if (opLower.includes('cremallera'))                       logoOp = 'logo-cremalleranuria';
   else if (opLower.includes('llacs') || opLower.includes('tren dels llacs')) logoOp = 'logo-trendelsllacs';
   else if (opLower.includes('tmb') || opLower.includes('metro')) logoOp = 'logo-tmb';
@@ -835,7 +835,7 @@ function obrirPanellEstacio(est) {
   const logoOperador = (opNom) => {
     const op = (opNom||'').toLowerCase();
     if (op.includes('fgc')) return 'logo-fgc';
-    if (op.includes('fgv')) return 'logo-fgv';
+    if (op.includes('fgv')) return 'logo-fgv-tram';
     if (op.includes('tmb')||op.includes('metro')) return 'logo-tmb';
     if (op.includes('tram')) return 'logo-tram';
     if (op.includes('sncf')) return 'logo-sncf';
