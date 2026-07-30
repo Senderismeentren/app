@@ -1401,7 +1401,7 @@ def api_horaris_renfe_gtfs(id_estacio):
         stop_ids = set(coincidents["stop_id"])
 
         trip_id_a_linia = dict(zip(trips["trip_id"], trips["route_id"]))
-        trip_id_a_desti = dict(zip(trips["trip_id"], trips.get("trip_headsign", "")))
+        trip_id_a_desti = dict(zip(trips["trip_id"], trips.get("trip_headsign", pd.Series(dtype=str)).fillna("")))
         trip_id_a_servei = dict(zip(trips["trip_id"], trips["service_id"]))
         route_id_a_nom = dict(zip(routes["route_id"], routes["route_short_name"]))
 
@@ -1412,10 +1412,14 @@ def api_horaris_renfe_gtfs(id_estacio):
         ara = datetime.now(tz_cat)
         avui_str = ara.strftime("%Y%m%d")
         horaris = []
+        vist_trips = set()
         for _, row in pas.iterrows():
             trip_id = row["trip_id"]
+            if trip_id in vist_trips:
+                continue
             if serveis_avui is not None and trip_id_a_servei.get(trip_id) not in serveis_avui:
                 continue
+            vist_trips.add(trip_id)
             hora_txt = row.get("departure_time") or row.get("arrival_time")
             if not hora_txt:
                 continue
@@ -1491,7 +1495,7 @@ def api_horaris_renfe_avld_gtfs(id_estacio):
         stop_ids = set(coincidents["stop_id"])
 
         trip_id_a_linia = dict(zip(trips["trip_id"], trips["route_id"]))
-        trip_id_a_desti = dict(zip(trips["trip_id"], trips.get("trip_headsign", "")))
+        trip_id_a_desti = dict(zip(trips["trip_id"], trips.get("trip_headsign", pd.Series(dtype=str)).fillna("")))
         trip_id_a_servei = dict(zip(trips["trip_id"], trips["service_id"]))
         route_id_a_nom = dict(zip(routes["route_id"], routes["route_short_name"]))
 
@@ -1502,10 +1506,14 @@ def api_horaris_renfe_avld_gtfs(id_estacio):
         ara = datetime.now(tz_cat)
         avui_str = ara.strftime("%Y%m%d")
         horaris = []
+        vist_trips = set()
         for _, row in pas.iterrows():
             trip_id = row["trip_id"]
+            if trip_id in vist_trips:
+                continue
             if serveis_avui is not None and trip_id_a_servei.get(trip_id) not in serveis_avui:
                 continue
+            vist_trips.add(trip_id)
             hora_txt = row.get("departure_time") or row.get("arrival_time")
             if not hora_txt:
                 continue
@@ -1660,7 +1668,7 @@ def api_horaris_tmb_gtfs(id_estacio):
 
         trips_l9l10 = trips[trips["route_id"].isin(route_ids)]
         trip_id_a_linia = dict(zip(trips_l9l10["trip_id"], trips_l9l10["route_id"]))
-        trip_id_a_desti = dict(zip(trips_l9l10["trip_id"], trips_l9l10.get("trip_headsign", "")))
+        trip_id_a_desti = dict(zip(trips_l9l10["trip_id"], trips_l9l10.get("trip_headsign", pd.Series(dtype=str)).fillna("")))
         trip_id_a_servei = dict(zip(trips_l9l10["trip_id"], trips_l9l10["service_id"]))
         route_id_a_nom = dict(zip(routes["route_id"], routes["route_short_name"]))
 
@@ -1671,10 +1679,14 @@ def api_horaris_tmb_gtfs(id_estacio):
         ara = datetime.now(tz_cat)
         avui_str = ara.strftime("%Y%m%d")
         horaris = []
+        vist_trips = set()
         for _, row in pas.iterrows():
             trip_id = row["trip_id"]
+            if trip_id in vist_trips:
+                continue
             if serveis_avui is not None and trip_id_a_servei.get(trip_id) not in serveis_avui:
                 continue
+            vist_trips.add(trip_id)
             hora_txt = row.get("departure_time") or row.get("arrival_time")
             if not hora_txt:
                 continue
@@ -1748,7 +1760,7 @@ def api_horaris_fgv_gtfs(id_estacio):
         stop_ids = set(coincidents["stop_id"])
 
         trip_id_a_linia = dict(zip(trips["trip_id"], trips["route_id"]))
-        trip_id_a_desti = dict(zip(trips["trip_id"], trips.get("trip_headsign", "")))
+        trip_id_a_desti = dict(zip(trips["trip_id"], trips.get("trip_headsign", pd.Series(dtype=str)).fillna("")))
         trip_id_a_servei = dict(zip(trips["trip_id"], trips["service_id"]))
         route_id_a_nom = dict(zip(routes["route_id"], routes["route_short_name"]))
 
@@ -1759,10 +1771,14 @@ def api_horaris_fgv_gtfs(id_estacio):
         ara = datetime.now(tz_cat)
         avui_str = ara.strftime("%Y%m%d")
         horaris = []
+        vist_trips = set()
         for _, row in pas.iterrows():
             trip_id = row["trip_id"]
+            if trip_id in vist_trips:
+                continue
             if serveis_avui is not None and trip_id_a_servei.get(trip_id) not in serveis_avui:
                 continue
+            vist_trips.add(trip_id)
             hora_txt = row.get("departure_time") or row.get("arrival_time")
             if not hora_txt:
                 continue
