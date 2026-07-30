@@ -1412,11 +1412,16 @@ def api_horaris_renfe_gtfs(id_estacio):
 
         ara = datetime.now(tz_cat)
         avui_str = ara.strftime("%Y%m%d")
+        avui_iso = ara.strftime("%Y-%m-%d")
         horaris = []
         vist_claus = set()
         for _, row in pas.iterrows():
             trip_id = row["trip_id"]
-            if serveis_avui is not None and trip_id_a_servei.get(trip_id) not in serveis_avui:
+            data_incrustada = _data_incrustada_trip_id(trip_id)
+            if data_incrustada is not None:
+                if data_incrustada != avui_iso:
+                    continue
+            elif serveis_avui is not None and trip_id_a_servei.get(trip_id) not in serveis_avui:
                 continue
             hora_txt = row.get("departure_time") or row.get("arrival_time")
             if not hora_txt:
@@ -1510,11 +1515,16 @@ def api_horaris_renfe_avld_gtfs(id_estacio):
 
         ara = datetime.now(tz_cat)
         avui_str = ara.strftime("%Y%m%d")
+        avui_iso = ara.strftime("%Y-%m-%d")
         horaris = []
         vist_claus = set()
         for _, row in pas.iterrows():
             trip_id = row["trip_id"]
-            if serveis_avui is not None and trip_id_a_servei.get(trip_id) not in serveis_avui:
+            data_incrustada = _data_incrustada_trip_id(trip_id)
+            if data_incrustada is not None:
+                if data_incrustada != avui_iso:
+                    continue
+            elif serveis_avui is not None and trip_id_a_servei.get(trip_id) not in serveis_avui:
                 continue
             hora_txt = row.get("departure_time") or row.get("arrival_time")
             if not hora_txt:
@@ -1616,6 +1626,17 @@ def _carregar_gtfs_tmb():
     return dades
 
 
+_PATRO_DATA_TRIP_ID = re.compile(r'(\d{4}-\d{2}-\d{2})$')
+
+def _data_incrustada_trip_id(trip_id):
+    """Alguns trip_id de Renfe porten la data exacta de validesa enganxada
+    al final (p. ex. '0146312026-08-17' -> vàlid només el 2026-08-17).
+    Retorna aquesta data en format 'YYYY-MM-DD', o None si el trip_id no
+    en porta cap."""
+    m = _PATRO_DATA_TRIP_ID.search(str(trip_id))
+    return m.group(1) if m else None
+
+
 _PATRO_PREFIX_CORRUPTE = re.compile(r'^\d{4}-\d{2}-\d{2}\d{4}-\d{2}-\d{2}(.+)$')
 
 def _netejar_calendar(calendar):
@@ -1702,11 +1723,16 @@ def api_horaris_tmb_gtfs(id_estacio):
 
         ara = datetime.now(tz_cat)
         avui_str = ara.strftime("%Y%m%d")
+        avui_iso = ara.strftime("%Y-%m-%d")
         horaris = []
         vist_claus = set()
         for _, row in pas.iterrows():
             trip_id = row["trip_id"]
-            if serveis_avui is not None and trip_id_a_servei.get(trip_id) not in serveis_avui:
+            data_incrustada = _data_incrustada_trip_id(trip_id)
+            if data_incrustada is not None:
+                if data_incrustada != avui_iso:
+                    continue
+            elif serveis_avui is not None and trip_id_a_servei.get(trip_id) not in serveis_avui:
                 continue
             hora_txt = row.get("departure_time") or row.get("arrival_time")
             if not hora_txt:
@@ -1798,11 +1824,16 @@ def api_horaris_fgv_gtfs(id_estacio):
 
         ara = datetime.now(tz_cat)
         avui_str = ara.strftime("%Y%m%d")
+        avui_iso = ara.strftime("%Y-%m-%d")
         horaris = []
         vist_claus = set()
         for _, row in pas.iterrows():
             trip_id = row["trip_id"]
-            if serveis_avui is not None and trip_id_a_servei.get(trip_id) not in serveis_avui:
+            data_incrustada = _data_incrustada_trip_id(trip_id)
+            if data_incrustada is not None:
+                if data_incrustada != avui_iso:
+                    continue
+            elif serveis_avui is not None and trip_id_a_servei.get(trip_id) not in serveis_avui:
                 continue
             hora_txt = row.get("departure_time") or row.get("arrival_time")
             if not hora_txt:
