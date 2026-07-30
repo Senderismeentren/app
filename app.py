@@ -145,6 +145,7 @@ def carregar_dades():
                         "comarca": str(erow.get("Comarca_sortida", "")).strip(),
                         "meteocat": str(erow.get("Enllaç_Meteocat", "")).strip(),
                         "meteofrance": str(erow.get("Enllaç_Meteofrance", "")).strip(),
+                        "avamet": str(erow.get("Enllaç_Avamet", "")).strip(),
                         "aemet": str(erow.get("Enllaç_Aemet", "")).strip(),
                     }
                 _cache_dades["estacions_info"] = estacions_info
@@ -356,6 +357,7 @@ def ruta_a_dict(row):
             else (str(int(float(v("Enllaç_Meteofrance")))).zfill(6) if v("Enllaç_Meteofrance") else "")
         ),
         "enllaç_aemet": info_s.get("aemet") or v("Enllaç_Aemet"),
+        "enllaç_avamet": info_s.get("avamet") or v("Enllaç_Avamet"),
     }
 
 
@@ -1508,6 +1510,111 @@ def api_horaris_tmb_gtfs(id_estacio):
         return jsonify({"horaris": horaris[:8], "operador": "TMB"})
     except Exception as e:
         return jsonify({"horaris": [], "error": str(e)})
+
+
+_cache_gtfs_fgv = {"dades": None, "carregat_a": 0}
+GTFS_FGV_TTL = 24 * 3600  # setmanal segons FGV; refresquem cada dia per si de cas
+
+def _carregar_gtfs_fgv():
+    """Descarrega i parseja el GTFS estàtic oficial del TRAM d'Alacant (FGV)."""
+    ara = time.time()
+    if _cache_gtfs_fgv["dades"] and (ara - _cache_gtfs_fgv["carregat_a"] < GTFS_FGV_TTL):
+        return _cache_gtfs_fgv["dades"]
+
+    url = "http://www.tramalicante.es/google_transit_feed/google_transit.zip"
+    r = requests.get(url, timeout=30)
+    z = zipfile.ZipFile(io.BytesIO(r.content))
+
+    stops = pd.read_csv(z.open("stops.txt"), dtype=str)
+    routes = pd.read_csv(z.open("routes.txt"), dtype=str)
+    trips = pd.read_csv(z.open("trips.txt"), dtype=str)
+    stop_times = pd.read_csv(z.open("stop_times.txt"), dtype=str)
+    calendar = pd.read_csv(z.open("calendar.txt"), dtype=str) if "calendar.txt" in z.namelist() else None
+    calendar_dates = pd.read_csv(z.open("calendar_dates.txt"), dtype=str) if "calendar_dates.txt" in z.namelist() else None
+
+    dades = {
+        "stops": stops, "routes": routes, "trips": trips,
+        "stop_times": stop_times, "calendar": calendar, "calendar_dates": calendar_dates
+    }
+    _cache_gtfs_fgv["dades"] = dades
+    _cache_gtfs_fgv["carregat_a"] = ara
+    return dades
+
+
+@app.route("/api/horaris-fgv-gtfs/<path:id_estacio>")
+def api_horaris_fgv_gtfs(id_estacio):
+    """Horaris programats (GTFS estàtic oficial) del TRAM d'Alacant (FGV),
+    ja que FGV no publica cap API pública d'horaris en temps real."""
+    from datetime import datetime, timedelta
+    import zoneinfo
+    tz_cat = zoneinfo.ZoneInfo("Europe/Madrid")
+
+    try:
+        dades = _carregar_gtfs_fgv()
+        stops, routes, trips = dades["stops"], dades["routes"], dades["trips"]
+        stop_times = dades["stop_times"]
+
+        coincidents = stops[(stops["stop_id"] == str(id_estacio)) | (stops.get("stop_code") == str(id_estacio))]
+        if coincidents.empty:
+            return jsonify({"horaris": [], "error": f"Estació {id_estacio} no trobada al GTFS de FGV"})
+        stop_ids = set(coincidents["stop_id"])
+
+        trip_id_a_linia = dict(zip(trips["trip_id"], trips["route_id"]))
+        trip_id_a_desti = dict(zip(trips["trip_id"], trips.get("trip_headsign", "")))
+        trip_id_a_servei = dict(zip(trips["trip_id"], trips["service_id"]))
+        route_id_a_nom = dict(zip(routes["route_id"], routes["route_short_name"]))
+
+        serveis_avui = _serveis_actius_avui(dades["calendar"], dades["calendar_dates"])
+
+        pas = stop_times[stop_times["stop_id"].isin(stop_ids) & stop_times["trip_id"].isin(trip_id_a_linia.keys())]
+
+        ara = datetime.now(tz_cat)
+        avui_str = ara.strftime("%Y%m%d")
+        horaris = []
+        for _, row in pas.iterrows():
+            trip_id = row["trip_id"]
+            if trip_id_a_servei.get(trip_id) not in serveis_avui:
+                continue
+            hora_txt = row.get("departure_time") or row.get("arrival_time")
+            if not hora_txt:
+                continue
+            hh, mm, ss = [int(x) for x in hora_txt.split(":")]
+            moment = datetime.strptime(avui_str, "%Y%m%d").replace(
+                hour=0, minute=0, second=0, tzinfo=tz_cat
+            ) + timedelta(hours=hh, minutes=mm, seconds=ss)
+            if moment < ara:
+                continue
+            horaris.append({
+                "hora": moment.strftime("%H:%M"),
+                "linia": route_id_a_nom.get(trip_id_a_linia.get(trip_id), ""),
+                "destinacio": trip_id_a_desti.get(trip_id, ""),
+                "retard": 0,
+                "ara": False,
+                "_ordre": moment
+            })
+        horaris.sort(key=lambda x: x["_ordre"])
+        for hh in horaris:
+            del hh["_ordre"]
+        return jsonify({"horaris": horaris[:8], "operador": "FGV"})
+    except Exception as e:
+        return jsonify({"horaris": [], "error": str(e)})
+
+
+@app.route("/api/cerca-estacio-fgv")
+def cerca_estacio_fgv():
+    """Utilitat: cerca el stop_id del GTFS de FGV pel nom (p. ex. ?q=calp),
+    per trobar el codi a posar a Sheets sense haver de baixar el GTFS a mà."""
+    q = (request.args.get("q") or "").strip().lower()
+    if not q:
+        return jsonify({"error": "Passa un nom a cercar, p. ex. /api/cerca-estacio-fgv?q=calp"})
+    try:
+        dades = _carregar_gtfs_fgv()
+        stops = dades["stops"]
+        trobades = stops[stops["stop_name"].str.lower().str.contains(q, na=False)]
+        resultat = trobades[["stop_id", "stop_name"] + (["stop_code"] if "stop_code" in trobades.columns else [])].to_dict(orient="records")
+        return jsonify({"resultats": resultat})
+    except Exception as e:
+        return jsonify({"error": str(e)})
 
 
 
