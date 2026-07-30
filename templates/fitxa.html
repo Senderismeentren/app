@@ -552,6 +552,20 @@
       </div>
     </div>
     {% endif %}
+    {% if ruta.enllaç_avamet %}
+    <div class="bloc">
+      <div class="bloc-cap"><span class="bloc-icon">🌤️</span><span class="bloc-titol">Avamet</span></div>
+      <div class="bloc-cos" style="padding:0;overflow:hidden;height:280px;">
+        <iframe
+          src="https://www.avamet.org/widgets/widget-l.php?codi={{ ruta.enllaç_avamet }}&size=161&idioma=va"
+          title="Predicció Avamet"
+          frameborder="0"
+          style="border:0;display:block;width:100%;height:100%;"
+          scrolling="no">
+        </iframe>
+      </div>
+    </div>
+    {% endif %}
 
     <!-- HORARIS EN TEMPS REAL -->
     <div class="bloc">
@@ -825,9 +839,10 @@ async function actualitzarHoraris(tipus, idEst, colorOp) {
     const opActual = (tipus === 'sortida' ? OP_SORTIDA : OP_ARRIBADA).toLowerCase();
     const esCercaniesMD = opActual.includes('cercanias') || opActual.includes('cercanías') || opActual.includes('media distancia') || opActual.includes('mitjana distància') || opActual.trim() === 'md';
     const esTMB = opActual.includes('tmb') || opActual.includes('metro');
+    const esFGV = opActual.includes('fgv');
     const liniesActuals = tipus === 'sortida' ? LINIES_SORTIDA : LINIES_ARRIBADA;
     const esL9L10 = liniesActuals.some(l => /L\s*-?9|L\s*-?10/i.test(l));
-    const endpointHoraris = esSNCF ? `/api/horaris-sncf/${idEst}` : esCercaniesMD ? `/api/horaris-renfe/${idEst}` : (esTMB && esL9L10) ? `/api/horaris-tmb-gtfs/${idEst}` : esTMB ? `/api/horaris-tmb/${idEst}` : `/api/horaris/${idEst}`;
+    const endpointHoraris = esSNCF ? `/api/horaris-sncf/${idEst}` : esCercaniesMD ? `/api/horaris-renfe/${idEst}` : (esTMB && esL9L10) ? `/api/horaris-tmb-gtfs/${idEst}` : esTMB ? `/api/horaris-tmb/${idEst}` : esFGV ? `/api/horaris-fgv-gtfs/${idEst}` : `/api/horaris/${idEst}`;
     const resp = await fetch(endpointHoraris);
     const data = await resp.json();
 
