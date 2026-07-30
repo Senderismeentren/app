@@ -1521,8 +1521,8 @@ def _carregar_gtfs_fgv():
     if _cache_gtfs_fgv["dades"] and (ara - _cache_gtfs_fgv["carregat_a"] < GTFS_FGV_TTL):
         return _cache_gtfs_fgv["dades"]
 
-    url = "https://www.tramalicante.es/google_transit_feed/google_transit.zip"
-    r = requests.get(url, timeout=30, headers={"User-Agent": "Mozilla/5.0"})
+    url = "https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/gtfs-fgv/google_transit.zip"
+    r = requests.get(url, timeout=15)
     z = zipfile.ZipFile(io.BytesIO(r.content))
 
     stops = pd.read_csv(z.open("stops.txt"), dtype=str)
