@@ -837,12 +837,13 @@ async function actualitzarHoraris(tipus, idEst, colorOp) {
   try {
     const esSNCF = (tipus === 'sortida' ? OP_SORTIDA : OP_ARRIBADA).includes('sncf') || (tipus === 'sortida' ? OP_SORTIDA : OP_ARRIBADA).includes('groc');
     const opActual = (tipus === 'sortida' ? OP_SORTIDA : OP_ARRIBADA).toLowerCase();
-    const esCercaniesMD = opActual.includes('cercanias') || opActual.includes('cercanías') || opActual.includes('media distancia') || opActual.includes('mitjana distància') || opActual.trim() === 'md';
+    const esCercanias = opActual.includes('cercanias') || opActual.includes('cercanías');
+    const esRenfeAVLD = !esCercanias && (opActual.includes('renfe') || opActual.includes('media distancia') || opActual.includes('mitjana distància') || opActual.trim() === 'md');
     const esTMB = opActual.includes('tmb') || opActual.includes('metro');
     const esFGV = opActual.includes('fgv');
     const liniesActuals = tipus === 'sortida' ? LINIES_SORTIDA : LINIES_ARRIBADA;
     const esL9L10 = liniesActuals.some(l => /L\s*-?9|L\s*-?10/i.test(l));
-    const endpointHoraris = esSNCF ? `/api/horaris-sncf/${idEst}` : esCercaniesMD ? `/api/horaris-renfe-gtfs/${idEst}` : (esTMB && esL9L10) ? `/api/horaris-tmb-gtfs/${idEst}` : esTMB ? `/api/horaris-tmb/${idEst}` : esFGV ? `/api/horaris-fgv-gtfs/${idEst}` : `/api/horaris/${idEst}`;
+    const endpointHoraris = esSNCF ? `/api/horaris-sncf/${idEst}` : esCercanias ? `/api/horaris-renfe-gtfs/${idEst}` : esRenfeAVLD ? `/api/horaris-renfe-avld-gtfs/${idEst}` : (esTMB && esL9L10) ? `/api/horaris-tmb-gtfs/${idEst}` : esTMB ? `/api/horaris-tmb/${idEst}` : esFGV ? `/api/horaris-fgv-gtfs/${idEst}` : `/api/horaris/${idEst}`;
     const resp = await fetch(endpointHoraris);
     const data = await resp.json();
 
