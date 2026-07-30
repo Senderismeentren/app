@@ -1369,6 +1369,7 @@ def _carregar_gtfs_renfe():
     trips = pd.read_csv(z.open("trips.txt"), dtype=str)
     stop_times = pd.read_csv(z.open("stop_times.txt"), dtype=str)
     calendar = pd.read_csv(z.open("calendar.txt"), dtype=str) if "calendar.txt" in z.namelist() else None
+    calendar = _netejar_calendar(calendar)
     calendar_dates = pd.read_csv(z.open("calendar_dates.txt"), dtype=str) if "calendar_dates.txt" in z.namelist() else None
 
     dades = {
@@ -1465,6 +1466,7 @@ def _carregar_gtfs_renfe_avld():
     trips = pd.read_csv(z.open("trips.txt"), dtype=str)
     stop_times = pd.read_csv(z.open("stop_times.txt"), dtype=str)
     calendar = pd.read_csv(z.open("calendar.txt"), dtype=str) if "calendar.txt" in z.namelist() else None
+    calendar = _netejar_calendar(calendar)
     calendar_dates = pd.read_csv(z.open("calendar_dates.txt"), dtype=str) if "calendar_dates.txt" in z.namelist() else None
 
     dades = {
@@ -1596,6 +1598,7 @@ def _carregar_gtfs_tmb():
     trips = pd.read_csv(z.open("trips.txt"), dtype=str)
     stop_times = pd.read_csv(z.open("stop_times.txt"), dtype=str)
     calendar = pd.read_csv(z.open("calendar.txt"), dtype=str) if "calendar.txt" in z.namelist() else None
+    calendar = _netejar_calendar(calendar)
     calendar_dates = pd.read_csv(z.open("calendar_dates.txt"), dtype=str) if "calendar_dates.txt" in z.namelist() else None
 
     dades = {
@@ -1605,6 +1608,21 @@ def _carregar_gtfs_tmb():
     _cache_gtfs_tmb["dades"] = dades
     _cache_gtfs_tmb["carregat_a"] = ara
     return dades
+
+
+_PATRO_PREFIX_CORRUPTE = re.compile(r'^\d{4}-\d{2}-\d{2}\d{4}-\d{2}-\d{2}(.+)$')
+
+def _netejar_calendar(calendar):
+    """Alguns GTFS de Renfe (p. ex. AV/LD/MD) porten el service_id de calendar.txt
+    amb un prefix de dates enganxat sense coma (p. ex. '2026-07-302026-08-04001901'
+    en lloc de '001901'). Ho netegem perquè coincideixi amb el service_id real
+    que fan servir trips.txt."""
+    if calendar is not None and "service_id" in calendar.columns:
+        calendar = calendar.copy()
+        calendar["service_id"] = calendar["service_id"].astype(str).apply(
+            lambda v: (_PATRO_PREFIX_CORRUPTE.match(v).group(1) if _PATRO_PREFIX_CORRUPTE.match(v) else v)
+        )
+    return calendar
 
 
 def _serveis_actius_avui(calendar, calendar_dates):
@@ -1730,6 +1748,7 @@ def _carregar_gtfs_fgv():
     trips = pd.read_csv(z.open("trips.txt"), dtype=str)
     stop_times = pd.read_csv(z.open("stop_times.txt"), dtype=str)
     calendar = pd.read_csv(z.open("calendar.txt"), dtype=str) if "calendar.txt" in z.namelist() else None
+    calendar = _netejar_calendar(calendar)
     calendar_dates = pd.read_csv(z.open("calendar_dates.txt"), dtype=str) if "calendar_dates.txt" in z.namelist() else None
 
     dades = {
