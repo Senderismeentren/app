@@ -1441,9 +1441,98 @@ def api_horaris_renfe_gtfs(id_estacio):
         return jsonify({"horaris": [], "error": str(e)})
 
 
+_cache_gtfs_renfe_avld = {"dades": None, "carregat_a": 0}
+GTFS_RENFE_AVLD_TTL = 24 * 3600
 
-@app.route("/api/horaris-tmb/<path:id_estacio>")
-def api_horaris_tmb(id_estacio):
+def _carregar_gtfs_renfe_avld():
+    """Descarrega i parseja el mirall a GitHub del GTFS estàtic de Renfe
+    Alta Velocitat / Llarga Distància / Media Distancia (Regional Exprés
+    inclòs), diferent del de Cercanías."""
+    ara = time.time()
+    if _cache_gtfs_renfe_avld["dades"] and (ara - _cache_gtfs_renfe_avld["carregat_a"] < GTFS_RENFE_AVLD_TTL):
+        return _cache_gtfs_renfe_avld["dades"]
+
+    url = "https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/gtfs-renfe-avld/google_transit.zip"
+    r = requests.get(url, timeout=15)
+    z = zipfile.ZipFile(io.BytesIO(r.content))
+
+    stops = pd.read_csv(z.open("stops.txt"), dtype=str)
+    routes = pd.read_csv(z.open("routes.txt"), dtype=str)
+    trips = pd.read_csv(z.open("trips.txt"), dtype=str)
+    stop_times = pd.read_csv(z.open("stop_times.txt"), dtype=str)
+    calendar = pd.read_csv(z.open("calendar.txt"), dtype=str) if "calendar.txt" in z.namelist() else None
+    calendar_dates = pd.read_csv(z.open("calendar_dates.txt"), dtype=str) if "calendar_dates.txt" in z.namelist() else None
+
+    dades = {
+        "stops": stops, "routes": routes, "trips": trips,
+        "stop_times": stop_times, "calendar": calendar, "calendar_dates": calendar_dates
+    }
+    _cache_gtfs_renfe_avld["dades"] = dades
+    _cache_gtfs_renfe_avld["carregat_a"] = ara
+    return dades
+
+
+@app.route("/api/horaris-renfe-avld-gtfs/<path:id_estacio>")
+def api_horaris_renfe_avld_gtfs(id_estacio):
+    """Horaris programats (GTFS estàtic oficial) per a Media Distancia,
+    Regional Exprés, Llarga Distància i Alta Velocitat de Renfe."""
+    from datetime import datetime, timedelta
+    import zoneinfo
+    tz_cat = zoneinfo.ZoneInfo("Europe/Madrid")
+
+    try:
+        dades = _carregar_gtfs_renfe_avld()
+        stops, routes, trips = dades["stops"], dades["routes"], dades["trips"]
+        stop_times = dades["stop_times"]
+
+        coincidents = stops[(stops["stop_id"] == str(id_estacio)) | (stops.get("stop_code") == str(id_estacio))]
+        if coincidents.empty:
+            return jsonify({"horaris": [], "error": f"Estació {id_estacio} no trobada al GTFS d'AV/LD/MD"})
+        stop_ids = set(coincidents["stop_id"])
+
+        trip_id_a_linia = dict(zip(trips["trip_id"], trips["route_id"]))
+        trip_id_a_desti = dict(zip(trips["trip_id"], trips.get("trip_headsign", "")))
+        trip_id_a_servei = dict(zip(trips["trip_id"], trips["service_id"]))
+        route_id_a_nom = dict(zip(routes["route_id"], routes["route_short_name"]))
+
+        serveis_avui = _serveis_actius_avui(dades["calendar"], dades["calendar_dates"])
+
+        pas = stop_times[stop_times["stop_id"].isin(stop_ids) & stop_times["trip_id"].isin(trip_id_a_linia.keys())]
+
+        ara = datetime.now(tz_cat)
+        avui_str = ara.strftime("%Y%m%d")
+        horaris = []
+        for _, row in pas.iterrows():
+            trip_id = row["trip_id"]
+            if trip_id_a_servei.get(trip_id) not in serveis_avui:
+                continue
+            hora_txt = row.get("departure_time") or row.get("arrival_time")
+            if not hora_txt:
+                continue
+            hh, mm, ss = [int(x) for x in hora_txt.split(":")]
+            moment = datetime.strptime(avui_str, "%Y%m%d").replace(
+                hour=0, minute=0, second=0, tzinfo=tz_cat
+            ) + timedelta(hours=hh, minutes=mm, seconds=ss)
+            if moment < ara:
+                continue
+            horaris.append({
+                "hora": moment.strftime("%H:%M"),
+                "linia": route_id_a_nom.get(trip_id_a_linia.get(trip_id), ""),
+                "destinacio": trip_id_a_desti.get(trip_id, ""),
+                "retard": 0,
+                "ara": False,
+                "_ordre": moment
+            })
+        horaris.sort(key=lambda x: x["_ordre"])
+        for hh in horaris:
+            del hh["_ordre"]
+        return jsonify({"horaris": horaris[:8], "operador": "Renfe"})
+    except Exception as e:
+        return jsonify({"horaris": [], "error": str(e)})
+
+
+
+
     """Horaris en temps real del Metro de Barcelona via l'API i-Metro de TMB."""
     from datetime import datetime
     import zoneinfo
