@@ -1414,7 +1414,7 @@ def api_horaris_renfe_gtfs(id_estacio):
         horaris = []
         for _, row in pas.iterrows():
             trip_id = row["trip_id"]
-            if trip_id_a_servei.get(trip_id) not in serveis_avui:
+            if serveis_avui is not None and trip_id_a_servei.get(trip_id) not in serveis_avui:
                 continue
             hora_txt = row.get("departure_time") or row.get("arrival_time")
             if not hora_txt:
@@ -1504,7 +1504,7 @@ def api_horaris_renfe_avld_gtfs(id_estacio):
         horaris = []
         for _, row in pas.iterrows():
             trip_id = row["trip_id"]
-            if trip_id_a_servei.get(trip_id) not in serveis_avui:
+            if serveis_avui is not None and trip_id_a_servei.get(trip_id) not in serveis_avui:
                 continue
             hora_txt = row.get("departure_time") or row.get("arrival_time")
             if not hora_txt:
@@ -1608,11 +1608,18 @@ def _serveis_actius_avui(calendar, calendar_dates):
     dia_setmana = dies[avui.weekday()]
 
     actius = set()
-    if calendar is not None:
+    te_columnes = (
+        calendar is not None
+        and {"start_date", "end_date", "service_id"}.issubset(set(calendar.columns))
+    )
+    if not te_columnes and (calendar_dates is None or not {"date", "service_id", "exception_type"}.issubset(set(calendar_dates.columns))):
+        return None  # no es pot determinar el calendari: no filtrem per servei
+
+    if te_columnes:
         for _, row in calendar.iterrows():
             if row.get(dia_setmana) == "1" and row["start_date"] <= avui_str <= row["end_date"]:
                 actius.add(row["service_id"])
-    if calendar_dates is not None:
+    if calendar_dates is not None and {"date", "service_id", "exception_type"}.issubset(set(calendar_dates.columns)):
         avui_exc = calendar_dates[calendar_dates["date"] == avui_str]
         for _, row in avui_exc.iterrows():
             if row["exception_type"] == "1":
@@ -1666,7 +1673,7 @@ def api_horaris_tmb_gtfs(id_estacio):
         horaris = []
         for _, row in pas.iterrows():
             trip_id = row["trip_id"]
-            if trip_id_a_servei.get(trip_id) not in serveis_avui:
+            if serveis_avui is not None and trip_id_a_servei.get(trip_id) not in serveis_avui:
                 continue
             hora_txt = row.get("departure_time") or row.get("arrival_time")
             if not hora_txt:
@@ -1754,7 +1761,7 @@ def api_horaris_fgv_gtfs(id_estacio):
         horaris = []
         for _, row in pas.iterrows():
             trip_id = row["trip_id"]
-            if trip_id_a_servei.get(trip_id) not in serveis_avui:
+            if serveis_avui is not None and trip_id_a_servei.get(trip_id) not in serveis_avui:
                 continue
             hora_txt = row.get("departure_time") or row.get("arrival_time")
             if not hora_txt:
