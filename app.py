@@ -1413,14 +1413,11 @@ def api_horaris_renfe_gtfs(id_estacio):
         ara = datetime.now(tz_cat)
         avui_str = ara.strftime("%Y%m%d")
         horaris = []
-        vist_trips = set()
+        vist_claus = set()
         for _, row in pas.iterrows():
             trip_id = row["trip_id"]
-            if trip_id in vist_trips:
-                continue
             if serveis_avui is not None and trip_id_a_servei.get(trip_id) not in serveis_avui:
                 continue
-            vist_trips.add(trip_id)
             hora_txt = row.get("departure_time") or row.get("arrival_time")
             if not hora_txt:
                 continue
@@ -1430,10 +1427,16 @@ def api_horaris_renfe_gtfs(id_estacio):
             ) + timedelta(hours=hh, minutes=mm, seconds=ss)
             if moment < ara:
                 continue
+            linia = str(route_id_a_nom.get(trip_id_a_linia.get(trip_id), "")).strip()
+            desti = str(trip_id_a_desti.get(trip_id, "")).strip()
+            clau = (moment.strftime("%H:%M"), linia, desti)
+            if clau in vist_claus:
+                continue
+            vist_claus.add(clau)
             horaris.append({
                 "hora": moment.strftime("%H:%M"),
-                "linia": route_id_a_nom.get(trip_id_a_linia.get(trip_id), ""),
-                "destinacio": trip_id_a_desti.get(trip_id, ""),
+                "linia": linia,
+                "destinacio": desti,
                 "retard": 0,
                 "ara": False,
                 "_ordre": moment
@@ -1508,14 +1511,11 @@ def api_horaris_renfe_avld_gtfs(id_estacio):
         ara = datetime.now(tz_cat)
         avui_str = ara.strftime("%Y%m%d")
         horaris = []
-        vist_trips = set()
+        vist_claus = set()
         for _, row in pas.iterrows():
             trip_id = row["trip_id"]
-            if trip_id in vist_trips:
-                continue
             if serveis_avui is not None and trip_id_a_servei.get(trip_id) not in serveis_avui:
                 continue
-            vist_trips.add(trip_id)
             hora_txt = row.get("departure_time") or row.get("arrival_time")
             if not hora_txt:
                 continue
@@ -1525,10 +1525,16 @@ def api_horaris_renfe_avld_gtfs(id_estacio):
             ) + timedelta(hours=hh, minutes=mm, seconds=ss)
             if moment < ara:
                 continue
+            linia = str(route_id_a_nom.get(trip_id_a_linia.get(trip_id), "")).strip()
+            desti = str(trip_id_a_desti.get(trip_id, "")).strip()
+            clau = (moment.strftime("%H:%M"), linia, desti)
+            if clau in vist_claus:
+                continue
+            vist_claus.add(clau)
             horaris.append({
                 "hora": moment.strftime("%H:%M"),
-                "linia": route_id_a_nom.get(trip_id_a_linia.get(trip_id), ""),
-                "destinacio": trip_id_a_desti.get(trip_id, ""),
+                "linia": linia,
+                "destinacio": desti,
                 "retard": 0,
                 "ara": False,
                 "_ordre": moment
@@ -1697,14 +1703,11 @@ def api_horaris_tmb_gtfs(id_estacio):
         ara = datetime.now(tz_cat)
         avui_str = ara.strftime("%Y%m%d")
         horaris = []
-        vist_trips = set()
+        vist_claus = set()
         for _, row in pas.iterrows():
             trip_id = row["trip_id"]
-            if trip_id in vist_trips:
-                continue
             if serveis_avui is not None and trip_id_a_servei.get(trip_id) not in serveis_avui:
                 continue
-            vist_trips.add(trip_id)
             hora_txt = row.get("departure_time") or row.get("arrival_time")
             if not hora_txt:
                 continue
@@ -1714,10 +1717,16 @@ def api_horaris_tmb_gtfs(id_estacio):
             ) + timedelta(hours=hh, minutes=mm, seconds=ss)  # gestiona hores >=24 (servei nocturn)
             if moment < ara:
                 continue
+            linia = str(route_id_a_nom.get(trip_id_a_linia.get(trip_id), "")).strip()
+            desti = str(trip_id_a_desti.get(trip_id, "")).strip()
+            clau = (moment.strftime("%H:%M"), linia, desti)
+            if clau in vist_claus:
+                continue
+            vist_claus.add(clau)
             horaris.append({
                 "hora": moment.strftime("%H:%M"),
-                "linia": route_id_a_nom.get(trip_id_a_linia.get(trip_id), ""),
-                "destinacio": trip_id_a_desti.get(trip_id, ""),
+                "linia": linia,
+                "destinacio": desti,
                 "retard": 0,
                 "ara": False,
                 "_ordre": moment
@@ -1790,14 +1799,11 @@ def api_horaris_fgv_gtfs(id_estacio):
         ara = datetime.now(tz_cat)
         avui_str = ara.strftime("%Y%m%d")
         horaris = []
-        vist_trips = set()
+        vist_claus = set()
         for _, row in pas.iterrows():
             trip_id = row["trip_id"]
-            if trip_id in vist_trips:
-                continue
             if serveis_avui is not None and trip_id_a_servei.get(trip_id) not in serveis_avui:
                 continue
-            vist_trips.add(trip_id)
             hora_txt = row.get("departure_time") or row.get("arrival_time")
             if not hora_txt:
                 continue
@@ -1807,10 +1813,16 @@ def api_horaris_fgv_gtfs(id_estacio):
             ) + timedelta(hours=hh, minutes=mm, seconds=ss)
             if moment < ara:
                 continue
+            linia = str(route_id_a_nom.get(trip_id_a_linia.get(trip_id), "")).strip()
+            desti = str(trip_id_a_desti.get(trip_id, "")).strip()
+            clau = (moment.strftime("%H:%M"), linia, desti)
+            if clau in vist_claus:
+                continue
+            vist_claus.add(clau)
             horaris.append({
                 "hora": moment.strftime("%H:%M"),
-                "linia": route_id_a_nom.get(trip_id_a_linia.get(trip_id), ""),
-                "destinacio": trip_id_a_desti.get(trip_id, ""),
+                "linia": linia,
+                "destinacio": desti,
                 "retard": 0,
                 "ara": False,
                 "_ordre": moment
