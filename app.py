@@ -1513,6 +1513,16 @@ def api_horaris_renfe_avld_gtfs(id_estacio):
 
         pas = stop_times[stop_times["stop_id"].isin(stop_ids) & stop_times["trip_id"].isin(trip_id_a_linia.keys())]
 
+        if request.args.get("debug"):
+            dates_trobades = sorted(set(
+                _data_incrustada_trip_id(t) for t in pas["trip_id"] if _data_incrustada_trip_id(t)
+            ))
+            return jsonify({
+                "total_files_estacio": len(pas),
+                "dates_incrustades_trobades": dates_trobades[:30],
+                "data_avui": datetime.now(tz_cat).strftime("%Y-%m-%d")
+            })
+
         ara = datetime.now(tz_cat)
         avui_str = ara.strftime("%Y%m%d")
         avui_iso = ara.strftime("%Y-%m-%d")
@@ -1680,6 +1690,45 @@ def _serveis_actius_avui(calendar, calendar_dates):
             elif row["exception_type"] == "2" and row["service_id"] in actius:
                 actius.discard(row["service_id"])
     return actius
+
+
+@app.route("/api/horaris-tmb/<path:id_estacio>")
+def api_horaris_tmb(id_estacio):
+    """Horaris en temps real del Metro de Barcelona via l'API i-Metro de TMB."""
+    from datetime import datetime
+    import zoneinfo
+    tz_cat = zoneinfo.ZoneInfo("Europe/Madrid")
+
+    if not TMB_APP_ID or not TMB_APP_KEY:
+        return jsonify({"horaris": [], "error": "Falten les credencials TMB_APP_ID/TMB_APP_KEY"})
+
+    try:
+        url = "https://api.tmb.cat/v1/itransit/metro/estacions"
+        params = {"estacions": id_estacio, "app_id": TMB_APP_ID, "app_key": TMB_APP_KEY}
+        r = requests.get(url, params=params, timeout=8)
+        data = r.json()
+        horaris = []
+        for linia in data.get("linies", []):
+            nom_linia = linia.get("nom_linia", "")
+            for estacio in linia.get("estacions", []):
+                for trajecte in estacio.get("linies_trajectes", []):
+                    desti = trajecte.get("desti_trajecte", "")
+                    for tren in trajecte.get("propers_trens", []):
+                        ts_ms = tren.get("temps_arribada")
+                        if not ts_ms:
+                            continue
+                        hora = datetime.fromtimestamp(int(ts_ms) / 1000, tz_cat).strftime("%H:%M")
+                        horaris.append({
+                            "hora": hora,
+                            "linia": nom_linia,
+                            "destinacio": desti,
+                            "retard": 0,
+                            "ara": False
+                        })
+        horaris.sort(key=lambda h: h["hora"])
+        return jsonify({"horaris": horaris[:8], "operador": "TMB"})
+    except Exception as e:
+        return jsonify({"horaris": [], "error": str(e)})
 
 
 @app.route("/api/horaris-tmb-gtfs/<path:id_estacio>")
