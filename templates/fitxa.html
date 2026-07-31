@@ -809,6 +809,9 @@ function renderEstacioHoraris(nom, idEst, linies, colorOp, tipus) {
   const linieBadges = linies.map(l =>
     `<span class="linia-badge" style="background:${colorOp};">${l}</span>`
   ).join('');
+  const opAquesta = (tipus === 'sortida' ? OP_SORTIDA : OP_ARRIBADA).toLowerCase();
+  const esRenfeSenseGTFS = opAquesta.includes('cercanias') || opAquesta.includes('cercanías') ||
+    opAquesta.includes('renfe') || opAquesta.includes('media distancia') || opAquesta.includes('mitjana distància') || opAquesta.trim() === 'md';
   return `
   <div class="est-bloc">
     <div class="est-header">
@@ -823,7 +826,7 @@ function renderEstacioHoraris(nom, idEst, linies, colorOp, tipus) {
         '<p style="font-size:12px;color:#bbb;">Horaris en temps real disponibles properament.</p>'
       }
     </div>
-    ${idEst && !['Núria','Queralbs','Ribes de Freser','Ribes-Enllaç','La Pobla de Lillet'].some(e => idEst.replace(/_/g,' ').includes(e)) ? `<button class="btn-actualitza" onclick="actualitzarHoraris('${tipus}','${idEst}','${colorOp}')">↻ Actualitzar</button>` : ''}
+    ${idEst && !esRenfeSenseGTFS && !['Núria','Queralbs','Ribes de Freser','Ribes-Enllaç','La Pobla de Lillet'].some(e => idEst.replace(/_/g,' ').includes(e)) ? `<button class="btn-actualitza" onclick="actualitzarHoraris('${tipus}','${idEst}','${colorOp}')">↻ Actualitzar</button>` : ''}
     <div class="horaris-peu" id="peu-${tipus}"></div>
   </div>`;
 }
@@ -839,6 +842,18 @@ async function actualitzarHoraris(tipus, idEst, colorOp) {
     const opActual = (tipus === 'sortida' ? OP_SORTIDA : OP_ARRIBADA).toLowerCase();
     const esCercanias = opActual.includes('cercanias') || opActual.includes('cercanías');
     const esRenfeAVLD = !esCercanias && (opActual.includes('renfe') || opActual.includes('media distancia') || opActual.includes('mitjana distància') || opActual.trim() === 'md');
+
+    if (esCercanias || esRenfeAVLD) {
+      el.innerHTML = `<div style="font-size:12px;color:#888;line-height:1.5;">
+        <p>Renfe no ofereix cap font pública fiable d'horaris en temps real per a aquesta estació.</p>
+        <a href="https://www.renfe.com/es/es/viajar/informacion-util/horarios" target="_blank" rel="noopener"
+          style="color:#3498DB;font-weight:600;display:inline-flex;align-items:center;gap:4px;margin-top:4px;">
+          🔗 Consultar horaris a Renfe.com
+        </a>
+      </div>`;
+      if (peu) peu.textContent = '';
+      return;
+    }
     const esTMB = opActual.includes('tmb') || opActual.includes('metro');
     const esFGV = opActual.includes('fgv');
     const liniesActuals = tipus === 'sortida' ? LINIES_SORTIDA : LINIES_ARRIBADA;
