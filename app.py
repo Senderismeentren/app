@@ -2,6 +2,7 @@
 Senderisme en Tren — Flask app
 """
 import os
+import random
 import json
 import math
 import requests
@@ -603,7 +604,11 @@ def get_filtres(rutes):
         for op in camp.split(";") if op.strip()
     ))
     espais = sorted(set(e for r in rutes for e in r["espai"] if e))
-    millors = sorted(set(r["millors"] for r in rutes if r["millors"]))
+    millors = sorted(set(
+        cat.strip()
+        for r in rutes if r["millors"]
+        for cat in r["millors"].split(";") if cat.strip()
+    ))
 
     # Mapeig explícit per espais que no es poden deduir automàticament
     ESPAI_PROV_EXPLICIT = {
@@ -657,7 +662,10 @@ def inici():
     for r in rutes:
         cat = r.get("millors", "")
         if not cat: continue
-        grups.setdefault(cat, []).append(r)
+        for c in cat.split(";"):
+            c = c.strip()
+            if c:
+                grups.setdefault(c, []).append(r)
     colleccions = []
     for k, v_list in sorted(grups.items()):
         primera = v_list[0] if v_list else None
@@ -717,7 +725,7 @@ def rutes_pagina():
     if operador:rutes = [r for r in rutes if any(operador == op.strip() for camp in [r["op_sortida"] or "", r["op_arribada"] or ""] for op in camp.split(";"))]
     if espai:   rutes = [r for r in rutes if espai in r["espai"]]
     if cims:    rutes = [r for r in rutes if r["cims"]]
-    if millors: rutes = [r for r in rutes if r["millors"] == millors]
+    if millors: rutes = [r for r in rutes if r["millors"] and millors in [c.strip() for c in r["millors"].split(";")]]
     if estacio: rutes = [r for r in rutes if estacio in [r["sortida"], r["arribada"]]]
     if dist:
         def dins_dist(r):
@@ -728,7 +736,7 @@ def rutes_pagina():
             return True
         rutes = [r for r in rutes if dins_dist(r)]
     millors_filtre = request.args.get("millors", "")
-    if millors_filtre: rutes = [r for r in rutes if r.get("millors") == millors_filtre]
+    if millors_filtre: rutes = [r for r in rutes if r.get("millors") and millors_filtre in [c.strip() for c in r["millors"].split(";")]]
 
     filtres_actius = {k: v for k, v in {
         "dificultat": dif, "comarca": comarca,
@@ -943,13 +951,18 @@ def mapa_pagina():
 @app.route("/millors_rutes")
 def millors_rutes_pagina():
     rutes = get_rutes()
-    # Agrupar per categoria Millors_rutes
+    # Agrupar per categoria Millors_rutes (una ruta pot pertànyer a diverses, separades per ";")
     grups = {}
     for r in rutes:
         cat = r["millors"]
         if not cat: continue
-        grups.setdefault(cat, []).append(r)
+        for c in cat.split(";"):
+            c = c.strip()
+            if c:
+                grups.setdefault(c, []).append(r)
     grups = dict(sorted(grups.items()))
+    for llista in grups.values():
+        random.shuffle(llista)
     return render_template("millors_rutes.html", grups=grups)
 
 
