@@ -51,6 +51,16 @@
 /* ── SEPARADOR ── */
 .col-separador { border: none; border-top: 1px solid #eee; margin: 0; }
 
+/* ── VEURE'N MÉS ── */
+.col-rcard-oculta { display: none; }
+.col-veure-mes-wrap { text-align: center; margin-top: 18px; }
+.btn-veure-mes {
+  background: white; border: 1px solid #ddd; border-radius: 20px;
+  padding: 9px 22px; font-size: 13px; font-weight: 700; color: #444;
+  cursor: pointer; transition: all 0.15s;
+}
+.btn-veure-mes:hover { background: #f5f5f5; border-color: #ccc; }
+
 @media (max-width: 768px) {
   .col-rutes { grid-template-columns: 1fr; }
   .col-grup { padding: 28px 14px; }
@@ -99,7 +109,7 @@
 
       <div class="col-rutes">
         {% for r in rutes %}
-        <a class="col-rcard" href="/ruta/{{ r.id }}"
+        <a class="col-rcard{% if loop.index > 6 %} col-rcard-oculta{% endif %}" href="/ruta/{{ r.id }}"
            style="border-left-color:{{ r.color_dif }};">
           <div style="position:relative;height:110px;overflow:hidden;border-radius:8px 8px 0 0;">
             <img src="https://raw.githubusercontent.com/Senderismeentren/imatges/main/ruta-{{ '%03d'|format(r.id) }}/foto1.jpg"
@@ -125,6 +135,11 @@
         </a>
         {% endfor %}
       </div>
+      {% if rutes|length > 6 %}
+      <div class="col-veure-mes-wrap">
+        <button class="btn-veure-mes" onclick="veureMesRutes(this)">Veure {{ rutes|length - 6 }} rutes més</button>
+      </div>
+      {% endif %}
     </div>
     {% if not loop.last %}<hr class="col-separador">{% endif %}
     {% endfor %}
@@ -138,4 +153,12 @@
   {% endif %}
 
 </div>
+
+<script>
+function veureMesRutes(btn) {
+  const grup = btn.closest('.col-grup');
+  grup.querySelectorAll('.col-rcard-oculta').forEach(el => el.classList.remove('col-rcard-oculta'));
+  btn.parentElement.remove();
+}
+</script>
 {% endblock %}
