@@ -3,6 +3,7 @@ Senderisme en Tren — Flask app
 """
 import os
 import random
+import threading
 import json
 import math
 import requests
@@ -1036,7 +1037,7 @@ def _fetch_un_article_wp(url_wp):
         else:
             api_url = f"{WP_BASE}/posts"
             params = {"slug": segment, "_embed": "wp:featuredmedia"}
-        resp = requests.get(api_url, params=params, headers=WP_HEADERS, timeout=10)
+        resp = requests.get(api_url, params=params, headers=WP_HEADERS, timeout=6)
         a = resp.json()
         if isinstance(a, list):
             if not a:
@@ -1072,26 +1073,38 @@ def _fetch_articles_wp():
     articles.sort(key=lambda a: a["data"], reverse=True)
     return articles
 
+_articles_fetching = False
+_articles_lock = threading.Lock()
+
+def _refrescar_articles_en_segon_pla():
+    global _articles_fetching
+    try:
+        articles = _fetch_articles_wp()
+        _cache_articles["articles"] = articles
+        _cache_articles["ts"] = time.time()
+        print(f"[articles] Caché actualitzada ({len(articles)} articles)")
+    except Exception as e:
+        print(f"[articles] Error consultant WP: {repr(e)}")
+    finally:
+        _articles_fetching = False
+
 def get_articles():
-    """Retorna articles des de caché (TTL 1h). Si la caché és buida o caducada, consulta WP,
-    però com a molt cada ARTICLES_RETRY_BACKOFF segons si l'últim intent va fallar, per no
-    mantenir un bloqueig 429 actiu fent-hi peticions constants."""
+    """Retorna articles des de caché (TTL 1h). Si la caché és buida o caducada, llança
+    l'actualització en un fil a part (mai bloqueja la pàgina que l'ha demanat) i retorna
+    el que ja hi hagi (encara que sigui buit o antic). Com a molt es refresca cada
+    ARTICLES_RETRY_BACKOFF segons si l'últim intent va fallar."""
+    global _articles_fetching
     ara = time.time()
     if _cache_articles["articles"] is not None and ara - _cache_articles["ts"] < ARTICLES_CACHE_TTL:
         return _cache_articles["articles"]
     if ara - _cache_articles["darrer_intent"] < ARTICLES_RETRY_BACKOFF:
         return _cache_articles["articles"] or []
-    _cache_articles["darrer_intent"] = ara
-    try:
-        articles = _fetch_articles_wp()
-        _cache_articles["articles"] = articles
-        _cache_articles["ts"] = ara
-        print(f"[articles] Caché actualitzada ({len(articles)} articles)")
-    except Exception as e:
-        print(f"[articles] Error consultant WP: {repr(e)}")
-        if _cache_articles["articles"] is not None:
-            print("[articles] Servint dades de caché antiga")
-            return _cache_articles["articles"]
+    with _articles_lock:
+        if _articles_fetching:
+            return _cache_articles["articles"] or []
+        _articles_fetching = True
+        _cache_articles["darrer_intent"] = ara
+    threading.Thread(target=_refrescar_articles_en_segon_pla, daemon=True).start()
     return _cache_articles["articles"] or []
 
 @app.route("/articles")
