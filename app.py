@@ -1004,15 +1004,20 @@ _cache_articles = {"articles": None, "ts": 0, "darrer_intent": 0}
 
 def _fetch_articles_wp():
     """Consulta WP i retorna la llista d'articles processats. Llença excepció si falla.
-    Un sol intent (l'espera entre consultes de get_articles ja evita insistir massa)."""
+    Reintenta fins a 3 cops per a errors puntuals normals (timeout, servidor lent),
+    però si WP respon 429 (massa peticions) para immediatament sense insistir —
+    reintentar aquí només allargaria el bloqueig."""
     dades = []
-    for intent in range(1):
+    for intent in range(3):
         try:
             resp = requests.get(f"{WP_BASE}/posts",
                 params={"categories": CAT_ARTICLES, "per_page": 20,
                         "_embed": "wp:featuredmedia"},
                 headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"},
                 timeout=15)
+            if resp.status_code == 429:
+                print(f"[articles] WP ha respost 429 (massa peticions); no s'insisteix, s'espera al pròxim cicle")
+                raise RuntimeError("WP 429: massa peticions")
             dades = resp.json()
             if not isinstance(dades, list):
                 print(f"[articles] Resposta inesperada de WP (status {resp.status_code}): {str(dades)[:300]}")
@@ -1024,8 +1029,13 @@ def _fetch_articles_wp():
                 detall = f" (status {resp.status_code}, cos: {resp.text[:150]!r})"
             except Exception:
                 pass
-            print(f"[articles] Intent {intent+1}/1 fallit: {repr(e)}{detall}")
-            raise
+            print(f"[articles] Intent {intent+1}/3 fallit: {repr(e)}{detall}")
+            if isinstance(e, RuntimeError) and "429" in str(e):
+                raise
+            if intent < 2:
+                time.sleep(1)
+            else:
+                raise
     articles = []
     for a in dades:
         try:
