@@ -1009,6 +1009,7 @@ def _fetch_articles_wp():
             resp = requests.get(f"{WP_BASE}/posts",
                 params={"categories": CAT_ARTICLES, "per_page": 20,
                         "_embed": "wp:featuredmedia"},
+                headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"},
                 timeout=15)
             dades = resp.json()
             if not isinstance(dades, list):
@@ -1016,7 +1017,12 @@ def _fetch_articles_wp():
                 dades = []
             break
         except Exception as e:
-            print(f"[articles] Intent {intent+1}/3 fallit: {repr(e)}")
+            detall = ""
+            try:
+                detall = f" (status {resp.status_code}, cos: {resp.text[:150]!r})"
+            except Exception:
+                pass
+            print(f"[articles] Intent {intent+1}/3 fallit: {repr(e)}{detall}")
             if intent < 2:
                 time.sleep(1)
             else:
