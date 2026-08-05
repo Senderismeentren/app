@@ -998,13 +998,15 @@ _cache_gpx_linies = {}
 WP_BASE = "https://senderismeentren.cat/wp-json/wp/v2"
 CAT_ARTICLES = 208
 ARTICLES_CACHE_TTL = 3600  # 1 hora
+ARTICLES_RETRY_BACKOFF = 300  # 5 min: si falla, no tornar a provar-ho abans d'aquest temps
 
-_cache_articles = {"articles": None, "ts": 0}
+_cache_articles = {"articles": None, "ts": 0, "darrer_intent": 0}
 
 def _fetch_articles_wp():
-    """Consulta WP i retorna la llista d'articles processats. Llença excepció si falla."""
+    """Consulta WP i retorna la llista d'articles processats. Llença excepció si falla.
+    Un sol intent (l'espera entre consultes de get_articles ja evita insistir massa)."""
     dades = []
-    for intent in range(3):
+    for intent in range(1):
         try:
             resp = requests.get(f"{WP_BASE}/posts",
                 params={"categories": CAT_ARTICLES, "per_page": 20,
@@ -1022,11 +1024,8 @@ def _fetch_articles_wp():
                 detall = f" (status {resp.status_code}, cos: {resp.text[:150]!r})"
             except Exception:
                 pass
-            print(f"[articles] Intent {intent+1}/3 fallit: {repr(e)}{detall}")
-            if intent < 2:
-                time.sleep(1)
-            else:
-                raise
+            print(f"[articles] Intent {intent+1}/1 fallit: {repr(e)}{detall}")
+            raise
     articles = []
     for a in dades:
         try:
@@ -1046,10 +1045,15 @@ def _fetch_articles_wp():
     return articles
 
 def get_articles():
-    """Retorna articles des de caché (TTL 1h). Si la caché és buida o caducada, consulta WP."""
+    """Retorna articles des de caché (TTL 1h). Si la caché és buida o caducada, consulta WP,
+    però com a molt cada ARTICLES_RETRY_BACKOFF segons si l'últim intent va fallar, per no
+    mantenir un bloqueig 429 actiu fent-hi peticions constants."""
     ara = time.time()
     if _cache_articles["articles"] is not None and ara - _cache_articles["ts"] < ARTICLES_CACHE_TTL:
         return _cache_articles["articles"]
+    if ara - _cache_articles["darrer_intent"] < ARTICLES_RETRY_BACKOFF:
+        return _cache_articles["articles"] or []
+    _cache_articles["darrer_intent"] = ara
     try:
         articles = _fetch_articles_wp()
         _cache_articles["articles"] = articles
