@@ -161,7 +161,7 @@ def carregar_dades():
                     return "".join(c for c in unicodedata.normalize("NFD", s) if unicodedata.category(c) != "Mn")
                 urls_articles = []
                 for arow in ws_articles.get_all_records():
-                    url_art = str(arow.get("Enllaç_articles", "")).strip()
+                    url_art = str(arow.get("Enllaç_article", "")).strip()
                     publicat = _sense_accents(str(arow.get("Publicat", "")).strip().lower())
                     if url_art and publicat == "si":
                         urls_articles.append(url_art)
