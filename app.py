@@ -153,6 +153,22 @@ def carregar_dades():
             except Exception as e:
                 print(f"Error carregant Estacions: {e}")
                 _cache_dades["estacions_info"] = {}
+            # Carregar pestanya Articles (URL triades manualment, evita la consulta massiva per categoria)
+            try:
+                ws_articles = sh.worksheet("Articles")
+                import unicodedata
+                def _sense_accents(s):
+                    return "".join(c for c in unicodedata.normalize("NFD", s) if unicodedata.category(c) != "Mn")
+                urls_articles = []
+                for arow in ws_articles.get_all_records():
+                    url_art = str(arow.get("Enllaç_articles", "")).strip()
+                    publicat = _sense_accents(str(arow.get("Publicat", "")).strip().lower())
+                    if url_art and publicat == "si":
+                        urls_articles.append(url_art)
+                _cache_dades["articles_urls"] = urls_articles
+            except Exception as e:
+                print(f"Error carregant Articles: {e}")
+                _cache_dades["articles_urls"] = []
             # Carregar pestanya 100cims (dades úniques per cim)
             try:
                 ws_cims = sh.worksheet("100cims")
@@ -181,12 +197,14 @@ def carregar_dades():
             _cache_dades["senders_url"] = {}
             _cache_dades["estacions_info"] = {}
             _cache_dades["cims_info"] = {}
+            _cache_dades["articles_urls"] = []
     except Exception as e:
         print(f"Error carregant dades: {e}")
         df = pd.DataFrame()
         _cache_dades["senders_url"] = {}
         _cache_dades["estacions_info"] = {}
         _cache_dades["cims_info"] = {}
+        _cache_dades["articles_urls"] = []
 
     _cache_dades["dades"] = df
     _avisats_fallback.clear()
@@ -996,62 +1014,62 @@ _cache_gpx_linies = {}
 
 # ── ARTICLES ─────────────────────────────────────────────────────
 WP_BASE = "https://senderismeentren.cat/wp-json/wp/v2"
-CAT_ARTICLES = 208
 ARTICLES_CACHE_TTL = 3600  # 1 hora
 ARTICLES_RETRY_BACKOFF = 300  # 5 min: si falla, no tornar a provar-ho abans d'aquest temps
+WP_HEADERS = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
 
 _cache_articles = {"articles": None, "ts": 0, "darrer_intent": 0}
 
+def _id_o_slug_de_url(url_wp):
+    """Extreu l'identificador (numèric o slug) del darrer tros d'una URL de WP."""
+    return url_wp.rstrip('/').split('/')[-1]
+
+def _fetch_un_article_wp(url_wp):
+    """Consulta un sol article de WP per la seva URL (numèrica o slug), amb imatge inclosa.
+    Retorna None si no es troba o falla, sense llençar excepció (un article solt que falli
+    no ha de tombar tota la llista)."""
+    segment = _id_o_slug_de_url(url_wp)
+    try:
+        if segment.isdigit():
+            api_url = f"{WP_BASE}/posts/{segment}"
+            params = {"_embed": "wp:featuredmedia"}
+        else:
+            api_url = f"{WP_BASE}/posts"
+            params = {"slug": segment, "_embed": "wp:featuredmedia"}
+        resp = requests.get(api_url, params=params, headers=WP_HEADERS, timeout=10)
+        a = resp.json()
+        if isinstance(a, list):
+            if not a:
+                return None
+            a = a[0]
+        try:
+            imatge = a["_embedded"]["wp:featuredmedia"][0]["source_url"]
+        except (KeyError, IndexError, TypeError):
+            imatge = ""
+        return {
+            "id": a.get("id"),
+            "titol": h.unescape(a.get("title", {}).get("rendered", "")),
+            "extracte": a.get("excerpt", {}).get("rendered", ""),
+            "data": a.get("date", "")[:10],
+            "imatge": imatge,
+        }
+    except Exception as e:
+        print(f"[articles] Article {url_wp} descartat per error: {repr(e)}")
+        return None
+
 def _fetch_articles_wp():
-    """Consulta WP i retorna la llista d'articles processats. Llença excepció si falla.
-    Reintenta fins a 3 cops per a errors puntuals normals (timeout, servidor lent),
-    però si WP respon 429 (massa peticions) para immediatament sense insistir —
-    reintentar aquí només allargaria el bloqueig."""
-    dades = []
-    for intent in range(3):
-        try:
-            resp = requests.get(f"{WP_BASE}/posts",
-                params={"categories": CAT_ARTICLES, "per_page": 20,
-                        "_embed": "wp:featuredmedia"},
-                headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"},
-                timeout=15)
-            if resp.status_code == 429:
-                print(f"[articles] WP ha respost 429 (massa peticions); no s'insisteix, s'espera al pròxim cicle")
-                raise RuntimeError("WP 429: massa peticions")
-            dades = resp.json()
-            if not isinstance(dades, list):
-                print(f"[articles] Resposta inesperada de WP (status {resp.status_code}): {str(dades)[:300]}")
-                dades = []
-            break
-        except Exception as e:
-            detall = ""
-            try:
-                detall = f" (status {resp.status_code}, cos: {resp.text[:150]!r})"
-            except Exception:
-                pass
-            print(f"[articles] Intent {intent+1}/3 fallit: {repr(e)}{detall}")
-            if isinstance(e, RuntimeError) and "429" in str(e):
-                raise
-            if intent < 2:
-                time.sleep(1)
-            else:
-                raise
+    """Consulta un per un els articles triats manualment a la pestanya Articles de Sheets
+    (en lloc d'una consulta massiva per categoria, que ha demostrat provocar bloquejos 429
+    a WP). Una petita pausa entre articles evita fer una ràfega de peticions seguides."""
+    urls = _cache_dades.get("articles_urls") or []
     articles = []
-    for a in dades:
-        try:
-            try:
-                imatge = a["_embedded"]["wp:featuredmedia"][0]["source_url"]
-            except (KeyError, IndexError, TypeError):
-                imatge = ""
-            articles.append({
-                "id": a.get("id"),
-                "titol": h.unescape(a.get("title", {}).get("rendered", "")),
-                "extracte": a.get("excerpt", {}).get("rendered", ""),
-                "data": a.get("date", "")[:10],
-                "imatge": imatge,
-            })
-        except Exception as e:
-            print(f"[articles] Article {a.get('id')} descartat per error: {repr(e)}")
+    for i, url_wp in enumerate(urls):
+        article = _fetch_un_article_wp(url_wp)
+        if article:
+            articles.append(article)
+        if i < len(urls) - 1:
+            time.sleep(0.3)
+    articles.sort(key=lambda a: a["data"], reverse=True)
     return articles
 
 def get_articles():
