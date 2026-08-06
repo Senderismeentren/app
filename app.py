@@ -982,7 +982,10 @@ def millors_rutes_pagina():
             c = c.strip()
             if c:
                 grups.setdefault(c, []).append(r)
-    grups = dict(sorted(grups.items()))
+    def _clau_ordre_cat(item):
+        m = re.match(r'^\s*(\d+)', item[0])
+        return (int(m.group(1)) if m else float('inf'), item[0])
+    grups = dict(sorted(grups.items(), key=_clau_ordre_cat))
     for llista in grups.values():
         random.shuffle(llista)
     return render_template("millors_rutes.html", grups=grups)
