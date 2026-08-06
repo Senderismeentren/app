@@ -671,8 +671,10 @@ def injectar_avis():
 def inici():
     rutes = get_rutes()
 
-    # Rutes destacades (columna "Destacada" = Sí)
-    destacades = [r for r in rutes if r.get("destacada")][:6]
+    # Rutes destacades (columna "Destacada" = Sí), en ordre aleatori cada vegada
+    destacades_totes = [r for r in rutes if r.get("destacada")]
+    random.shuffle(destacades_totes)
+    destacades = destacades_totes[:6]
     if not destacades:
         destacades = rutes[:3]  # fallback
 
