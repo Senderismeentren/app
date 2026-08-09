@@ -5,6 +5,7 @@
 
 {% block estils_extra %}
 <style>
+.fila-ruta-oculta { display: none; }
 /* ── NAV FITXA ──────────────────────────────────────────────────── */
 .fitxa-nav {
   position: fixed; top: var(--nav-h); left: 0; right: 0; z-index: 200;
@@ -447,12 +448,18 @@
         {% for grup in rutes_relacionades %}
         <p style="font-size:12px;font-weight:700;color:#555;margin:10px 0 4px;">Estació de {{ grup.estacio }}</p>
         {% for r in grup.rutes %}
-        <a href="/ruta/{{ r.id }}" style="text-decoration:none;display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #f5f5f5;color:#333;">
+        <a href="/ruta/{{ r.id }}" class="fila-ruta-relacionada{% if loop.index > 5 %} fila-ruta-oculta{% endif %}" style="text-decoration:none;display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #f5f5f5;color:#333;">
           <span style="width:7px;height:7px;border-radius:50%;background:{{ colors_dif.get(r.dificultat,'#aaa') }};flex-shrink:0;"></span>
           <span style="font-size:11px;color:#aaa;font-weight:700;flex-shrink:0;">ST{{ '%03d' | format(r.id) }}</span>
           <span style="font-size:13px;word-break:break-word;">{{ r.nom }}</span>
         </a>
         {% endfor %}
+        {% if grup.rutes|length > 5 %}
+        <button type="button" class="btn-veure-mes-rutes" onclick="veureMesRutesRelacionades(this)"
+          style="background:none;border:none;color:#3498DB;font-size:12px;font-weight:700;cursor:pointer;padding:6px 0;">
+          Veure {{ grup.rutes|length - 5 }} rutes més
+        </button>
+        {% endif %}
         {% endfor %}
       </div>
     </div>
@@ -602,6 +609,16 @@
 <script>
 // ── DADES GPX ──
 const GPX_PUNTS = {{ gpx_punts|safe }};
+
+function veureMesRutesRelacionades(btn) {
+  // Revela les files ocultes que precedeixen immediatament aquest botó (les de la mateixa estació)
+  let node = btn.previousElementSibling;
+  while (node && node.classList && node.classList.contains('fila-ruta-oculta')) {
+    node.classList.remove('fila-ruta-oculta');
+    node = node.previousElementSibling;
+  }
+  btn.remove();
+}
 
 function setMapa(tipus) {
   const mapaPropi = document.getElementById('fitxa-mapa');
