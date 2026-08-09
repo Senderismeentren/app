@@ -818,7 +818,7 @@ def fitxa_ruta(ruta_id):
                     "nom": r["nom"],
                     "dificultat": r["dificultat"],
                 })
-        return resultat[:5]
+        return resultat
 
     estacions_vistes = set()
     rutes_relacionades = []
