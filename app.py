@@ -196,21 +196,34 @@ def carregar_dades():
             # Carregar pestanya 522cims (llistat complet del repte "100 Cims" de la FEEC)
             try:
                 ws_cims522 = sh.worksheet("522cims")
+                valors = ws_cims522.get_all_values()
+                capcalera = valors[0] if valors else []
+                def _idx_col(nom):
+                    try: return capcalera.index(nom)
+                    except ValueError: return None
+                i_nom = _idx_col("Nom_100cims")
+                i_alcada = _idx_col("Alçada")
+                i_comarca = _idx_col("Comarca")
+                i_categoria = _idx_col("Categoria")
+                i_lat = _idx_col("Lat_100cims")
+                i_lon = _idx_col("Lon_100cims")
+                def _cel(fila, i):
+                    return fila[i] if (i is not None and i < len(fila)) else ""
+                def parse_float_522(val):
+                    try: return float(str(val).strip())
+                    except Exception: return None
                 cims522 = []
-                for crow in ws_cims522.get_all_records():
-                    nom = str(crow.get("Nom_100cims", "")).strip()
+                for fila in valors[1:]:
+                    nom = _cel(fila, i_nom).strip()
                     if not nom:
                         continue
-                    def parse_float_522(val):
-                        try: return float(str(val).strip())
-                        except: return None
                     cims522.append({
                         "nom": nom,
-                        "alcada": parse_float_522(crow.get("Alçada", "")),
-                        "comarca": str(crow.get("Comarca", "")).strip(),
-                        "essencial": str(crow.get("Categoria", "")).strip().lower() == "essencial",
-                        "lat": parse_float_522(crow.get("Lat_100cims", "")),
-                        "lng": parse_float_522(crow.get("Lon_100cims", "")),
+                        "alcada": parse_float_522(_cel(fila, i_alcada)),
+                        "comarca": _cel(fila, i_comarca).strip(),
+                        "essencial": _cel(fila, i_categoria).strip().lower() == "essencial",
+                        "lat": parse_float_522(_cel(fila, i_lat)),
+                        "lng": parse_float_522(_cel(fila, i_lon)),
                     })
                 _cache_dades["cims522"] = cims522
             except Exception as e:
