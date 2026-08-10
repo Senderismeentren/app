@@ -1034,21 +1034,23 @@ def cims_522_pagina():
     rutes = get_rutes()
     cims = list(_cache_dades.get("cims522") or [])
 
-    # Creuar amb les rutes existents: quins cims ja tenen una ruta al portal
-    ruta_per_cim = {}
+    # Creuar amb les rutes existents: TOTES les rutes que fan cada cim, no només la primera
+    rutes_per_cim = {}
     for r in rutes:
         nom_camp = r.get("nom_cim") or ""
         for part in str(nom_camp).split(";"):
             nom = part.strip()
-            if nom and nom not in ruta_per_cim:
-                ruta_per_cim[nom] = r
+            if nom:
+                rutes_per_cim.setdefault(nom, []).append(r)
 
-    for c in cims:
-        ruta_feta = ruta_per_cim.get(c["nom"])
-        c["fet"] = ruta_feta is not None
-        c["ruta_id"] = ruta_feta["id"] if ruta_feta else None
+    cims.sort(key=lambda c: (c["nom"] or ""))
 
-    cims.sort(key=lambda c: (c["comarca"] or "", c["nom"] or ""))
+    for i, c in enumerate(cims, start=1):
+        c["num"] = i
+        rutes_fetes = rutes_per_cim.get(c["nom"], [])
+        c["fet"] = len(rutes_fetes) > 0
+        c["rutes_ids"] = [r["id"] for r in rutes_fetes]
+
     n_fets = sum(1 for c in cims if c["fet"])
 
     return render_template("100cims.html", cims=cims, n_fets=n_fets, n_total=len(cims))
