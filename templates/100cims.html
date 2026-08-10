@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+
+{% block titol %}100 Cims{% endblock %}
+
+{% block estils_extra %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<style>
+.cims-page { min-height: calc(100vh - var(--nav-h)); }
+
+.cims-header {
+  background: linear-gradient(135deg, var(--blau-fosc), var(--blau));
+  padding: 48px 24px 32px; color: white; text-align: center;
+}
+.cims-header h1 { font-size: 28px; font-weight: 900; margin-bottom: 10px; }
+.cims-header p { color: rgba(255,255,255,0.75); font-size: 15px; line-height: 1.7; max-width: 720px; margin: 0 auto 6px; }
+.cims-progres {
+  display: inline-block; margin-top: 14px; background: rgba(255,255,255,0.15);
+  border-radius: 20px; padding: 8px 20px; font-size: 14px; font-weight: 700;
+}
+
+.cims-cos { max-width: 1100px; margin: 0 auto; padding: 32px 20px 60px; }
+
+#cims-mapa { height: 480px; border-radius: 12px; overflow: hidden; border: 1px solid #eee; margin-bottom: 12px; }
+.cims-llegenda { display: flex; gap: 18px; flex-wrap: wrap; font-size: 12px; color: #666; margin-bottom: 32px; }
+.cims-llegenda span { display: inline-flex; align-items: center; gap: 6px; }
+.cims-llegenda .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+
+.cims-taula-cap { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
+.cims-taula-titol { font-size: 20px; font-weight: 800; color: #111; }
+#cims-cerca {
+  border: 1px solid #ddd; border-radius: 20px; padding: 8px 16px; font-size: 13px;
+  min-width: 220px; outline: none;
+}
+#cims-cerca:focus { border-color: var(--blau); }
+
+.cims-taula-wrap { overflow-x: auto; border: 1px solid #eee; border-radius: 10px; }
+table.cims-taula { width: 100%; border-collapse: collapse; font-size: 13px; }
+table.cims-taula th {
+  text-align: left; padding: 10px 12px; background: #fafafa; color: #666;
+  font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.4px;
+  border-bottom: 2px solid #eee; white-space: nowrap;
+}
+table.cims-taula td { padding: 9px 12px; border-bottom: 1px solid #f5f5f5; }
+table.cims-taula tr:last-child td { border-bottom: none; }
+table.cims-taula tr:hover td { background: #fafbff; }
+.badge-essencial {
+  background: #FEF3C7; color: #B45309; font-size: 10px; font-weight: 800;
+  border-radius: 10px; padding: 2px 8px; white-space: nowrap;
+}
+.badge-fet {
+  color: #16A34A; font-weight: 700; font-size: 12px; text-decoration: none;
+}
+.badge-nofet { color: #bbb; font-size: 12px; }
+
+@media (max-width: 640px) {
+  #cims-mapa { height: 340px; }
+  table.cims-taula { font-size: 12px; }
+}
+</style>
+{% endblock %}
+
+{% block contingut %}
+<div class="cims-page">
+
+  <div class="cims-header">
+    <h1>🏔️ El repte dels 100 Cims</h1>
+    <p>El repte dels «100 Cims», impulsat per la FEEC (Federació d'Entitats Excursionistes de Catalunya) des de l'1 de juliol de 2006, proposa assolir cent cims triats d'un catàleg més ampli. Des de la seva ampliació de juliol de 2022, aquest catàleg està format per 522 cims de Catalunya, Andorra i la Catalunya Nord, dels quals 150 tenen la consideració d'«essencials». Per superar el repte cal assolir cent cims essencials del llistat.</p>
+    <p>No és cap competició: l'objectiu és conèixer el país a través de l'excursionisme.</p>
+    <div class="cims-progres">🥾 {{ n_fets }} de {{ n_total }} cims ja tenen una ruta a Senderisme en Tren</div>
+    <div style="margin-top:16px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+      <a href="/100-cims/descarrega.gpx" style="background:white;color:var(--blau-fosc);border-radius:20px;padding:8px 18px;font-size:13px;font-weight:700;text-decoration:none;">⬇️ Descarrega .gpx</a>
+      <a href="/100-cims/descarrega.kml" style="background:white;color:var(--blau-fosc);border-radius:20px;padding:8px 18px;font-size:13px;font-weight:700;text-decoration:none;">⬇️ Descarrega .kml</a>
+    </div>
+  </div>
+
+  <div class="cims-cos">
+    <div id="cims-mapa"></div>
+    <div class="cims-llegenda">
+      <span><span class="dot" style="background:#16A34A;"></span> Amb ruta al portal</span>
+      <span><span class="dot" style="background:#94A3B8;"></span> Encara sense ruta</span>
+      <span><span class="dot" style="background:#B45309;border:2px solid #FEF3C7;"></span> Cim essencial</span>
+    </div>
+
+    <div class="cims-taula-cap">
+      <div class="cims-taula-titol">Llistat complet</div>
+      <input id="cims-cerca" type="text" placeholder="🔍 Cerca per nom o comarca…" oninput="filtrarCims()">
+    </div>
+
+    <div class="cims-taula-wrap">
+      <table class="cims-taula" id="taula-cims">
+        <thead>
+          <tr>
+            <th>Nom</th>
+            <th>Alçada</th>
+            <th>Comarca</th>
+            <th>Essencial</th>
+            <th>Ruta al portal</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for c in cims %}
+          <tr data-cerca="{{ (c.nom ~ ' ' ~ c.comarca)|lower }}">
+            <td>{{ c.nom }}</td>
+            <td>{{ c.alcada|int if c.alcada else '—' }} m</td>
+            <td>{{ c.comarca or '—' }}</td>
+            <td>{% if c.essencial %}<span class="badge-essencial">Essencial</span>{% endif %}</td>
+            <td>
+              {% if c.fet %}
+                <a href="/ruta/{{ c.ruta_id }}" class="badge-fet">✓ ST{{ '%03d' | format(c.ruta_id) }}</a>
+              {% else %}
+                <span class="badge-nofet">—</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const CIMS = {{ cims|tojson }};
+
+const mapa = L.map('cims-mapa', {scrollWheelZoom:false}).setView([41.85, 1.3], 8);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '&copy; OpenStreetMap',
+  maxZoom: 18
+}).addTo(mapa);
+
+CIMS.forEach(c => {
+  if (!c.lat || !c.lng) return;
+  const color = c.fet ? '#16A34A' : '#94A3B8';
+  const marker = L.circleMarker([c.lat, c.lng], {
+    radius: c.essencial ? 7 : 5,
+    fillColor: color,
+    color: c.essencial ? '#B45309' : color,
+    weight: c.essencial ? 2 : 1,
+    fillOpacity: 0.85
+  }).addTo(mapa);
+  const enllac = c.fet ? `<br><a href="/ruta/${c.ruta_id}" style="color:#3498DB;">Veure ruta ST${String(c.ruta_id).padStart(3,'0')} →</a>` : '';
+  marker.bindPopup(`<strong>${c.nom}</strong><br>${c.alcada ? Math.round(c.alcada)+' m · ' : ''}${c.comarca || ''}${c.essencial ? '<br><em>Cim essencial</em>' : ''}${enllac}`);
+});
+
+function filtrarCims() {
+  const q = document.getElementById('cims-cerca').value.trim().toLowerCase();
+  document.querySelectorAll('#taula-cims tbody tr').forEach(tr => {
+    tr.style.display = tr.dataset.cerca.includes(q) ? '' : 'none';
+  });
+}
+</script>
+{% endblock %}
