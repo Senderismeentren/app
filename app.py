@@ -2168,6 +2168,7 @@ def globals_plantilles():
             {"id": "mapa",       "nom": "Mapa",         "icon": "🗺️", "url": "/mapa"},
             {"id": "colleccions","nom": "Millors rutes",  "icon": "⭐", "url": "/millors_rutes"},
             {"id": "articles",   "nom": "Articles",     "icon": "📖", "url": "/articles"},
+            {"id": "cims",       "nom": "100 Cims",     "icon": "🏔️", "url": "/100-cims"},
         ]
     }
 
