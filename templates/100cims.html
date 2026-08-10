@@ -20,10 +20,16 @@
 
 .cims-cos { max-width: 1100px; margin: 0 auto; padding: 32px 20px 60px; }
 
-#cims-mapa { height: 480px; border-radius: 12px; overflow: hidden; border: 1px solid #eee; margin-bottom: 12px; }
-.cims-llegenda { display: flex; gap: 18px; flex-wrap: wrap; font-size: 12px; color: #666; margin-bottom: 32px; }
+#cims-mapa { height: 560px; border-radius: 12px; overflow: hidden; border: 1px solid #eee; margin-bottom: 12px; }
+.cims-llegenda { display: flex; gap: 18px; flex-wrap: wrap; align-items: center; font-size: 12px; color: #666; margin-bottom: 32px; }
 .cims-llegenda span { display: inline-flex; align-items: center; gap: 6px; }
 .cims-llegenda .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+.marcador-num {
+  display: flex; align-items: center; justify-content: center;
+  width: 18px; height: 18px; border-radius: 50%; color: white;
+  font-size: 9px; font-weight: 800; border: 1px solid white;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+}
 
 .cims-taula-cap { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
 .cims-taula-titol { font-size: 20px; font-weight: 800; color: #111; }
@@ -38,22 +44,24 @@ table.cims-taula { width: 100%; border-collapse: collapse; font-size: 13px; }
 table.cims-taula th {
   text-align: left; padding: 10px 12px; background: #fafafa; color: #666;
   font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.4px;
-  border-bottom: 2px solid #eee; white-space: nowrap;
+  border-bottom: 2px solid #eee; white-space: nowrap; cursor: pointer; user-select: none;
 }
+table.cims-taula th:hover { background: #f0f2f6; }
+table.cims-taula th .fletxa { opacity: 0.3; margin-left: 3px; }
+table.cims-taula th.ordenat-per .fletxa { opacity: 1; }
 table.cims-taula td { padding: 9px 12px; border-bottom: 1px solid #f5f5f5; }
 table.cims-taula tr:last-child td { border-bottom: none; }
 table.cims-taula tr:hover td { background: #fafbff; }
+.num-cim { color: #aaa; font-weight: 700; font-size: 11px; }
 .badge-essencial {
-  background: #FEF3C7; color: #B45309; font-size: 10px; font-weight: 800;
+  background: #DCFCE7; color: #16A34A; font-size: 10px; font-weight: 800;
   border-radius: 10px; padding: 2px 8px; white-space: nowrap;
 }
-.badge-fet {
-  color: #16A34A; font-weight: 700; font-size: 12px; text-decoration: none;
-}
+.badge-fet { color: #16A34A; font-weight: 700; font-size: 12px; text-decoration: none; margin-right: 6px; }
 .badge-nofet { color: #bbb; font-size: 12px; }
 
 @media (max-width: 640px) {
-  #cims-mapa { height: 340px; }
+  #cims-mapa { height: 380px; }
   table.cims-taula { font-size: 12px; }
 }
 </style>
@@ -66,6 +74,7 @@ table.cims-taula tr:hover td { background: #fafbff; }
     <h1>🏔️ El repte dels 100 Cims</h1>
     <p>El repte dels «100 Cims», impulsat per la FEEC (Federació d'Entitats Excursionistes de Catalunya) des de l'1 de juliol de 2006, proposa assolir cent cims triats d'un catàleg més ampli. Des de la seva ampliació de juliol de 2022, aquest catàleg està format per 522 cims de Catalunya, Andorra i la Catalunya Nord, dels quals 150 tenen la consideració d'«essencials». Per superar el repte cal assolir cent cims essencials del llistat.</p>
     <p>No és cap competició: l'objectiu és conèixer el país a través de l'excursionisme.</p>
+    <p style="font-size:12px;color:rgba(255,255,255,0.55);margin-top:14px;">Llistat i coordenades dels 522 cims: font oficial <a href="https://feec.cat" target="_blank" rel="noopener" style="color:rgba(255,255,255,0.85);text-decoration:underline;">FEEC (Federació d'Entitats Excursionistes de Catalunya)</a>.</p>
     <div class="cims-progres">🥾 {{ n_fets }} de {{ n_total }} cims ja tenen una ruta a Senderisme en Tren</div>
     <div style="margin-top:16px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
       <a href="/100-cims/descarrega.gpx" style="background:white;color:var(--blau-fosc);border-radius:20px;padding:8px 18px;font-size:13px;font-weight:700;text-decoration:none;">⬇️ Descarrega .gpx</a>
@@ -76,9 +85,9 @@ table.cims-taula tr:hover td { background: #fafbff; }
   <div class="cims-cos">
     <div id="cims-mapa"></div>
     <div class="cims-llegenda">
-      <span><span class="dot" style="background:#16A34A;"></span> Amb ruta al portal</span>
-      <span><span class="dot" style="background:#94A3B8;"></span> Encara sense ruta</span>
-      <span><span class="dot" style="background:#B45309;border:2px solid #FEF3C7;"></span> Cim essencial</span>
+      <span><span class="dot" style="background:#16A34A;"></span> Cim essencial</span>
+      <span><span class="dot" style="background:#DC2626;"></span> Resta de cims</span>
+      <span>El número del marcador coincideix amb el de la llista de sota</span>
     </div>
 
     <div class="cims-taula-cap">
@@ -90,23 +99,28 @@ table.cims-taula tr:hover td { background: #fafbff; }
       <table class="cims-taula" id="taula-cims">
         <thead>
           <tr>
-            <th>Nom</th>
-            <th>Alçada</th>
-            <th>Comarca</th>
-            <th>Essencial</th>
-            <th>Ruta al portal</th>
+            <th data-camp="num" data-tipus="num">#<span class="fletxa">▲</span></th>
+            <th data-camp="nom" data-tipus="text" class="ordenat-per">Nom<span class="fletxa">▲</span></th>
+            <th data-camp="alcada" data-tipus="num">Alçada<span class="fletxa">▲</span></th>
+            <th data-camp="comarca" data-tipus="text">Comarca<span class="fletxa">▲</span></th>
+            <th data-camp="essencial" data-tipus="num">Essencial<span class="fletxa">▲</span></th>
+            <th data-camp="rutes" data-tipus="num">Ruta al portal<span class="fletxa">▲</span></th>
           </tr>
         </thead>
         <tbody>
           {% for c in cims %}
-          <tr data-cerca="{{ (c.nom ~ ' ' ~ c.comarca)|lower }}">
+          <tr data-cerca="{{ (c.nom ~ ' ' ~ c.comarca)|lower }}"
+              data-num="{{ c.num }}" data-nom="{{ c.nom|lower }}" data-alcada="{{ c.alcada or 0 }}"
+              data-comarca="{{ (c.comarca or '')|lower }}" data-essencial="{{ 1 if c.essencial else 0 }}"
+              data-rutes="{{ c.rutes_ids|length }}">
+            <td class="num-cim">{{ c.num }}</td>
             <td>{{ c.nom }}</td>
             <td>{{ c.alcada|int if c.alcada else '—' }} m</td>
             <td>{{ c.comarca or '—' }}</td>
             <td>{% if c.essencial %}<span class="badge-essencial">Essencial</span>{% endif %}</td>
             <td>
-              {% if c.fet %}
-                <a href="/ruta/{{ c.ruta_id }}" class="badge-fet">✓ ST{{ '%03d' | format(c.ruta_id) }}</a>
+              {% if c.rutes_ids %}
+                {% for rid in c.rutes_ids %}<a href="/ruta/{{ rid }}" class="badge-fet">✓ ST{{ '%03d' | format(rid) }}</a>{% endfor %}
               {% else %}
                 <span class="badge-nofet">—</span>
               {% endif %}
@@ -123,31 +137,68 @@ table.cims-taula tr:hover td { background: #fafbff; }
 <script>
 const CIMS = {{ cims|tojson }};
 
-const mapa = L.map('cims-mapa', {scrollWheelZoom:false}).setView([41.85, 1.3], 8);
+const mapa = L.map('cims-mapa', {scrollWheelZoom:false});
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   attribution: '&copy; OpenStreetMap',
   maxZoom: 18
 }).addTo(mapa);
 
+const punts = [];
 CIMS.forEach(c => {
   if (!c.lat || !c.lng) return;
-  const color = c.fet ? '#16A34A' : '#94A3B8';
-  const marker = L.circleMarker([c.lat, c.lng], {
-    radius: c.essencial ? 7 : 5,
-    fillColor: color,
-    color: c.essencial ? '#B45309' : color,
-    weight: c.essencial ? 2 : 1,
-    fillOpacity: 0.85
-  }).addTo(mapa);
-  const enllac = c.fet ? `<br><a href="/ruta/${c.ruta_id}" style="color:#3498DB;">Veure ruta ST${String(c.ruta_id).padStart(3,'0')} →</a>` : '';
-  marker.bindPopup(`<strong>${c.nom}</strong><br>${c.alcada ? Math.round(c.alcada)+' m · ' : ''}${c.comarca || ''}${c.essencial ? '<br><em>Cim essencial</em>' : ''}${enllac}`);
+  const color = c.essencial ? '#16A34A' : '#DC2626';
+  const icona = L.divIcon({
+    className: '',
+    html: `<div class="marcador-num" style="background:${color};">${c.num}</div>`,
+    iconSize: [18, 18],
+    iconAnchor: [9, 9]
+  });
+  const marker = L.marker([c.lat, c.lng], {icon: icona}).addTo(mapa);
+  const enllacos = (c.rutes_ids || []).map(id =>
+    `<br><a href="/ruta/${id}" style="color:#3498DB;">Veure ruta ST${String(id).padStart(3,'0')} →</a>`
+  ).join('');
+  marker.bindPopup(`<strong>${c.num}. ${c.nom}</strong><br>${c.alcada ? Math.round(c.alcada)+' m · ' : ''}${c.comarca || ''}${c.essencial ? '<br><em>Cim essencial</em>' : ''}${enllacos}`);
+  punts.push([c.lat, c.lng]);
 });
+if (punts.length) {
+  mapa.fitBounds(punts, {padding: [20, 20]});
+}
 
+// ── CERCA ──
 function filtrarCims() {
   const q = document.getElementById('cims-cerca').value.trim().toLowerCase();
   document.querySelectorAll('#taula-cims tbody tr').forEach(tr => {
     tr.style.display = tr.dataset.cerca.includes(q) ? '' : 'none';
   });
 }
+
+// ── ORDENACIÓ PER COLUMNES ──
+let ordreActual = {camp: 'nom', asc: true};
+document.querySelectorAll('#taula-cims th').forEach(th => {
+  th.addEventListener('click', () => {
+    const camp = th.dataset.camp;
+    const tipus = th.dataset.tipus;
+    const asc = (ordreActual.camp === camp) ? !ordreActual.asc : true;
+    ordreActual = {camp, asc};
+
+    document.querySelectorAll('#taula-cims th').forEach(t => {
+      t.classList.remove('ordenat-per');
+      t.querySelector('.fletxa').textContent = '▲';
+    });
+    th.classList.add('ordenat-per');
+    th.querySelector('.fletxa').textContent = asc ? '▲' : '▼';
+
+    const tbody = document.querySelector('#taula-cims tbody');
+    const files = Array.from(tbody.querySelectorAll('tr'));
+    files.sort((a, b) => {
+      let va = a.dataset[camp], vb = b.dataset[camp];
+      if (tipus === 'num') { va = parseFloat(va) || 0; vb = parseFloat(vb) || 0; }
+      if (va < vb) return asc ? -1 : 1;
+      if (va > vb) return asc ? 1 : -1;
+      return 0;
+    });
+    files.forEach(f => tbody.appendChild(f));
+  });
+});
 </script>
 {% endblock %}
