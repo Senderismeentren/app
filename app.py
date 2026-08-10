@@ -10,7 +10,7 @@ import requests
 import gpxpy
 import pandas as pd
 import gspread
-from flask import Flask, render_template, jsonify, request, abort
+from flask import Flask, render_template, jsonify, request, abort, Response
 from google.oauth2.service_account import Credentials
 from concurrent.futures import ThreadPoolExecutor
 from functools import lru_cache
@@ -193,6 +193,29 @@ def carregar_dades():
             except Exception as e:
                 print(f"Error carregant 100cims: {e}")
                 _cache_dades["cims_info"] = {}
+            # Carregar pestanya 522cims (llistat complet del repte "100 Cims" de la FEEC)
+            try:
+                ws_cims522 = sh.worksheet("522cims")
+                cims522 = []
+                for crow in ws_cims522.get_all_records():
+                    nom = str(crow.get("Nom_100cims", "")).strip()
+                    if not nom:
+                        continue
+                    def parse_float_522(val):
+                        try: return float(str(val).strip())
+                        except: return None
+                    cims522.append({
+                        "nom": nom,
+                        "alcada": parse_float_522(crow.get("Alçada", "")),
+                        "comarca": str(crow.get("Comarca", "")).strip(),
+                        "essencial": str(crow.get("Categoria", "")).strip().lower() == "essencial",
+                        "lat": parse_float_522(crow.get("Lat_100cims", "")),
+                        "lng": parse_float_522(crow.get("Lon_100cims", "")),
+                    })
+                _cache_dades["cims522"] = cims522
+            except Exception as e:
+                print(f"Error carregant 522cims: {e}")
+                _cache_dades["cims522"] = []
         else:
             # Fallback local per a desenvolupament
             df = pd.read_excel("SET_excel_app.xlsx")
@@ -200,6 +223,7 @@ def carregar_dades():
             _cache_dades["estacions_info"] = {}
             _cache_dades["cims_info"] = {}
             _cache_dades["articles_urls"] = []
+            _cache_dades["cims522"] = []
     except Exception as e:
         print(f"Error carregant dades: {e}")
         df = pd.DataFrame()
@@ -207,6 +231,7 @@ def carregar_dades():
         _cache_dades["estacions_info"] = {}
         _cache_dades["cims_info"] = {}
         _cache_dades["articles_urls"] = []
+        _cache_dades["cims522"] = []
 
     _cache_dades["dades"] = df
     _avisats_fallback.clear()
@@ -989,6 +1014,70 @@ def millors_rutes_pagina():
     for llista in grups.values():
         random.shuffle(llista)
     return render_template("millors_rutes.html", grups=grups)
+
+
+@app.route("/100-cims")
+def cims_522_pagina():
+    rutes = get_rutes()
+    cims = list(_cache_dades.get("cims522") or [])
+
+    # Creuar amb les rutes existents: quins cims ja tenen una ruta al portal
+    ruta_per_cim = {}
+    for r in rutes:
+        nom_camp = r.get("nom_cim") or ""
+        for part in str(nom_camp).split(";"):
+            nom = part.strip()
+            if nom and nom not in ruta_per_cim:
+                ruta_per_cim[nom] = r
+
+    for c in cims:
+        ruta_feta = ruta_per_cim.get(c["nom"])
+        c["fet"] = ruta_feta is not None
+        c["ruta_id"] = ruta_feta["id"] if ruta_feta else None
+
+    cims.sort(key=lambda c: (c["comarca"] or "", c["nom"] or ""))
+    n_fets = sum(1 for c in cims if c["fet"])
+
+    return render_template("100cims.html", cims=cims, n_fets=n_fets, n_total=len(cims))
+
+
+@app.route("/100-cims/descarrega.gpx")
+def cims_522_gpx():
+    cims = _cache_dades.get("cims522") or []
+    linies = ['<?xml version="1.0" encoding="UTF-8"?>',
+              '<gpx version="1.1" creator="Senderisme en Tren" xmlns="http://www.topografix.com/GPX/1/1">']
+    for c in cims:
+        if not c.get("lat") or not c.get("lng"):
+            continue
+        nom = h.escape(c["nom"])
+        ele = f'<ele>{c["alcada"]}</ele>' if c.get("alcada") else ''
+        linies.append(f'<wpt lat="{c["lat"]}" lon="{c["lng"]}">{ele}<name>{nom}</name></wpt>')
+    linies.append('</gpx>')
+    resp = Response("\n".join(linies), mimetype="application/gpx+xml")
+    resp.headers["Content-Disposition"] = "attachment; filename=522-cims-feec.gpx"
+    return resp
+
+
+@app.route("/100-cims/descarrega.kml")
+def cims_522_kml():
+    cims = _cache_dades.get("cims522") or []
+    linies = ['<?xml version="1.0" encoding="UTF-8"?>',
+              '<kml xmlns="http://www.opengis.net/kml/2.2"><Document>',
+              '<name>522 Cims de la FEEC</name>']
+    for c in cims:
+        if not c.get("lat") or not c.get("lng"):
+            continue
+        nom = h.escape(c["nom"])
+        comarca_txt = c["comarca"] or ""
+        descripcio = h.escape(comarca_txt + (' · Essencial' if c.get('essencial') else ''))
+        linies.append(
+            f'<Placemark><name>{nom}</name><description>{descripcio}</description>'
+            f'<Point><coordinates>{c["lng"]},{c["lat"]},{c["alcada"] or 0}</coordinates></Point></Placemark>'
+        )
+    linies.append('</Document></kml>')
+    resp = Response("\n".join(linies), mimetype="application/vnd.google-earth.kml+xml")
+    resp.headers["Content-Disposition"] = "attachment; filename=522-cims-feec.kml"
+    return resp
 
 
 # ── APIs JSON ────────────────────────────────────────────────────────
