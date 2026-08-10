@@ -1043,7 +1043,7 @@ def cims_522_pagina():
             if nom:
                 rutes_per_cim.setdefault(nom, []).append(r)
 
-    cims.sort(key=lambda c: (c["nom"] or ""))
+    cims.sort(key=lambda c: (c["nom"] or "").lower())
 
     for i, c in enumerate(cims, start=1):
         c["num"] = i
