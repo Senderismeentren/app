@@ -1054,7 +1054,7 @@ def cims_522_pagina():
         c["fet"] = len(rutes_fetes) > 0
         c["rutes_ids"] = [r["id"] for r in rutes_fetes]
 
-    n_fets = sum(1 for c in cims if c["fet"])
+    n_fets = len({n.strip() for r in rutes if r["cims"] and r["nom_cim"] for n in r["nom_cim"].split(";") if n.strip()})
 
     return render_template("100cims.html", cims=cims, n_fets=n_fets, n_total=len(cims))
 
