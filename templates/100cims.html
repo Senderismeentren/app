@@ -92,6 +92,9 @@ table.cims-taula tr:hover td { background: #fafbff; }
         <a href="/100-cims/descarrega.kml" style="background:var(--blau);color:white;border-radius:20px;padding:8px 18px;font-size:13px;font-weight:700;text-decoration:none;">⬇️ Descarrega .kml</a>
         <a href="/100-cims/descarrega.xlsx" style="background:var(--blau);color:white;border-radius:20px;padding:8px 18px;font-size:13px;font-weight:700;text-decoration:none;">⬇️ Descarrega .xlsx</a>
       </div>
+      <p style="font-size:11px;color:#aaa;margin-top:8px;">
+        Descarregat {{ descarregues.get('GPX', 0) }} vegades en GPX · {{ descarregues.get('KML', 0) }} en KML · {{ descarregues.get('Excel', 0) }} en Excel
+      </p>
     </div>
 
     <div id="cims-mapa"></div>
@@ -115,7 +118,7 @@ table.cims-taula tr:hover td { background: #fafbff; }
             <th data-camp="alcada" data-tipus="num">Alçada<span class="fletxa">▲</span></th>
             <th data-camp="comarca" data-tipus="text">Comarca<span class="fletxa">▲</span></th>
             <th data-camp="essencial" data-tipus="num">Essencial<span class="fletxa">▲</span></th>
-            <th data-camp="rutes" data-tipus="num">Ruta a Senderisme en tren<span class="fletxa">▲</span></th>
+            <th data-camp="rutes" data-tipus="num">Ruta al portal<span class="fletxa">▲</span></th>
           </tr>
         </thead>
         <tbody>
