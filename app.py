@@ -1035,8 +1035,11 @@ def cims_522_pagina():
     cims = list(_cache_dades.get("cims522") or [])
 
     # Creuar amb les rutes existents: TOTES les rutes que fan cada cim, no només la primera
+    # (mateix criteri que el comptador d'Inici: cal que la columna 100cims digui "Sí")
     rutes_per_cim = {}
     for r in rutes:
+        if not r.get("cims"):
+            continue
         nom_camp = r.get("nom_cim") or ""
         for part in str(nom_camp).split(";"):
             nom = part.strip()
@@ -2181,9 +2184,9 @@ def globals_plantilles():
         "seccions": [
             {"id": "rutes",      "nom": "Rutes",        "icon": "🥾", "url": "/rutes"},
             {"id": "mapa",       "nom": "Mapa",         "icon": "🗺️", "url": "/mapa"},
+            {"id": "cims",       "nom": "100 Cims",     "icon": "🏔️", "url": "/100-cims"},
             {"id": "colleccions","nom": "Millors rutes",  "icon": "⭐", "url": "/millors_rutes"},
             {"id": "articles",   "nom": "Articles",     "icon": "📖", "url": "/articles"},
-            {"id": "cims",       "nom": "100 Cims",     "icon": "🏔️", "url": "/100-cims"},
         ]
     }
 
