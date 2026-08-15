@@ -8,12 +8,14 @@
 .cims-page { min-height: calc(100vh - var(--nav-h)); }
 
 .cims-header {
-  background: white;
-  padding: 48px 24px 32px; color: #333; text-align: center;
-  border-bottom: 1px solid #eee;
+  background: linear-gradient(135deg, var(--blau-fosc), var(--blau));
+  padding: 48px 24px 40px; color: white; text-align: center;
 }
-.cims-header h1 { font-size: 28px; font-weight: 900; margin-bottom: 10px; color: var(--blau); }
-.cims-header p { color: #666; font-size: 15px; line-height: 1.7; max-width: 720px; margin: 0 auto 6px; }
+.cims-header h1 { font-size: 28px; font-weight: 900; margin-bottom: 8px; }
+.cims-header p { color: rgba(255,255,255,0.65); font-size: 15px; }
+
+.cims-intro { margin-bottom: 28px; }
+.cims-intro p { color: #555; font-size: 15px; line-height: 1.7; margin-bottom: 10px; }
 .cims-progres {
   display: inline-block; margin-top: 14px; background: #EFF6FF;
   color: var(--blau); border-radius: 20px; padding: 8px 20px; font-size: 14px; font-weight: 700;
@@ -72,19 +74,23 @@ table.cims-taula tr:hover td { background: #fafbff; }
 <div class="cims-page">
 
   <div class="cims-header">
-    <h1>🏔️ El repte dels 100 Cims</h1>
-    <p>El repte dels «100 Cims», impulsat per la FEEC (Federació d'Entitats Excursionistes de Catalunya) des de l'1 de juliol de 2006, proposa assolir cent cims triats d'un catàleg més ampli. Des de la seva ampliació de juliol de 2022, aquest catàleg està format per 522 cims de Catalunya, Andorra i la Catalunya Nord, dels quals 150 tenen la consideració d'«essencials». Per superar el repte cal assolir cent cims essencials del llistat.</p>
-    <p>No és cap competició: l'objectiu és conèixer el país a través de l'excursionisme.</p>
-    <p style="font-size:12px;color:#999;margin-top:14px;">Llistat i coordenades dels 522 cims: font oficial <a href="https://feec.cat" target="_blank" rel="noopener" style="color:#666;text-decoration:underline;">FEEC (Federació d'Entitats Excursionistes de Catalunya)</a>.</p>
-    <p style="font-size:12px;color:#999;margin-top:4px;">Els noms i les coordenades dels 522 cims s'han descarregat directament del web de la FEEC, i per tant coincideixen exactament amb les que hi figuren.</p>
-    <div class="cims-progres">🥾 {{ n_fets }} de {{ n_total }} cims ja tenen una ruta a Senderisme en Tren</div>
-    <div style="margin-top:16px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
-      <a href="/100-cims/descarrega.gpx" style="background:var(--blau);color:white;border-radius:20px;padding:8px 18px;font-size:13px;font-weight:700;text-decoration:none;">⬇️ Descarrega .gpx</a>
-      <a href="/100-cims/descarrega.kml" style="background:var(--blau);color:white;border-radius:20px;padding:8px 18px;font-size:13px;font-weight:700;text-decoration:none;">⬇️ Descarrega .kml</a>
-    </div>
+    <h1>🏔️ 100 Cims</h1>
+    <p>Els 522 cims del repte de la FEEC, i quins ja tenen ruta a Senderisme en Tren</p>
   </div>
 
   <div class="cims-cos">
+    <div class="cims-intro">
+      <p>El repte dels «100 Cims», impulsat per la FEEC (Federació d'Entitats Excursionistes de Catalunya) des de l'1 de juliol de 2006, proposa assolir cent cims triats d'un catàleg més ampli. Des de la seva ampliació de juliol de 2022, aquest catàleg està format per 522 cims de Catalunya, Andorra i la Catalunya Nord, dels quals 150 tenen la consideració d'«essencials». Per superar el repte cal assolir cent cims essencials del llistat.</p>
+      <p>No és cap competició: l'objectiu és conèixer el país a través de l'excursionisme.</p>
+      <p style="font-size:12px;color:#999;margin-top:14px;">Llistat i coordenades dels 522 cims: font oficial <a href="https://feec.cat" target="_blank" rel="noopener" style="color:#666;text-decoration:underline;">FEEC (Federació d'Entitats Excursionistes de Catalunya)</a>.</p>
+      <p style="font-size:12px;color:#999;margin-top:4px;">Els noms i les coordenades dels 522 cims s'han descarregat directament del web de la FEEC, i per tant coincideixen exactament amb les que hi figuren.</p>
+      <div class="cims-progres">🥾 {{ n_fets }} de {{ n_total }} cims ja tenen una ruta a Senderisme en Tren</div>
+      <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap;">
+        <a href="/100-cims/descarrega.gpx" style="background:var(--blau);color:white;border-radius:20px;padding:8px 18px;font-size:13px;font-weight:700;text-decoration:none;">⬇️ Descarrega .gpx</a>
+        <a href="/100-cims/descarrega.kml" style="background:var(--blau);color:white;border-radius:20px;padding:8px 18px;font-size:13px;font-weight:700;text-decoration:none;">⬇️ Descarrega .kml</a>
+      </div>
+    </div>
+
     <div id="cims-mapa"></div>
     <div class="cims-llegenda">
       <span><span class="dot" style="background:#16A34A;"></span> Cim essencial</span>
