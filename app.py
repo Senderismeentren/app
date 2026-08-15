@@ -1056,7 +1056,11 @@ def cims_522_pagina():
 
     n_fets = len({n.strip() for r in rutes if r["cims"] and r["nom_cim"] for n in r["nom_cim"].split(";") if n.strip()})
 
-    return render_template("100cims.html", cims=cims, n_fets=n_fets, n_total=len(cims))
+    n_essencials_total = sum(1 for c in cims if c["essencial"])
+    n_essencials_fets = sum(1 for c in cims if c["essencial"] and c["fet"])
+
+    return render_template("100cims.html", cims=cims, n_fets=n_fets, n_total=len(cims),
+                            n_essencials_fets=n_essencials_fets, n_essencials_total=n_essencials_total)
 
 
 @app.route("/100-cims/descarrega.gpx")
