@@ -1098,6 +1098,26 @@ def cims_522_kml():
     return resp
 
 
+@app.route("/100-cims/descarrega.xlsx")
+def cims_522_xlsx():
+    cims = list(_cache_dades.get("cims522") or [])
+    cims.sort(key=lambda c: (c["nom"] or "").lower())
+    df = pd.DataFrame([{
+        "Nom": c["nom"],
+        "Alçada (m)": c["alcada"],
+        "Comarca": c["comarca"],
+        "Essencial": "Sí" if c.get("essencial") else "",
+        "Latitud": c["lat"],
+        "Longitud": c["lng"],
+    } for c in cims])
+    buf = io.BytesIO()
+    df.to_excel(buf, index=False, engine="openpyxl")
+    buf.seek(0)
+    resp = Response(buf.read(), mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    resp.headers["Content-Disposition"] = "attachment; filename=522-cims-feec.xlsx"
+    return resp
+
+
 # ── APIs JSON ────────────────────────────────────────────────────────
 
 @app.route("/api/rutes")
