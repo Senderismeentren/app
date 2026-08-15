@@ -77,6 +77,60 @@ def color_op(op):
 _cache_dades = {"dades": None, "ts": 0}
 _avisats_fallback = set()
 
+def _obtenir_sheet():
+    """Retorna l'spreadsheet obert (gspread), o None si falla. Reutilitzat
+    per operacions puntuals (com incrementar un comptador) fora del cicle
+    normal de carregar_dades()."""
+    try:
+        if not (GOOGLE_CREDS and SHEET_ID):
+            return None
+        raw = GOOGLE_CREDS.strip()
+        if raw.startswith("{"):
+            creds_dict = json.loads(raw)
+        else:
+            import re
+            creds_dict = {}
+            for line in raw.splitlines():
+                line = line.strip()
+                if not line or line.startswith("["):
+                    continue
+                m = re.match(r'^(\w+)\s*=\s*"(.*)"$', line)
+                if m:
+                    key, val = m.group(1), m.group(2)
+                    creds_dict[key] = val.replace("\\n", "\n")
+        creds = Credentials.from_service_account_info(
+            creds_dict,
+            scopes=["https://spreadsheets.google.com/feeds",
+                    "https://www.googleapis.com/auth/drive"]
+        )
+        gc_local = gspread.authorize(creds)
+        return gc_local.open_by_key(SHEET_ID)
+    except Exception as e:
+        print(f"[sheet] Error obrint spreadsheet: {repr(e)}")
+        return None
+
+
+def _incrementar_descarrega(format_nom):
+    """Suma 1 al comptador d'aquest format a la pestanya Descàrregues.
+    S'executa en un fil a part perquè mai retardi ni trenqui la descàrrega
+    en si, encara que Sheets falli o vagi lent."""
+    def _fer():
+        try:
+            sh = _obtenir_sheet()
+            if not sh:
+                return
+            ws = sh.worksheet("Descàrregues")
+            valors = ws.get_all_values()
+            for i, fila in enumerate(valors[1:], start=2):
+                if fila and fila[0].strip().lower() == format_nom.lower():
+                    actual = int(fila[1]) if len(fila) > 1 and str(fila[1]).strip().isdigit() else 0
+                    ws.update_cell(i, 2, actual + 1)
+                    break
+        except Exception as e:
+            print(f"[descarregues] Error incrementant {format_nom}: {repr(e)}")
+    threading.Thread(target=_fer, daemon=True).start()
+
+
 def carregar_dades():
     """Carrega les dades del Google Sheet amb cache de 30 min."""
     ara = time.time()
@@ -229,6 +283,20 @@ def carregar_dades():
             except Exception as e:
                 print(f"Error carregant 522cims: {e}")
                 _cache_dades["cims522"] = []
+            # Carregar pestanya Descàrregues (comptadors GPX/KML/Excel dels 522 cims)
+            try:
+                ws_desc = sh.worksheet("Descàrregues")
+                descarregues = {}
+                for fila in ws_desc.get_all_values()[1:]:
+                    if fila and fila[0].strip():
+                        try:
+                            descarregues[fila[0].strip()] = int(fila[1]) if len(fila) > 1 and str(fila[1]).strip().isdigit() else 0
+                        except Exception:
+                            descarregues[fila[0].strip()] = 0
+                _cache_dades["descarregues"] = descarregues
+            except Exception as e:
+                print(f"Error carregant Descàrregues: {e}")
+                _cache_dades["descarregues"] = {}
         else:
             # Fallback local per a desenvolupament
             df = pd.read_excel("SET_excel_app.xlsx")
@@ -237,6 +305,7 @@ def carregar_dades():
             _cache_dades["cims_info"] = {}
             _cache_dades["articles_urls"] = []
             _cache_dades["cims522"] = []
+            _cache_dades["descarregues"] = {}
     except Exception as e:
         print(f"Error carregant dades: {e}")
         df = pd.DataFrame()
@@ -245,6 +314,7 @@ def carregar_dades():
         _cache_dades["cims_info"] = {}
         _cache_dades["articles_urls"] = []
         _cache_dades["cims522"] = []
+        _cache_dades["descarregues"] = {}
 
     _cache_dades["dades"] = df
     _avisats_fallback.clear()
@@ -1059,8 +1129,10 @@ def cims_522_pagina():
     n_essencials_total = sum(1 for c in cims if c["essencial"])
     n_essencials_fets = sum(1 for c in cims if c["essencial"] and c["fet"])
 
+    descarregues = _cache_dades.get("descarregues") or {}
     return render_template("100cims.html", cims=cims, n_fets=n_fets, n_total=len(cims),
-                            n_essencials_fets=n_essencials_fets, n_essencials_total=n_essencials_total)
+                            n_essencials_fets=n_essencials_fets, n_essencials_total=n_essencials_total,
+                            descarregues=descarregues)
 
 
 @app.route("/100-cims/descarrega.gpx")
@@ -1075,6 +1147,7 @@ def cims_522_gpx():
         ele = f'<ele>{c["alcada"]}</ele>' if c.get("alcada") else ''
         linies.append(f'<wpt lat="{c["lat"]}" lon="{c["lng"]}">{ele}<name>{nom}</name></wpt>')
     linies.append('</gpx>')
+    _incrementar_descarrega("GPX")
     resp = Response("\n".join(linies), mimetype="application/gpx+xml")
     resp.headers["Content-Disposition"] = "attachment; filename=522-cims-feec.gpx"
     return resp
@@ -1097,6 +1170,7 @@ def cims_522_kml():
             f'<Point><coordinates>{c["lng"]},{c["lat"]},{c["alcada"] or 0}</coordinates></Point></Placemark>'
         )
     linies.append('</Document></kml>')
+    _incrementar_descarrega("KML")
     resp = Response("\n".join(linies), mimetype="application/vnd.google-earth.kml+xml")
     resp.headers["Content-Disposition"] = "attachment; filename=522-cims-feec.kml"
     return resp
@@ -1117,6 +1191,7 @@ def cims_522_xlsx():
     buf = io.BytesIO()
     df.to_excel(buf, index=False, engine="openpyxl")
     buf.seek(0)
+    _incrementar_descarrega("Excel")
     resp = Response(buf.read(), mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
     resp.headers["Content-Disposition"] = "attachment; filename=522-cims-feec.xlsx"
     return resp
