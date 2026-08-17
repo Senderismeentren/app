@@ -500,6 +500,15 @@
         {% endif %}
       </div>
       <div id="fitxa-mapa"></div>
+      {% if gpx_punts %}
+      <div style="padding:8px 12px;text-align:right;border-top:1px solid #f0f0f0;">
+        <a href="https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/gpx-rutes/ruta-{{ '%03d' | format(ruta.id) }}.gpx"
+           download="ruta-{{ '%03d' | format(ruta.id) }}.gpx"
+           style="font-size:12px;font-weight:700;color:var(--blau);text-decoration:none;display:inline-flex;align-items:center;gap:4px;">
+          ⬇️ Descarrega el track (.gpx)
+        </a>
+      </div>
+      {% endif %}
       {% if ruta.wiki %}
       {% set wiki_id = ruta.wiki.rstrip('/').split('-')[-1] %}
       <iframe id="fitxa-mapa-wiki"
