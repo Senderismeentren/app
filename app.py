@@ -901,6 +901,24 @@ def rutes_pagina():
     )
 
 
+@app.route("/api/gpx-descarrega/<int:ruta_id>")
+def gpx_descarrega(ruta_id):
+    """Serveix el GPX original de la ruta forçant la descàrrega (el fitxer
+    viu a GitHub, i un enllaç directe entre dominis no força la descàrrega
+    a la majoria de navegadors)."""
+    url = BASE_GPX_URL.format(id=ruta_id)
+    try:
+        r = requests.get(url, timeout=8)
+        if r.status_code != 200:
+            abort(404)
+        resp = Response(r.content, mimetype="application/gpx+xml")
+        resp.headers["Content-Disposition"] = f"attachment; filename=ruta-{ruta_id:03d}.gpx"
+        return resp
+    except Exception as e:
+        print(f"[gpx-descarrega] Error ruta {ruta_id}: {repr(e)}")
+        abort(404)
+
+
 @app.route("/ruta/<int:ruta_id>")
 def fitxa_ruta(ruta_id):
     rutes = get_rutes()
