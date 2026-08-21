@@ -375,10 +375,26 @@
           <div class="el-icon">
             {% if 'castell' in cat.lower() or 'torre' in cat.lower() %}🏰
             {% elif 'ibèr' in cat.lower() or 'arqueol' in cat.lower() %}⚔️
-            {% elif 'dolmen' in cat.lower() or 'prehist' in cat.lower() %}🗿
-            {% elif 'monestir' in cat.lower() or 'ermita' in cat.lower() %}⛪
-            {% elif 'riu' in cat.lower() or 'font' in cat.lower() %}🌊
-            {% elif 'cim' in cat.lower() or 'turó' in cat.lower() %}🏔️
+            {% elif 'megalit' in cat.lower() or 'dolmen' in cat.lower() or 'prehist' in cat.lower() %}🗿
+            {% elif 'monestir' in cat.lower() or 'ermita' in cat.lower() or 'santuari' in cat.lower() or 'convent' in cat.lower() or 'religi' in cat.lower() %}⛪
+            {% elif 'pont' in cat.lower() or 'viaducte' in cat.lower() or 'aqüeducte' in cat.lower() %}🌉
+            {% elif 'font' in cat.lower() %}🚰
+            {% elif 'riu' in cat.lower() %}🏞️
+            {% elif 'estany' in cat.lower() or 'gorg' in cat.lower() or 'cascada' in cat.lower() %}💧
+            {% elif 'platja' in cat.lower() %}🏖️
+            {% elif 'cim' in cat.lower() or 'turó' in cat.lower() or 'mirador' in cat.lower() %}🏔️
+            {% elif 'collada' in cat.lower() %}⛰️
+            {% elif 'nucli urbà' in cat.lower() %}🏘️
+            {% elif 'masia' in cat.lower() %}🏡
+            {% elif 'refugi' in cat.lower() %}🏠
+            {% elif 'industrial' in cat.lower() %}🏭
+            {% elif 'militar' in cat.lower() %}🪖
+            {% elif 'ferroviàri' in cat.lower() %}🚂
+            {% elif 'cova' in cat.lower() or 'mina' in cat.lower() %}⛏️
+            {% elif 'geolò' in cat.lower() %}🪨
+            {% elif 'ruïn' in cat.lower() %}🏚️
+            {% elif 'natural' in cat.lower() or 'bosc' in cat.lower() %}🌳
+            {% elif 'camí' in cat.lower() %}🥾
             {% else %}📍{% endif %}
           </div>
           <div>
@@ -391,6 +407,7 @@
     </div>
     {% endif %}
 
+    {% set colors_dif = {'Molt fàcil':'#27AE60','Fàcil':'#2ECC71','Moderada':'#F39C12','Exigent':'#E67E22','Molt exigent':'#E74C3C'} %}
     {% if ruta.element_ferroviari %}
     {% set ef_parts = ruta.element_ferroviari.split(';') %}
     <div class="bloc">
@@ -401,6 +418,16 @@
         <p style="font-size:13px;color:#555;line-height:1.7;margin:0;">{{ ef_parts[1].strip() }}</p>
         {% else %}
         <p style="font-size:13px;color:#555;line-height:1.7;margin:0;">{{ ef_parts[0].strip() }}</p>
+        {% endif %}
+        {% if rutes_mateix_element_ferroviari %}
+        <p style="font-size:11px;font-weight:700;color:#888;margin:12px 0 4px;">Rutes amb aquest tipus de punt: {{ tipus_element_ferroviari }}</p>
+        {% for r in rutes_mateix_element_ferroviari %}
+        <a href="/ruta/{{ r.id }}" style="text-decoration:none;display:flex;align-items:center;gap:8px;padding:5px 0;color:#333;">
+          <span style="width:7px;height:7px;border-radius:50%;background:{{ colors_dif.get(r.dificultat,'#aaa') }};flex-shrink:0;"></span>
+          <span style="font-size:11px;color:#aaa;font-weight:700;flex-shrink:0;">ST{{ '%03d' | format(r.id) }}</span>
+          <span style="font-size:13px;word-break:break-word;">{{ r.nom }}</span>
+        </a>
+        {% endfor %}
         {% endif %}
       </div>
     </div>
@@ -417,6 +444,16 @@
         <p style="font-size:13px;color:#555;line-height:1.7;margin:0;">{{ pi_parts[1].strip() }}</p>
         {% else %}
         <p style="font-size:13px;color:#555;line-height:1.7;margin:0;">{{ pi_parts[0].strip() }}</p>
+        {% endif %}
+        {% if rutes_mateix_punt_interes %}
+        <p style="font-size:11px;font-weight:700;color:#888;margin:12px 0 4px;">Rutes amb aquest tipus de punt: {{ tipus_punt_interes }}</p>
+        {% for r in rutes_mateix_punt_interes %}
+        <a href="/ruta/{{ r.id }}" style="text-decoration:none;display:flex;align-items:center;gap:8px;padding:5px 0;color:#333;">
+          <span style="width:7px;height:7px;border-radius:50%;background:{{ colors_dif.get(r.dificultat,'#aaa') }};flex-shrink:0;"></span>
+          <span style="font-size:11px;color:#aaa;font-weight:700;flex-shrink:0;">ST{{ '%03d' | format(r.id) }}</span>
+          <span style="font-size:13px;word-break:break-word;">{{ r.nom }}</span>
+        </a>
+        {% endfor %}
         {% endif %}
       </div>
     </div>
