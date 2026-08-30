@@ -48,6 +48,39 @@ def color_dif(dif):
     if not dif: return "#888888"
     return COLORS_DIF.get(str(dif).strip().lower(), "#888888")
 
+
+def _sense_accents(s):
+    import unicodedata
+    return "".join(c for c in unicodedata.normalize("NFD", s) if unicodedata.category(c) != "Mn")
+
+
+# ── TIPUS DE PUNT D'INTERÈS (detecció automàtica per paraula clau) ──
+# Cada categoria és una llista de paraules (sense accents, minúscules) que,
+# si apareixen en qualsevol posició del títol d'un Punt_interès o Element_ferroviari,
+# el classifiquen dins d'aquell tipus. És una detecció aproximada, no exacta.
+TIPUS_PUNT_INTERES = {
+    "Santuari":            ["santuari"],
+    "Monestir":            ["monestir", "cenobi"],
+    "Ermita":              ["ermita", "capella"],
+    "Convent":             ["convent"],
+    "Castell":             ["castell"],
+    "Torre":               ["torre", "talaia"],
+    "Jaciment ibèric":     ["iberic", "poblat iber"],
+    "Jaciment arqueològic":["jaciment"],
+    "Patrimoni megalític": ["dolmen", "menhir", "cromlec", "necropolis megalitica"],
+    "Túnel ferroviari":    ["tunel"],
+    "Pont":                ["pont", "viaducte", "aqueducte"],
+    "Patrimoni militar":   ["bunquer", "casamata", "niu de metralladora", "linia p", "fortificacio"],
+    "Coves i mines":       ["cova", "coves", "mina", "avenc"],
+    "Molí":                ["moli"],
+    "Masia":               ["masia", "mas "],
+    "Refugi":              ["refugi"],
+    "Estany":              ["estany", "llac", "gorg"],
+    "Cascada":             ["cascada", "salt d'aigua", "salt de"],
+    "Far":                 ["far "],
+    "Vil·la romana":       ["vil.la romana", "villa romana", "roma"],
+}
+
 # ── COLORS OPERADOR ─────────────────────────────────────────────────
 COLORS_OP = {
     "rodalies":      "#EE7F00",
@@ -957,6 +990,40 @@ def fitxa_ruta(ruta_id):
 
     mateixa_estacio = len(rutes_relacionades) <= 1
 
+    def _titol(camp):
+        return camp.split(";", 1)[0].strip() if camp else ""
+
+    def _detecta_tipus(titol):
+        """Detecta automàticament de quin tipus de lloc es tracta buscant
+        paraules clau en qualsevol posició del títol (no cal que hi comenci).
+        Imprecís per naturalesa: només reconeix els tipus previstos aquí."""
+        if not titol:
+            return None
+        t = _sense_accents(titol.lower())
+        for tipus, paraules in TIPUS_PUNT_INTERES.items():
+            for paraula in paraules:
+                if paraula in t:
+                    return tipus
+        return None
+
+    def _rutes_amb_mateix_tipus(tipus_actual, camp_nom):
+        if not tipus_actual:
+            return []
+        resultat = []
+        for r in rutes:
+            if r["id"] == ruta_id:
+                continue
+            if _detecta_tipus(_titol(r.get(camp_nom, ""))) == tipus_actual:
+                resultat.append({"id": r["id"], "nom": r["nom"], "dificultat": r["dificultat"]})
+        return resultat
+
+    titol_punt_interes = _titol(ruta.get("punt_interes", ""))
+    titol_element_ferroviari = _titol(ruta.get("element_ferroviari", ""))
+    tipus_punt_interes = _detecta_tipus(titol_punt_interes)
+    tipus_element_ferroviari = _detecta_tipus(titol_element_ferroviari)
+    rutes_mateix_punt_interes = _rutes_amb_mateix_tipus(tipus_punt_interes, "punt_interes")
+    rutes_mateix_element_ferroviari = _rutes_amb_mateix_tipus(tipus_element_ferroviari, "element_ferroviari")
+
     return render_template("fitxa.html",
         ruta=ruta,
         fotos=fotos,
@@ -968,6 +1035,10 @@ def fitxa_ruta(ruta_id):
         senders_url=_cache_dades.get("senders_url", {}),
         rutes_relacionades=rutes_relacionades,
         mateixa_estacio=mateixa_estacio,
+        rutes_mateix_punt_interes=rutes_mateix_punt_interes,
+        rutes_mateix_element_ferroviari=rutes_mateix_element_ferroviari,
+        tipus_punt_interes=tipus_punt_interes,
+        tipus_element_ferroviari=tipus_element_ferroviari,
     )
 
 
@@ -988,7 +1059,15 @@ def mapa_pagina():
                 estacions_per_op[op] = []
             if est["nom"] not in [e["nom"] for e in estacions_per_op[op]]:
                 estacions_per_op[op].append(est)
-    estacions_per_op = dict(sorted(estacions_per_op.items()))
+    ORDRE_OPERADORS_FILTRE = ["FGC", "Rodalies", "TMB", "Tram", "BSM", "FGV", "Renfe", "Cercanias", "TAV", "SNCF"]
+    ORDRE_OPERADORS_LOWER = [o.lower() for o in ORDRE_OPERADORS_FILTRE]
+    def _clau_ordre_op(item):
+        op = item[0]
+        try:
+            return (ORDRE_OPERADORS_LOWER.index(op.lower()), "")
+        except ValueError:
+            return (len(ORDRE_OPERADORS_FILTRE), op.lower())
+    estacions_per_op = dict(sorted(estacions_per_op.items(), key=_clau_ordre_op))
 
     # Espais naturals únics per als filtres
     espais_mapa = sorted(set(e for r in rutes_mapa for e in r["espai"] if e))
