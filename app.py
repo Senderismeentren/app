@@ -716,6 +716,8 @@ COMUNITATS_PROV_COMARCA = {
             "Conca de Barberà", "Montsià", "Priorat", "Ribera d'Ebre",
             "Tarragonès", "Terra Alta",
         ],
+    },
+    "Catalunya Nord": {
         "Catalunya Nord": [
             "Alta Cerdanya", "Capcir", "Conflent", "Rosselló", "Vallespir",
         ],
@@ -746,16 +748,9 @@ COMUNITATS_PROV_COMARCA = {
     },
 }
 
-ORDRE_COMUNITATS = ["Catalunya", "País Valencià", "Aragó", "Madrid", "Occitània"]
+ORDRE_COMUNITATS = ["Catalunya", "Catalunya Nord", "País Valencià", "Aragó", "Madrid", "Occitània"]
 
-# Ordre dels grups (comunitat, província) tal com apareixeran als menús
-ORDRE_GRUPS = [
-    (com, prov)
-    for com in ORDRE_COMUNITATS
-    for prov in COMUNITATS_PROV_COMARCA[com]
-]
-
-# Índexs invers: comarca → província / comarca → comunitat / província → comunitat
+# Índexs invers: comarca → província / província → comunitat
 _COMARCA_A_PROV = {
     c: prov
     for provs in COMUNITATS_PROV_COMARCA.values()
@@ -773,21 +768,24 @@ _PROV_A_COMUNITAT = {
 
 
 def _agrupar_per_comunitat_prov(items, index_a_prov):
-    """Agrupa una llista d'ítems per 'Comunitat · Província' seguint ORDRE_GRUPS.
-    Els ítems no reconeguts van a 'Altres'."""
-    grups = {f"{com} · {prov}": [] for com, prov in ORDRE_GRUPS}
-    altres = []
-    for item in sorted(items):
-        prov = index_a_prov.get(item)
-        comunitat = _PROV_A_COMUNITAT.get(prov)
-        clau = f"{comunitat} · {prov}" if comunitat else None
-        if clau and clau in grups:
-            grups[clau].append(item)
-        else:
-            altres.append(item)
-    resultat = {clau: vals for clau, vals in grups.items() if vals}
+    """Agrupa una llista d'ítems en cascada: {comunitat: {provincia: [items]}},
+    seguint ORDRE_COMUNITATS i l'ordre de províncies definit a COMUNITATS_PROV_COMARCA.
+    Dins de cada província els ítems van alfabètics. Els no reconeguts van a 'Altres'."""
+    items_ordenats = sorted(items)
+    resultat = {}
+    reconeguts = set()
+    for com in ORDRE_COMUNITATS:
+        provs_com = {}
+        for prov in COMUNITATS_PROV_COMARCA[com]:
+            vals = [it for it in items_ordenats if index_a_prov.get(it) == prov]
+            if vals:
+                provs_com[prov] = vals
+                reconeguts.update(vals)
+        if provs_com:
+            resultat[com] = provs_com
+    altres = [it for it in items_ordenats if it not in reconeguts]
     if altres:
-        resultat["Altres"] = altres
+        resultat["Altres"] = {"Altres": altres}
     return resultat
 
 
