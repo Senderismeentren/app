@@ -694,57 +694,98 @@ def get_estacions():
 
 # ── FILTRES DISPONIBLES ─────────────────────────────────────────────
 
-# Assignació de comarques a província
-COMARQUES_PER_PROV = {
-    "Barcelona": [
-        "Alt Penedès", "Anoia", "Bages", "Baix Llobregat", "Barcelonès",
-        "Berguedà", "Garraf", "Maresme", "Moianès", "Osona",
-        "Vallès Occidental", "Vallès Oriental",
-    ],
-    "Girona": [
-        "Alt Empordà", "Baix Empordà", "Cerdanya", "Garrotxa", "Gironès",
-        "La Selva", "Pla de l'Estany", "Ripollès",
-    ],
-    "Lleida": [
-        "Alta Ribagorça", "Alt Urgell", "Les Garrigues", "La Noguera",
-        "Pallars Jussà", "Pallars Sobirà", "Pla d'Urgell",
-        "Segarra", "Segrià", "Solsonès", "Urgell", "Val d'Aran",
-    ],
-    "Tarragona": [
-        "Alt Camp", "Baix Camp", "Baix Ebre", "Baix Penedès",
-        "Conca de Barberà", "Montsià", "Priorat", "Ribera d'Ebre",
-        "Tarragonès", "Terra Alta",
-    ],
-    "Catalunya Nord": [
-        "Alta Cerdanya", "Capcir", "Conflent", "Rosselló", "Vallespir",
-    ],
+# Assignació de comarques a província, agrupades per comunitat
+COMUNITATS_PROV_COMARCA = {
+    "Catalunya": {
+        "Barcelona": [
+            "Alt Penedès", "Anoia", "Bages", "Baix Llobregat", "Barcelonès",
+            "Berguedà", "Garraf", "Maresme", "Moianès", "Osona",
+            "Vallès Occidental", "Vallès Oriental",
+        ],
+        "Girona": [
+            "Alt Empordà", "Baix Empordà", "Cerdanya", "Garrotxa", "Gironès",
+            "La Selva", "Pla de l'Estany", "Ripollès",
+        ],
+        "Lleida": [
+            "Alta Ribagorça", "Alt Urgell", "Les Garrigues", "La Noguera",
+            "Pallars Jussà", "Pallars Sobirà", "Pla d'Urgell",
+            "La Segarra", "Segrià", "Solsonès", "Urgell", "Val d'Aran",
+        ],
+        "Tarragona": [
+            "Alt Camp", "Baix Camp", "Baix Ebre", "Baix Penedès",
+            "Conca de Barberà", "Montsià", "Priorat", "Ribera d'Ebre",
+            "Tarragonès", "Terra Alta",
+        ],
+        "Catalunya Nord": [
+            "Alta Cerdanya", "Capcir", "Conflent", "Rosselló", "Vallespir",
+        ],
+    },
+    "País Valencià": {
+        "Alacant": [
+            "Baix Vinalopó (Alacant)", "Marina Alta (Alacant)", "Marina Baixa (Alacant)",
+        ],
+        "Castelló": [
+            "Baix Maestrat (Castelló)", "Plana Alta (Castelló)",
+        ],
+    },
+    "Aragó": {
+        "Osca": [
+            "Alt Gàllego (Osca)", "Foia d'Osca (Osca)",
+        ],
+    },
+    "Madrid": {
+        "Madrid": [
+            "Cuenca Alta del Manzanares (Madrid)", "Cuenca del Guadarrama (Madrid)",
+            "Alfoz de Segovia (Segovia)",
+        ],
+    },
+    "Occitània": {
+        "Arieja": [
+            "Arieja (Occitània)",
+        ],
+    },
 }
 
-# Índex invers: comarca → província
+ORDRE_COMUNITATS = ["Catalunya", "País Valencià", "Aragó", "Madrid", "Occitània"]
+
+# Ordre dels grups (comunitat, província) tal com apareixeran als menús
+ORDRE_GRUPS = [
+    (com, prov)
+    for com in ORDRE_COMUNITATS
+    for prov in COMUNITATS_PROV_COMARCA[com]
+]
+
+# Índexs invers: comarca → província / comarca → comunitat / província → comunitat
 _COMARCA_A_PROV = {
     c: prov
-    for prov, comarques in COMARQUES_PER_PROV.items()
+    for provs in COMUNITATS_PROV_COMARCA.values()
+    for prov, comarques in provs.items()
     for c in comarques
+}
+_PROV_A_COMUNITAT = {
+    prov: com
+    for com, provs in COMUNITATS_PROV_COMARCA.items()
+    for prov in provs
 }
 
 # Assignació d'espais naturals a província (per la comarca principal)
 # → deduït automàticament a get_filtres() a partir de les rutes
 
-ORDRE_PROVS = ["Barcelona", "Girona", "Lleida", "Tarragona", "Catalunya Nord"]
 
-
-def _agrupar_per_prov(items, index_a_prov):
-    """Agrupa una llista d'ítems per província seguint ORDRE_PROVS.
+def _agrupar_per_comunitat_prov(items, index_a_prov):
+    """Agrupa una llista d'ítems per 'Comunitat · Província' seguint ORDRE_GRUPS.
     Els ítems no reconeguts van a 'Altres'."""
-    grups = {p: [] for p in ORDRE_PROVS}
+    grups = {f"{com} · {prov}": [] for com, prov in ORDRE_GRUPS}
     altres = []
     for item in sorted(items):
         prov = index_a_prov.get(item)
-        if prov and prov in grups:
-            grups[prov].append(item)
+        comunitat = _PROV_A_COMUNITAT.get(prov)
+        clau = f"{comunitat} · {prov}" if comunitat else None
+        if clau and clau in grups:
+            grups[clau].append(item)
         else:
             altres.append(item)
-    resultat = {p: grups[p] for p in ORDRE_PROVS if grups[p]}
+    resultat = {clau: vals for clau, vals in grups.items() if vals}
     if altres:
         resultat["Altres"] = altres
     return resultat
@@ -775,6 +816,7 @@ def get_filtres(rutes):
     ESPAI_PROV_EXPLICIT = {
         "Parc Natural de les Muntanyes de Prades": "Tarragona",
         "PN Regional dels Pirineus Catalans": "Catalunya Nord",
+        "Tour du Carlit": "Arieja",
     }
 
     # Deduir província de cada espai natural a partir de les comarques de les rutes
@@ -792,10 +834,10 @@ def get_filtres(rutes):
     return {
         "dificultats": dificultats,
         "comarques": comarques,
-        "comarques_per_prov": _agrupar_per_prov(comarques, _COMARCA_A_PROV),
+        "comarques_per_prov": _agrupar_per_comunitat_prov(comarques, _COMARCA_A_PROV),
         "operadors": operadors,
         "espais": espais,
-        "espais_per_prov": _agrupar_per_prov(espais, espai_a_prov),
+        "espais_per_prov": _agrupar_per_comunitat_prov(espais, espai_a_prov),
         "millors": millors,
     }
 
