@@ -233,6 +233,29 @@
       </button>
     </div>
     <div class="filtres-fila2">
+      <!-- Distància -->
+      <select class="fsel" onchange="aplicarFiltre('dist',this.value)">
+        <option value="">📏 Distància...</option>
+        <option value="0-10" {% if filtres_actius.get('dist') == '0-10' %}selected{% endif %}>< 10 km</option>
+        <option value="10-20" {% if filtres_actius.get('dist') == '10-20' %}selected{% endif %}>10–20 km</option>
+        <option value="20+" {% if filtres_actius.get('dist') == '20+' %}selected{% endif %}>> 20 km</option>
+      </select>
+      <!-- Espai natural -->
+      <select class="fsel" onchange="aplicarFiltre('espai',this.value)">
+        <option value="">🌿 Espai natural...</option>
+        {% for comunitat, provs in filtres.espais_per_prov.items() %}
+        <optgroup label="{{ comunitat }}">
+          {% for prov, espais in provs.items() %}
+          {% if provs|length > 1 %}
+          <option disabled>{{ prov }}</option>
+          {% endif %}
+          {% for e in espais %}
+          <option value="{{ e }}" {% if filtres_actius.get('espai') == e %}selected{% endif %}>{% if provs|length > 1 %}&nbsp;&nbsp;{% endif %}{{ e }}</option>
+          {% endfor %}
+          {% endfor %}
+        </optgroup>
+        {% endfor %}
+      </select>
       <!-- Estació -->
       <select class="fsel" onchange="aplicarFiltre('estacio',this.value)">
         <option value="">🚉 Estació...</option>
@@ -251,24 +274,18 @@
         <option value="{{ op }}" {% if filtres_actius.get('operador') == op %}selected{% endif %}>{{ op }}</option>
         {% endfor %}
       </select>
-      <!-- Espai natural -->
-      <select class="fsel" onchange="aplicarFiltre('espai',this.value)">
-        <option value="">🌿 Espai natural...</option>
-        {% for prov, espais in filtres.espais_per_prov.items() %}
-        <optgroup label="{{ prov }}">
-          {% for e in espais %}
-          <option value="{{ e }}" {% if filtres_actius.get('espai') == e %}selected{% endif %}>{{ e }}</option>
-          {% endfor %}
-        </optgroup>
-        {% endfor %}
-      </select>
       <!-- Comarca -->
       <select class="fsel" onchange="aplicarFiltre('comarca',this.value)">
         <option value="">🗺 Comarca...</option>
-        {% for prov, comarques in filtres.comarques_per_prov.items() %}
-        <optgroup label="{{ prov }}">
+        {% for comunitat, provs in filtres.comarques_per_prov.items() %}
+        <optgroup label="{{ comunitat }}">
+          {% for prov, comarques in provs.items() %}
+          {% if provs|length > 1 %}
+          <option disabled>{{ prov }}</option>
+          {% endif %}
           {% for c in comarques %}
-          <option value="{{ c }}" {% if filtres_actius.get('comarca') == c %}selected{% endif %}>{{ c }}</option>
+          <option value="{{ c }}" {% if filtres_actius.get('comarca') == c %}selected{% endif %}>{% if provs|length > 1 %}&nbsp;&nbsp;{% endif %}{{ c }}</option>
+          {% endfor %}
           {% endfor %}
         </optgroup>
         {% endfor %}
@@ -276,13 +293,6 @@
       <!-- 100 Cims -->
       <a class="fpill {% if filtres_actius.get('cims') %}actiu{% endif %}"
          href="/rutes?cims={% if filtres_actius.get('cims') %}{% else %}1{% endif %}&dificultat={{ filtres_actius.get('dificultat','') }}&comarca={{ filtres_actius.get('comarca','') }}&espai={{ filtres_actius.get('espai','') }}&operador={{ filtres_actius.get('operador','') }}&estacio={{ filtres_actius.get('estacio','') }}&dist={{ filtres_actius.get('dist','') }}">🏔 100 Cims</a>
-      <!-- Distància -->
-      <select class="fsel" onchange="aplicarFiltre('dist',this.value)">
-        <option value="">📏 Distància...</option>
-        <option value="0-10" {% if filtres_actius.get('dist') == '0-10' %}selected{% endif %}>< 10 km</option>
-        <option value="10-20" {% if filtres_actius.get('dist') == '10-20' %}selected{% endif %}>10–20 km</option>
-        <option value="20+" {% if filtres_actius.get('dist') == '20+' %}selected{% endif %}>> 20 km</option>
-      </select>
     </div>
   </div>
 
@@ -377,6 +387,35 @@
     </div>
 
     <div class="filtres-mob-grup">
+      <label>Distància</label>
+      <select class="fsel" style="width:100%;" onchange="aplicarFiltre('dist',this.value)">
+        <option value="">Qualsevol distància...</option>
+        <option value="0-10" {% if filtres_actius.get('dist') == '0-10' %}selected{% endif %}>Menys de 10 km</option>
+        <option value="10-20" {% if filtres_actius.get('dist') == '10-20' %}selected{% endif %}>10–20 km</option>
+        <option value="20+" {% if filtres_actius.get('dist') == '20+' %}selected{% endif %}>Més de 20 km</option>
+      </select>
+    </div>
+
+    <div class="filtres-mob-grup">
+      <label>Espai natural</label>
+      <select class="fsel" style="width:100%;" onchange="aplicarFiltre('espai',this.value)">
+        <option value="">Tots els espais...</option>
+        {% for comunitat, provs in filtres.espais_per_prov.items() %}
+        <optgroup label="{{ comunitat }}">
+          {% for prov, espais in provs.items() %}
+          {% if provs|length > 1 %}
+          <option disabled>{{ prov }}</option>
+          {% endif %}
+          {% for e in espais %}
+          <option value="{{ e }}" {% if filtres_actius.get('espai') == e %}selected{% endif %}>{% if provs|length > 1 %}&nbsp;&nbsp;{% endif %}{{ e }}</option>
+          {% endfor %}
+          {% endfor %}
+        </optgroup>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="filtres-mob-grup">
       <label>Estació</label>
       <select class="fsel" style="width:100%;" onchange="aplicarFiltre('estacio',this.value)">
         <option value="">Totes les estacions...</option>
@@ -401,40 +440,21 @@
     </div>
 
     <div class="filtres-mob-grup">
-      <label>Espai natural</label>
-      <select class="fsel" style="width:100%;" onchange="aplicarFiltre('espai',this.value)">
-        <option value="">Tots els espais...</option>
-        {% for prov, espais in filtres.espais_per_prov.items() %}
-        <optgroup label="{{ prov }}">
-          {% for e in espais %}
-          <option value="{{ e }}" {% if filtres_actius.get('espai') == e %}selected{% endif %}>{{ e }}</option>
-          {% endfor %}
-        </optgroup>
-        {% endfor %}
-      </select>
-    </div>
-
-    <div class="filtres-mob-grup">
       <label>Comarca</label>
       <select class="fsel" style="width:100%;" onchange="aplicarFiltre('comarca',this.value)">
         <option value="">Totes les comarques...</option>
-        {% for prov, comarques in filtres.comarques_per_prov.items() %}
-        <optgroup label="{{ prov }}">
+        {% for comunitat, provs in filtres.comarques_per_prov.items() %}
+        <optgroup label="{{ comunitat }}">
+          {% for prov, comarques in provs.items() %}
+          {% if provs|length > 1 %}
+          <option disabled>{{ prov }}</option>
+          {% endif %}
           {% for c in comarques %}
-          <option value="{{ c }}" {% if filtres_actius.get('comarca') == c %}selected{% endif %}>{{ c }}</option>
+          <option value="{{ c }}" {% if filtres_actius.get('comarca') == c %}selected{% endif %}>{% if provs|length > 1 %}&nbsp;&nbsp;{% endif %}{{ c }}</option>
+          {% endfor %}
           {% endfor %}
         </optgroup>
         {% endfor %}
-      </select>
-    </div>
-
-    <div class="filtres-mob-grup">
-      <label>Distància</label>
-      <select class="fsel" style="width:100%;" onchange="aplicarFiltre('dist',this.value)">
-        <option value="">Qualsevol distància...</option>
-        <option value="0-10" {% if filtres_actius.get('dist') == '0-10' %}selected{% endif %}>Menys de 10 km</option>
-        <option value="10-20" {% if filtres_actius.get('dist') == '10-20' %}selected{% endif %}>10–20 km</option>
-        <option value="20+" {% if filtres_actius.get('dist') == '20+' %}selected{% endif %}>Més de 20 km</option>
       </select>
     </div>
 
