@@ -694,98 +694,59 @@ def get_estacions():
 
 # ── FILTRES DISPONIBLES ─────────────────────────────────────────────
 
-# Assignació de comarques a província, agrupades per comunitat
-COMUNITATS_PROV_COMARCA = {
-    "Catalunya": {
-        "Barcelona": [
-            "Alt Penedès", "Anoia", "Bages", "Baix Llobregat", "Barcelonès",
-            "Berguedà", "Garraf", "Maresme", "Moianès", "Osona",
-            "Vallès Occidental", "Vallès Oriental",
-        ],
-        "Girona": [
-            "Alt Empordà", "Baix Empordà", "Cerdanya", "Garrotxa", "Gironès",
-            "La Selva", "Pla de l'Estany", "Ripollès",
-        ],
-        "Lleida": [
-            "Alta Ribagorça", "Alt Urgell", "Les Garrigues", "La Noguera",
-            "Pallars Jussà", "Pallars Sobirà", "Pla d'Urgell",
-            "La Segarra", "Segrià", "Solsonès", "Urgell", "Val d'Aran",
-        ],
-        "Tarragona": [
-            "Alt Camp", "Baix Camp", "Baix Ebre", "Baix Penedès",
-            "Conca de Barberà", "Montsià", "Priorat", "Ribera d'Ebre",
-            "Tarragonès", "Terra Alta",
-        ],
-    },
-    "Catalunya Nord": {
-        "Catalunya Nord": [
-            "Alta Cerdanya", "Capcir", "Conflent", "Rosselló", "Vallespir",
-        ],
-    },
-    "País Valencià": {
-        "Alacant": [
-            "Baix Vinalopó (Alacant)", "Marina Alta (Alacant)", "Marina Baixa (Alacant)",
-        ],
-        "Castelló": [
-            "Baix Maestrat (Castelló)", "Plana Alta (Castelló)",
-        ],
-    },
-    "Aragó": {
-        "Osca": [
-            "Alt Gàllego (Osca)", "Foia d'Osca (Osca)",
-        ],
-    },
-    "Madrid": {
-        "Madrid": [
-            "Cuenca Alta del Manzanares (Madrid)", "Cuenca del Guadarrama (Madrid)",
-            "Alfoz de Segovia (Segovia)",
-        ],
-    },
-    "Occitània": {
-        "Arieja": [
-            "Arieja (Occitània)",
-        ],
-    },
+# Assignació de comarques a província
+COMARQUES_PER_PROV = {
+    "Barcelona": [
+        "Alt Penedès", "Anoia", "Bages", "Baix Llobregat", "Barcelonès",
+        "Berguedà", "Garraf", "Maresme", "Moianès", "Osona",
+        "Vallès Occidental", "Vallès Oriental",
+    ],
+    "Girona": [
+        "Alt Empordà", "Baix Empordà", "Cerdanya", "Garrotxa", "Gironès",
+        "La Selva", "Pla de l'Estany", "Ripollès",
+    ],
+    "Lleida": [
+        "Alta Ribagorça", "Alt Urgell", "Les Garrigues", "La Noguera",
+        "Pallars Jussà", "Pallars Sobirà", "Pla d'Urgell",
+        "Segarra", "Segrià", "Solsonès", "Urgell", "Val d'Aran",
+    ],
+    "Tarragona": [
+        "Alt Camp", "Baix Camp", "Baix Ebre", "Baix Penedès",
+        "Conca de Barberà", "Montsià", "Priorat", "Ribera d'Ebre",
+        "Tarragonès", "Terra Alta",
+    ],
+    "Catalunya Nord": [
+        "Alta Cerdanya", "Capcir", "Conflent", "Rosselló", "Vallespir",
+    ],
 }
 
-ORDRE_COMUNITATS = ["Catalunya", "Catalunya Nord", "País Valencià", "Aragó", "Madrid", "Occitània"]
-
-# Índexs invers: comarca → província / província → comunitat
+# Índex invers: comarca → província
 _COMARCA_A_PROV = {
     c: prov
-    for provs in COMUNITATS_PROV_COMARCA.values()
-    for prov, comarques in provs.items()
+    for prov, comarques in COMARQUES_PER_PROV.items()
     for c in comarques
-}
-_PROV_A_COMUNITAT = {
-    prov: com
-    for com, provs in COMUNITATS_PROV_COMARCA.items()
-    for prov in provs
 }
 
 # Assignació d'espais naturals a província (per la comarca principal)
 # → deduït automàticament a get_filtres() a partir de les rutes
 
+ORDRE_PROVS = ["Barcelona", "Girona", "Lleida", "Tarragona", "Catalunya Nord"]
 
-def _agrupar_per_comunitat_prov(items, index_a_prov):
-    """Agrupa una llista d'ítems en cascada: {comunitat: {provincia: [items]}},
-    seguint ORDRE_COMUNITATS i l'ordre de províncies definit a COMUNITATS_PROV_COMARCA.
-    Dins de cada província els ítems van alfabètics. Els no reconeguts van a 'Altres'."""
-    items_ordenats = sorted(items)
-    resultat = {}
-    reconeguts = set()
-    for com in ORDRE_COMUNITATS:
-        provs_com = {}
-        for prov in COMUNITATS_PROV_COMARCA[com]:
-            vals = [it for it in items_ordenats if index_a_prov.get(it) == prov]
-            if vals:
-                provs_com[prov] = vals
-                reconeguts.update(vals)
-        if provs_com:
-            resultat[com] = provs_com
-    altres = [it for it in items_ordenats if it not in reconeguts]
+
+def _agrupar_per_prov(items, index_a_prov):
+    """Agrupa una llista d'ítems per província seguint ORDRE_PROVS.
+    Els ítems no reconeguts van a 'Altres'."""
+    grups = {p: [] for p in ORDRE_PROVS}
+    altres = []
+    for item in sorted(items):
+        prov = index_a_prov.get(item)
+        if prov and prov in grups:
+            grups[prov].append(item)
+        else:
+            altres.append(item)
+    resultat = {p: grups[p] for p in ORDRE_PROVS if grups[p]}
     if altres:
-        resultat["Altres"] = {"Altres": altres}
+        resultat["Altres"] = altres
     return resultat
 
 
@@ -814,7 +775,6 @@ def get_filtres(rutes):
     ESPAI_PROV_EXPLICIT = {
         "Parc Natural de les Muntanyes de Prades": "Tarragona",
         "PN Regional dels Pirineus Catalans": "Catalunya Nord",
-        "Tour du Carlit": "Arieja",
     }
 
     # Deduir província de cada espai natural a partir de les comarques de les rutes
@@ -832,10 +792,10 @@ def get_filtres(rutes):
     return {
         "dificultats": dificultats,
         "comarques": comarques,
-        "comarques_per_prov": _agrupar_per_comunitat_prov(comarques, _COMARCA_A_PROV),
+        "comarques_per_prov": _agrupar_per_prov(comarques, _COMARCA_A_PROV),
         "operadors": operadors,
         "espais": espais,
-        "espais_per_prov": _agrupar_per_comunitat_prov(espais, espai_a_prov),
+        "espais_per_prov": _agrupar_per_prov(espais, espai_a_prov),
         "millors": millors,
     }
 
@@ -925,7 +885,7 @@ def rutes_pagina():
     rutes_all_list = get_rutes()
     if dif:     rutes = [r for r in rutes if r["dificultat"] == dif]
     if comarca: rutes = [r for r in rutes if comarca in [r["comarca_sortida"], r["comarca_arribada"]]]
-    if operador:rutes = [r for r in rutes if any(operador == op.strip() for camp in [r["op_sortida"] or "", r["op_arribada"] or ""] for op in camp.split(";"))]
+    if operador:rutes = [r for r in rutes if any(operador == op.strip() for camp in [r["op_sortida"] or "", r["op_arribada"] or "", r["op2_sortida"] or "", r["op2_arribada"] or ""] for op in camp.split(";"))]
     if espai:   rutes = [r for r in rutes if espai in r["espai"]]
     if cims:    rutes = [r for r in rutes if r["cims"]]
     if millors: rutes = [r for r in rutes if r["millors"] and millors in [c.strip() for c in r["millors"].split(";")]]
@@ -957,7 +917,8 @@ def rutes_pagina():
     # Estacions agrupades per operador
     estacions_op = {}
     for r in rutes_all_list:
-        for est, ops_str in [(r["sortida"], r["op_sortida"]), (r["arribada"], r["op_arribada"])]:
+        for est, ops_str in [(r["sortida"], r["op_sortida"]), (r["arribada"], r["op_arribada"]),
+                              (r["sortida"], r["op2_sortida"]), (r["arribada"], r["op2_arribada"])]:
             if est and ops_str:
                 for op in ops_str.split(";"):
                     op = op.strip()
