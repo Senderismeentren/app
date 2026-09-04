@@ -409,7 +409,13 @@ CIMS.forEach(c => {
   ).join('');
   L.marker([c.lat, c.lng], {icon})
     .addTo(capes.cims)
-    .bindPopup(`<div style="min-width:200px;"><b>${c.nom}</b>${c.alcada ? ` (${c.alcada} m)` : ''}${categoria ? ` <small>(${categoria})</small>` : ''}${llistaRutes}</div>`);
+    .bindPopup(`<div style="min-width:200px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+        <span><b>${c.nom}</b>${c.alcada ? ` (${c.alcada} m)` : ''}${categoria ? ` <small>(${categoria})</small>` : ''}</span>
+        <span style="background:#0f3460;color:white;border-radius:10px;padding:2px 8px;font-size:11px;font-weight:700;white-space:nowrap;">${(c.rutes || []).length} ${(c.rutes || []).length === 1 ? 'ruta' : 'rutes'}</span>
+      </div>
+      ${llistaRutes}
+    </div>`);
 });
 
 // Afegir capes actives
