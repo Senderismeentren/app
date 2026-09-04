@@ -403,7 +403,7 @@ CIMS.forEach(c => {
   const llistaRutes = (c.rutes || []).map(r => `<a href="/ruta/${r.id}" style="color:#0f3460;">ST${String(r.id).padStart(3,'0')} · ${r.nom}</a>`).join('<br>');
   L.marker([c.lat, c.lng], {icon})
     .addTo(capes.cims)
-    .bindTooltip(`<b>${c.nom}</b>${c.alcada ? ` (${c.alcada} m)` : ''}${categoria ? ` <small>(${categoria})</small>` : ''}<br><small>${llistaRutes}</small>`, {direction: 'top'});
+    .bindPopup(`<b>${c.nom}</b>${c.alcada ? ` (${c.alcada} m)` : ''}${categoria ? ` <small>(${categoria})</small>` : ''}<br><small>${llistaRutes}</small>`);
 });
 
 // Afegir capes actives
