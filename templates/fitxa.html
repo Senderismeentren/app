@@ -366,6 +366,7 @@
     {% endif %}
 
     <!-- ELEMENTS D'INTERÈS -->
+    {% set colors_dif = {'Molt fàcil':'#27AE60','Fàcil':'#2ECC71','Moderada':'#F39C12','Exigent':'#E67E22','Molt exigent':'#E74C3C'} %}
     {% if ruta.punts_interes %}
     <div class="bloc">
       <div class="bloc-cap"><span class="bloc-icon">📍</span><span class="bloc-titol">Punts d'interès</span></div>
@@ -405,6 +406,20 @@
         </div>
         {% endfor %}
       </div>
+      {% if rutes_per_categoria %}
+      <div style="border-top:1px solid #f0f0f0;margin-top:10px;padding-top:10px;">
+        {% for grup in rutes_per_categoria %}
+        <p style="font-size:11px;font-weight:700;color:#888;margin:8px 0 4px;">Altres rutes amb {{ grup.categoria }}:</p>
+        {% for r in grup.rutes %}
+        <a href="/ruta/{{ r.id }}" style="text-decoration:none;display:flex;align-items:center;gap:8px;padding:4px 0;color:#333;">
+          <span style="width:7px;height:7px;border-radius:50%;background:{{ colors_dif.get(r.dificultat,'#aaa') }};flex-shrink:0;"></span>
+          <span style="font-size:11px;color:#aaa;font-weight:700;flex-shrink:0;">ST{{ '%03d' | format(r.id) }}</span>
+          <span style="font-size:13px;word-break:break-word;">{{ r.nom }}</span>
+        </a>
+        {% endfor %}
+        {% endfor %}
+      </div>
+      {% endif %}
     </div>
     {% endif %}
 
@@ -419,6 +434,20 @@
         <p style="font-size:13px;color:#555;line-height:1.7;margin:0;">{{ ef_parts[1].strip() }}</p>
         {% else %}
         <p style="font-size:13px;color:#555;line-height:1.7;margin:0;">{{ ef_parts[0].strip() }}</p>
+        {% endif %}
+        {% if rutes_per_tema_ef %}
+        <div style="border-top:1px solid #f0f0f0;margin-top:10px;padding-top:10px;">
+          {% for grup in rutes_per_tema_ef %}
+          <p style="font-size:11px;font-weight:700;color:#888;margin:8px 0 4px;">Altres rutes amb aquest tema: {{ grup.tema }}</p>
+          {% for r in grup.rutes %}
+          <a href="/ruta/{{ r.id }}" style="text-decoration:none;display:flex;align-items:center;gap:8px;padding:4px 0;color:#333;">
+            <span style="width:7px;height:7px;border-radius:50%;background:{{ colors_dif.get(r.dificultat,'#aaa') }};flex-shrink:0;"></span>
+            <span style="font-size:11px;color:#aaa;font-weight:700;flex-shrink:0;">ST{{ '%03d' | format(r.id) }}</span>
+            <span style="font-size:13px;word-break:break-word;">{{ r.nom }}</span>
+          </a>
+          {% endfor %}
+          {% endfor %}
+        </div>
         {% endif %}
       </div>
     </div>
