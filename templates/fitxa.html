@@ -420,16 +420,6 @@
         {% else %}
         <p style="font-size:13px;color:#555;line-height:1.7;margin:0;">{{ ef_parts[0].strip() }}</p>
         {% endif %}
-        {% if rutes_mateix_element_ferroviari %}
-        <p style="font-size:11px;font-weight:700;color:#888;margin:12px 0 4px;">Rutes amb aquest tipus de punt: {{ tipus_element_ferroviari }}</p>
-        {% for r in rutes_mateix_element_ferroviari %}
-        <a href="/ruta/{{ r.id }}" style="text-decoration:none;display:flex;align-items:center;gap:8px;padding:5px 0;color:#333;">
-          <span style="width:7px;height:7px;border-radius:50%;background:{{ colors_dif.get(r.dificultat,'#aaa') }};flex-shrink:0;"></span>
-          <span style="font-size:11px;color:#aaa;font-weight:700;flex-shrink:0;">ST{{ '%03d' | format(r.id) }}</span>
-          <span style="font-size:13px;word-break:break-word;">{{ r.nom }}</span>
-        </a>
-        {% endfor %}
-        {% endif %}
       </div>
     </div>
     {% endif %}
@@ -445,16 +435,6 @@
         <p style="font-size:13px;color:#555;line-height:1.7;margin:0;">{{ pi_parts[1].strip() }}</p>
         {% else %}
         <p style="font-size:13px;color:#555;line-height:1.7;margin:0;">{{ pi_parts[0].strip() }}</p>
-        {% endif %}
-        {% if rutes_mateix_punt_interes %}
-        <p style="font-size:11px;font-weight:700;color:#888;margin:12px 0 4px;">Rutes amb aquest tipus de punt: {{ tipus_punt_interes }}</p>
-        {% for r in rutes_mateix_punt_interes %}
-        <a href="/ruta/{{ r.id }}" style="text-decoration:none;display:flex;align-items:center;gap:8px;padding:5px 0;color:#333;">
-          <span style="width:7px;height:7px;border-radius:50%;background:{{ colors_dif.get(r.dificultat,'#aaa') }};flex-shrink:0;"></span>
-          <span style="font-size:11px;color:#aaa;font-weight:700;flex-shrink:0;">ST{{ '%03d' | format(r.id) }}</span>
-          <span style="font-size:13px;word-break:break-word;">{{ r.nom }}</span>
-        </a>
-        {% endfor %}
         {% endif %}
       </div>
     </div>
