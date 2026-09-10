@@ -443,6 +443,7 @@ def ruta_a_dict(row):
         "destacada":    (v("Destacades") or "").strip().lower() in ("sí", "si", "yes", "1", "x"),
         "punt_interes":  v("Punt_interès") or v("Punt_interes") or "",
         "element_ferroviari": v("Element_ferroviari") or "",
+        "tema_element_ferroviari": v("Tema_element_ferroviari") or "",
         "lat_sortida":  info_s.get("lat") or vf("Lat_sortida"),
         "lng_sortida":  info_s.get("lng") or vf("Lon_sortida"),
         "linies_sortida": info_s.get("linies") or [l.strip() for l in v("Linies_sortida").split(";") if l.strip()],
@@ -976,6 +977,40 @@ def fitxa_ruta(ruta_id):
 
     mateixa_estacio = len(rutes_relacionades) <= 1
 
+    # Rutes que comparteixen alguna categoria d'element d'interès (Castell, Jaciment ibèric...)
+    categories_actuals = sorted(set(
+        cat.strip() for _, cat in ruta.get("punts_interes", []) if cat and cat.strip()
+    ))
+    rutes_per_categoria = []
+    for categoria in categories_actuals:
+        cat_lower = categoria.lower()
+        trobades = []
+        for r in rutes:
+            if r["id"] == ruta_id:
+                continue
+            cats_r = {c.strip().lower() for _, c in r.get("punts_interes", []) if c}
+            if cat_lower in cats_r:
+                trobades.append({"id": r["id"], "nom": r["nom"], "dificultat": r["dificultat"]})
+        if trobades:
+            rutes_per_categoria.append({"categoria": categoria, "rutes": trobades})
+
+    # Rutes que comparteixen algun tema d'Element ferroviari (Guerra Civil, Túnels...)
+    temes_actuals = sorted(set(
+        t.strip() for t in (ruta.get("tema_element_ferroviari") or "").split(";") if t.strip()
+    ))
+    rutes_per_tema_ef = []
+    for tema in temes_actuals:
+        tema_lower = tema.lower()
+        trobades = []
+        for r in rutes:
+            if r["id"] == ruta_id:
+                continue
+            temes_r = {t.strip().lower() for t in (r.get("tema_element_ferroviari") or "").split(";") if t.strip()}
+            if tema_lower in temes_r:
+                trobades.append({"id": r["id"], "nom": r["nom"], "dificultat": r["dificultat"]})
+        if trobades:
+            rutes_per_tema_ef.append({"tema": tema, "rutes": trobades})
+
     return render_template("fitxa.html",
         ruta=ruta,
         fotos=fotos,
@@ -987,6 +1022,8 @@ def fitxa_ruta(ruta_id):
         senders_url=_cache_dades.get("senders_url", {}),
         rutes_relacionades=rutes_relacionades,
         mateixa_estacio=mateixa_estacio,
+        rutes_per_categoria=rutes_per_categoria,
+        rutes_per_tema_ef=rutes_per_tema_ef,
     )
 
 
