@@ -1007,7 +1007,8 @@ def fitxa_ruta(ruta_id):
                 continue
             temes_r = {t.strip().lower() for t in (r.get("tema_element_ferroviari") or "").split(";") if t.strip()}
             if tema_lower in temes_r:
-                trobades.append({"id": r["id"], "nom": r["nom"], "dificultat": r["dificultat"]})
+                titol_ef_r = (r.get("element_ferroviari") or "").split(";", 1)[0].strip()
+                trobades.append({"id": r["id"], "nom": r["nom"], "dificultat": r["dificultat"], "titol_ef": titol_ef_r})
         if trobades:
             rutes_per_tema_ef.append({"tema": tema, "rutes": trobades})
 
