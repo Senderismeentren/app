@@ -995,9 +995,25 @@ def fitxa_ruta(ruta_id):
             rutes_per_categoria.append({"categoria": categoria, "rutes": trobades})
 
     # Rutes que comparteixen algun tema d'Element ferroviari (Guerra Civil, Túnels...)
-    temes_actuals = sorted(set(
-        t.strip() for t in (ruta.get("tema_element_ferroviari") or "").split(";") if t.strip()
-    ))
+    def _separa_tema_ef(camp, sortida=None, arribada=None):
+        """Si el primer element coincideix amb l'estació de sortida o d'arribada
+        de la ruta, es tracta com a estació de referència i la resta com a temes.
+        Si no hi coincideix, es manté la compatibilitat i tot es tracta com a temes."""
+        parts = [p.strip() for p in (camp or "").split(";") if p.strip()]
+        if not parts:
+            return "", []
+        primer = parts[0]
+        if sortida and primer == sortida:
+            return primer, parts[1:]
+        if arribada and primer == arribada:
+            return primer, parts[1:]
+        return "", parts
+
+    estacio_ef_actual, llista_temes_actuals = _separa_tema_ef(
+        ruta.get("tema_element_ferroviari"), ruta.get("sortida"), ruta.get("arribada")
+    )
+    temes_actuals = sorted(set(llista_temes_actuals))
+
     rutes_per_tema_ef = []
     for tema in temes_actuals:
         tema_lower = tema.lower()
@@ -1005,9 +1021,14 @@ def fitxa_ruta(ruta_id):
         for r in rutes:
             if r["id"] == ruta_id:
                 continue
-            temes_r = {t.strip().lower() for t in (r.get("tema_element_ferroviari") or "").split(";") if t.strip()}
+            estacio_r, temes_r_llista = _separa_tema_ef(
+                r.get("tema_element_ferroviari"), r.get("sortida"), r.get("arribada")
+            )
+            temes_r = {t.lower() for t in temes_r_llista}
             if tema_lower in temes_r:
                 titol_ef_r = (r.get("element_ferroviari") or "").split(";", 1)[0].strip()
+                if estacio_r:
+                    titol_ef_r = f"{titol_ef_r} ({estacio_r})"
                 trobades.append({"id": r["id"], "nom": r["nom"], "dificultat": r["dificultat"], "titol_ef": titol_ef_r})
         if trobades:
             rutes_per_tema_ef.append({"tema": tema, "rutes": trobades})
@@ -1025,6 +1046,7 @@ def fitxa_ruta(ruta_id):
         mateixa_estacio=mateixa_estacio,
         rutes_per_categoria=rutes_per_categoria,
         rutes_per_tema_ef=rutes_per_tema_ef,
+        estacio_ef_actual=estacio_ef_actual,
     )
 
 
