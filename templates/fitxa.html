@@ -416,14 +416,14 @@
       <div class="bloc-cap"><span class="bloc-icon">🚂</span><span class="bloc-titol">Element ferroviari d'interès</span></div>
       <div class="bloc-cos">
         {% if ef_parts|length > 1 %}
-        <p style="font-size:14px;font-weight:700;color:#111;margin:0 0 4px;">{{ ef_parts[0].strip() }}</p>
+        <p style="font-size:14px;font-weight:700;color:#111;margin:0 0 4px;">{{ ef_parts[0].strip() }}{% if estacio_ef_actual %} ({{ estacio_ef_actual }}){% endif %}</p>
         <p style="font-size:13px;color:#555;line-height:1.7;margin:0;">{{ ef_parts[1].strip() }}</p>
         {% else %}
         <p style="font-size:13px;color:#555;line-height:1.7;margin:0;">{{ ef_parts[0].strip() }}</p>
         {% endif %}
         {% if rutes_per_tema_ef %}
         <div style="border-top:1px solid #f0f0f0;margin-top:10px;padding-top:8px;">
-          <p style="font-size:11px;font-weight:700;color:#888;margin:0 0 6px;text-transform:uppercase;letter-spacing:0.3px;">Més històries de:</p>
+          <p style="font-size:11px;font-weight:700;color:#888;margin:0 0 6px;text-transform:uppercase;letter-spacing:0.3px;">Més històries ferroviàries:</p>
           {% for grup in rutes_per_tema_ef %}
           <details style="margin:4px 0;">
             <summary style="font-size:12px;font-weight:700;color:#3498DB;cursor:pointer;padding:4px 0;">
