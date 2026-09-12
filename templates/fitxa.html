@@ -420,7 +420,7 @@
     <div class="bloc">
       <div class="bloc-cap"><span class="bloc-icon">📍</span><span class="bloc-titol">Punts d'interès</span></div>
       <div class="elements-llista">
-        {% for nom, cat in ruta.punts_interes %}
+        {% for info, cat in ruta.punts_interes %}
         <div class="el-item">
           <div class="el-icon">
             {% if 'castell' in cat.lower() or 'torre' in cat.lower() %}🏰
@@ -449,7 +449,7 @@
             {% else %}📍{% endif %}
           </div>
           <div>
-            <div class="el-nom">{{ nom }}</div>
+            <div class="el-nom">{{ info.nom }}{% if info.dist %} <span style="font-weight:400;color:#999;font-size:12px;">{{ info.dist }}{% if info.alcada %} ({{ info.alcada }}){% endif %}</span>{% endif %}</div>
             {% if cat %}<div class="el-cat">{{ cat }}</div>{% endif %}
           </div>
         </div>
