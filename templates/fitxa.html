@@ -329,7 +329,9 @@
           {% if ruta.comarca_sortida %}<div class="dt-item"><div class="dt-icon">🗺</div><div><div class="dt-label">Comarca sortida</div><div class="dt-val">{{ ruta.comarca_sortida }}</div></div></div>{% endif %}
           {% if ruta.comarca_arribada %}<div class="dt-item"><div class="dt-icon">🗺</div><div><div class="dt-label">Comarca arribada</div><div class="dt-val">{{ ruta.comarca_arribada }}</div></div></div>{% endif %}
           {% endif %}
-          {% if ruta.cims and ruta.cims_detall %}<div class="dt-item"><div class="dt-icon">⛰️</div><div><div class="dt-label">100 Cims</div><div class="dt-val">{% for cim in ruta.cims_detall %}<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+          {% if ruta.dificultat %}<div class="dt-item"><div class="dt-icon">📶</div><div><div class="dt-label">Dificultat</div><div class="dt-val">{{ ruta.dificultat }}</div></div></div>{% endif %}
+          {% if ruta.espai %}<div class="dt-item" style="grid-column:1 / -1;"><div class="dt-icon">🌳</div><div><div class="dt-label">Espai natural</div><div class="dt-val">{{ ruta.espai|join(', ') }}</div></div></div>{% endif %}
+          {% if ruta.cims and ruta.cims_detall %}<div class="dt-item" style="grid-column:1 / -1;"><div class="dt-icon">⛰️</div><div><div class="dt-label">100 Cims</div><div class="dt-val">{% for cim in ruta.cims_detall %}<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
             <span>{{ cim.nom }}</span>
             {% if cim.alcada %}<span style="font-weight:400;color:#888;font-size:13px;">{{ cim.alcada }} m</span>{% endif %}
             {% if cim.categoria %}<span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;padding:2px 7px;border-radius:20px;{% if cim.categoria|lower == 'essencial' %}background:#E1F5EE;color:#0F6E56;{% else %}background:#FDECEC;color:#C0392B;{% endif %}">{{ cim.categoria }}</span>{% endif %}
@@ -348,9 +350,9 @@
       <div class="bloc-cos">
         {% if ef_parts|length > 1 %}
         <p style="font-size:14px;font-weight:700;color:#111;margin:0 0 4px;">{{ ef_parts[0].strip() }}{% if estacio_ef_actual %} ({{ estacio_ef_actual }}){% endif %}</p>
-        <p style="font-size:13px;color:#555;line-height:1.7;margin:0;">{{ ef_parts[1].strip() }}</p>
+        <p style="font-size:14px;color:#555;line-height:1.78;margin:0;">{{ ef_parts[1].strip() }}</p>
         {% else %}
-        <p style="font-size:13px;color:#555;line-height:1.7;margin:0;">{{ ef_parts[0].strip() }}</p>
+        <p style="font-size:14px;color:#555;line-height:1.78;margin:0;">{{ ef_parts[0].strip() }}</p>
         {% endif %}
         {% if rutes_per_tema_ef %}
         <div style="border-top:1px solid #f0f0f0;margin-top:10px;padding-top:8px;">
@@ -467,9 +469,9 @@
       <div class="bloc-cos">
         {% if pi_parts|length > 1 %}
         <p style="font-size:14px;font-weight:700;color:#111;margin:0 0 4px;">{{ pi_parts[0].strip() }}</p>
-        <p style="font-size:13px;color:#555;line-height:1.7;margin:0;">{{ pi_parts[1].strip() }}</p>
+        <p style="font-size:14px;color:#555;line-height:1.78;margin:0;">{{ pi_parts[1].strip() }}</p>
         {% else %}
-        <p style="font-size:13px;color:#555;line-height:1.7;margin:0;">{{ pi_parts[0].strip() }}</p>
+        <p style="font-size:14px;color:#555;line-height:1.78;margin:0;">{{ pi_parts[0].strip() }}</p>
         {% endif %}
       </div>
     </div>
