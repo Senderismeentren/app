@@ -427,16 +427,28 @@
           {% for grup in rutes_per_tema_ef %}
           <details style="margin:4px 0;">
             <summary style="font-size:12px;font-weight:700;color:#3498DB;cursor:pointer;padding:4px 0;">
-              {{ grup.icona }} {{ grup.tema }} <span style="color:#aaa;font-weight:600;">({{ grup.rutes|length }} ruta{{ 's' if grup.rutes|length != 1 else '' }} més)</span>
+              {{ grup.icona }} {{ grup.tema }} <span style="color:#aaa;font-weight:600;">({{ grup.rutes|length }} {{ 'rutes' if grup.rutes|length != 1 else 'ruta' }} més)</span>
             </summary>
-            <div style="padding-top:4px;">
+            <div style="padding-top:4px;padding-left:14px;">
               {% for r in grup.rutes %}
-              <a href="/ruta/{{ r.id }}" style="text-decoration:none;display:flex;align-items:center;gap:8px;padding:4px 0;color:#333;">
+              <a href="/ruta/{{ r.id }}" class="{% if loop.index > 5 %}fila-ruta-oculta{% endif %}" style="text-decoration:none;display:flex;align-items:center;gap:8px;padding:4px 0;color:#333;">
                 <span style="width:7px;height:7px;border-radius:50%;background:{{ colors_dif.get(r.dificultat,'#aaa') }};flex-shrink:0;"></span>
                 <span style="font-size:11px;color:#aaa;font-weight:700;flex-shrink:0;">ST{{ '%03d' | format(r.id) }}</span>
                 <span style="font-size:13px;word-break:break-word;">{{ r.titol_ef or r.nom }}</span>
               </a>
               {% endfor %}
+              {% if grup.rutes|length > 5 %}
+              <button type="button" class="btn-veure-mes-rutes" onclick="veureMesRutesRelacionades(this)"
+                style="background:none;border:none;color:#3498DB;font-size:12px;font-weight:700;cursor:pointer;padding:6px 0;">
+                Veure {{ grup.rutes|length - 5 }} rutes més
+              </button>
+              {% endif %}
+              {% if grup.rutes|length > 10 %}
+              <button type="button" class="btn-tancar-desplegable-ef" onclick="tancarDesplegableEf(this)"
+                style="background:none;border:none;color:#999;font-size:12px;font-weight:600;cursor:pointer;padding:6px 0;">
+                Tancar
+              </button>
+              {% endif %}
             </div>
           </details>
           {% endfor %}
@@ -666,6 +678,11 @@ function veureMesRutesRelacionades(btn) {
     node = node.previousElementSibling;
   }
   btn.remove();
+}
+
+function tancarDesplegableEf(btn) {
+  const det = btn.closest('details');
+  if (det) det.open = false;
 }
 
 function setMapa(tipus) {
