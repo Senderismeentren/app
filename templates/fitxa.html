@@ -340,6 +340,55 @@
       </div>
     </div>
 
+    {% set colors_dif = {'Molt fàcil':'#27AE60','Fàcil':'#2ECC71','Moderada':'#F39C12','Exigent':'#E67E22','Molt exigent':'#E74C3C'} %}
+    {% if ruta.element_ferroviari %}
+    {% set ef_parts = ruta.element_ferroviari.split(';') %}
+    <div class="bloc">
+      <div class="bloc-cap"><span class="bloc-icon">🚂</span><span class="bloc-titol">Element ferroviari d'interès</span></div>
+      <div class="bloc-cos">
+        {% if ef_parts|length > 1 %}
+        <p style="font-size:14px;font-weight:700;color:#111;margin:0 0 4px;">{{ ef_parts[0].strip() }}{% if estacio_ef_actual %} ({{ estacio_ef_actual }}){% endif %}</p>
+        <p style="font-size:13px;color:#555;line-height:1.7;margin:0;">{{ ef_parts[1].strip() }}</p>
+        {% else %}
+        <p style="font-size:13px;color:#555;line-height:1.7;margin:0;">{{ ef_parts[0].strip() }}</p>
+        {% endif %}
+        {% if rutes_per_tema_ef %}
+        <div style="border-top:1px solid #f0f0f0;margin-top:10px;padding-top:8px;">
+          <p style="font-size:11px;font-weight:700;color:#888;margin:0 0 6px;text-transform:uppercase;letter-spacing:0.3px;">Més històries ferroviàries:</p>
+          {% for grup in rutes_per_tema_ef %}
+          <details style="margin:4px 0;">
+            <summary style="font-size:12px;font-weight:700;color:#3498DB;cursor:pointer;padding:4px 0;">
+              {{ grup.icona }} {{ grup.tema }} <span style="color:#aaa;font-weight:600;">({{ grup.rutes|length }} {{ 'rutes' if grup.rutes|length != 1 else 'ruta' }} més)</span>
+            </summary>
+            <div style="padding-top:4px;padding-left:14px;">
+              {% for r in grup.rutes %}
+              <a href="/ruta/{{ r.id }}" class="{% if loop.index > 5 %}fila-ruta-oculta{% endif %}" style="text-decoration:none;display:flex;align-items:center;gap:8px;padding:4px 0;color:#333;">
+                <span style="width:7px;height:7px;border-radius:50%;background:{{ colors_dif.get(r.dificultat,'#aaa') }};flex-shrink:0;"></span>
+                <span style="font-size:11px;color:#aaa;font-weight:700;flex-shrink:0;">ST{{ '%03d' | format(r.id) }}</span>
+                <span style="font-size:13px;word-break:break-word;">{{ r.titol_ef or r.nom }}</span>
+              </a>
+              {% endfor %}
+              {% if grup.rutes|length > 5 %}
+              <button type="button" class="btn-veure-mes-rutes" onclick="veureMesRutesRelacionades(this)"
+                style="background:none;border:none;color:#3498DB;font-size:12px;font-weight:700;cursor:pointer;padding:6px 0;">
+                Veure {{ grup.rutes|length - 5 }} rutes més
+              </button>
+              {% endif %}
+              {% if grup.rutes|length > 10 %}
+              <button type="button" class="btn-tancar-desplegable-ef" onclick="tancarDesplegableEf(this)"
+                style="background:none;border:none;color:#999;font-size:12px;font-weight:600;cursor:pointer;padding:6px 0;">
+                Tancar
+              </button>
+              {% endif %}
+            </div>
+          </details>
+          {% endfor %}
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+
     <!-- ADVERTIMENT SEGURETAT -->
     {% if ruta.advertiments %}
     <div class="bloc">
@@ -409,54 +458,6 @@
     </div>
     {% endif %}
 
-    {% set colors_dif = {'Molt fàcil':'#27AE60','Fàcil':'#2ECC71','Moderada':'#F39C12','Exigent':'#E67E22','Molt exigent':'#E74C3C'} %}
-    {% if ruta.element_ferroviari %}
-    {% set ef_parts = ruta.element_ferroviari.split(';') %}
-    <div class="bloc">
-      <div class="bloc-cap"><span class="bloc-icon">🚂</span><span class="bloc-titol">Element ferroviari d'interès</span></div>
-      <div class="bloc-cos">
-        {% if ef_parts|length > 1 %}
-        <p style="font-size:14px;font-weight:700;color:#111;margin:0 0 4px;">{{ ef_parts[0].strip() }}{% if estacio_ef_actual %} ({{ estacio_ef_actual }}){% endif %}</p>
-        <p style="font-size:13px;color:#555;line-height:1.7;margin:0;">{{ ef_parts[1].strip() }}</p>
-        {% else %}
-        <p style="font-size:13px;color:#555;line-height:1.7;margin:0;">{{ ef_parts[0].strip() }}</p>
-        {% endif %}
-        {% if rutes_per_tema_ef %}
-        <div style="border-top:1px solid #f0f0f0;margin-top:10px;padding-top:8px;">
-          <p style="font-size:11px;font-weight:700;color:#888;margin:0 0 6px;text-transform:uppercase;letter-spacing:0.3px;">Més històries ferroviàries:</p>
-          {% for grup in rutes_per_tema_ef %}
-          <details style="margin:4px 0;">
-            <summary style="font-size:12px;font-weight:700;color:#3498DB;cursor:pointer;padding:4px 0;">
-              {{ grup.icona }} {{ grup.tema }} <span style="color:#aaa;font-weight:600;">({{ grup.rutes|length }} {{ 'rutes' if grup.rutes|length != 1 else 'ruta' }} més)</span>
-            </summary>
-            <div style="padding-top:4px;padding-left:14px;">
-              {% for r in grup.rutes %}
-              <a href="/ruta/{{ r.id }}" class="{% if loop.index > 5 %}fila-ruta-oculta{% endif %}" style="text-decoration:none;display:flex;align-items:center;gap:8px;padding:4px 0;color:#333;">
-                <span style="width:7px;height:7px;border-radius:50%;background:{{ colors_dif.get(r.dificultat,'#aaa') }};flex-shrink:0;"></span>
-                <span style="font-size:11px;color:#aaa;font-weight:700;flex-shrink:0;">ST{{ '%03d' | format(r.id) }}</span>
-                <span style="font-size:13px;word-break:break-word;">{{ r.titol_ef or r.nom }}</span>
-              </a>
-              {% endfor %}
-              {% if grup.rutes|length > 5 %}
-              <button type="button" class="btn-veure-mes-rutes" onclick="veureMesRutesRelacionades(this)"
-                style="background:none;border:none;color:#3498DB;font-size:12px;font-weight:700;cursor:pointer;padding:6px 0;">
-                Veure {{ grup.rutes|length - 5 }} rutes més
-              </button>
-              {% endif %}
-              {% if grup.rutes|length > 10 %}
-              <button type="button" class="btn-tancar-desplegable-ef" onclick="tancarDesplegableEf(this)"
-                style="background:none;border:none;color:#999;font-size:12px;font-weight:600;cursor:pointer;padding:6px 0;">
-                Tancar
-              </button>
-              {% endif %}
-            </div>
-          </details>
-          {% endfor %}
-        </div>
-        {% endif %}
-      </div>
-    </div>
-    {% endif %}
 
     <!-- ELEMENT DESTACAT -->
     {% if ruta.punt_interes %}
