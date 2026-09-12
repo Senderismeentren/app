@@ -427,7 +427,7 @@
           {% for grup in rutes_per_tema_ef %}
           <details style="margin:4px 0;">
             <summary style="font-size:12px;font-weight:700;color:#3498DB;cursor:pointer;padding:4px 0;">
-              🚂 {{ grup.tema }} <span style="color:#aaa;font-weight:600;">({{ grup.rutes|length }} ruta{{ 's' if grup.rutes|length != 1 else '' }} més)</span>
+              {{ grup.icona }} {{ grup.tema }} <span style="color:#aaa;font-weight:600;">({{ grup.rutes|length }} ruta{{ 's' if grup.rutes|length != 1 else '' }} més)</span>
             </summary>
             <div style="padding-top:4px;">
               {% for r in grup.rutes %}
