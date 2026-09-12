@@ -1031,7 +1031,32 @@ def fitxa_ruta(ruta_id):
                     titol_ef_r = f"{titol_ef_r} ({estacio_r})"
                 trobades.append({"id": r["id"], "nom": r["nom"], "dificultat": r["dificultat"], "titol_ef": titol_ef_r})
         if trobades:
-            rutes_per_tema_ef.append({"tema": tema, "rutes": trobades})
+            rutes_per_tema_ef.append({"tema": tema, "rutes": trobades, "icona": "🚂"})
+
+    # Grups per estació de sortida i/o arribada, només amb rutes on Tema_element_ferroviari
+    # porta exactament aquesta estació (independentment de la sortida/arribada real d'aquestes rutes)
+    estacions_actuals = []
+    if ruta.get("sortida"):
+        estacions_actuals.append(ruta["sortida"])
+    if ruta.get("arribada") and ruta.get("arribada") != ruta.get("sortida"):
+        estacions_actuals.append(ruta["arribada"])
+
+    grups_estacio_ef = []
+    for estacio in estacions_actuals:
+        trobades = []
+        for r in rutes:
+            if r["id"] == ruta_id:
+                continue
+            estacio_r, _ = _separa_tema_ef(
+                r.get("tema_element_ferroviari"), r.get("sortida"), r.get("arribada")
+            )
+            if estacio_r == estacio:
+                titol_ef_r = (r.get("element_ferroviari") or "").split(";", 1)[0].strip()
+                trobades.append({"id": r["id"], "nom": r["nom"], "dificultat": r["dificultat"], "titol_ef": titol_ef_r})
+        if trobades:
+            grups_estacio_ef.append({"tema": f"Estació de {estacio}", "rutes": trobades, "icona": "🚉"})
+
+    rutes_per_tema_ef = grups_estacio_ef + rutes_per_tema_ef
 
     return render_template("fitxa.html",
         ruta=ruta,
