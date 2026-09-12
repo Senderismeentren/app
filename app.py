@@ -368,6 +368,17 @@ def _detall_cims(noms_cim_str):
     return detall
 
 
+_PUNT_DIST_RE = re.compile(r'^(.*?)\s+([\d.,]+\s*km)\s*\(([\d.,]+\s*m)\)\s*$')
+
+def _separa_dist_punt_interes(text):
+    """Si l'element porta la distància i l'alçada al final (p. ex. '... 2,9 km (675 m)'),
+    en retorna el nom net per separat. Si no hi coincideix, es manté tot com a nom."""
+    m = _PUNT_DIST_RE.match(text)
+    if m:
+        return {"nom": m.group(1).strip(), "dist": m.group(2).strip(), "alcada": m.group(3).strip()}
+    return {"nom": text.strip(), "dist": "", "alcada": ""}
+
+
 def ruta_a_dict(row):
     """Converteix una fila del DataFrame a diccionari net per a les plantilles."""
     def v(camp):
@@ -428,7 +439,8 @@ def ruta_a_dict(row):
 
     elements = [e.strip() for e in v("Elements_interès").split(";") if e.strip()]
     cats_el  = [c.strip() for c in v("Categories_elements_interès").split(";") if c.strip()]
-    punts_interes = list(zip(elements, cats_el + [""]*(len(elements)-len(cats_el))))
+    elements_info = [_separa_dist_punt_interes(e) for e in elements]
+    punts_interes = list(zip(elements_info, cats_el + [""]*(len(elements)-len(cats_el))))
 
     return {
         "id":           ruta_id,
