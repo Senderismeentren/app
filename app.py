@@ -34,6 +34,8 @@ BASE_LOGO_OPERADOR_URL = "https://raw.githubusercontent.com/Senderismeentren/sen
 BASE_LOGO_LINIA_URL    = "https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/logos-linies/logo-{operador}-{linia}.svg"
 MAX_FOTOS       = 40
 CACHE_TTL       = 1800   # 30 min
+SHEETS_TIMEOUT  = 5      # segons màxims d'espera per cada crida a Google Sheets
+REINTENT_TTL    = 60     # si la càrrega falla, reintentar al cap d'1 min
 
 # ── COLORS DIFICULTAT ───────────────────────────────────────────────
 COLORS_DIF = {
@@ -109,6 +111,7 @@ def _obtenir_sheet():
                     "https://www.googleapis.com/auth/drive"]
         )
         gc_local = gspread.authorize(creds)
+        gc_local.set_timeout(SHEETS_TIMEOUT)
         return gc_local.open_by_key(SHEET_ID)
     except Exception as e:
         print(f"[sheet] Error obrint spreadsheet: {repr(e)}")
@@ -168,12 +171,15 @@ def carregar_dades():
                         "https://www.googleapis.com/auth/drive"]
             )
             gc = gspread.authorize(creds)
+            gc.set_timeout(SHEETS_TIMEOUT)
             sh = gc.open_by_key(SHEET_ID)
-            ws = sh.get_worksheet(0)
+            llista_ws = sh.worksheets()
+            pestanyes = {w.title: w for w in llista_ws}
+            ws = llista_ws[0]
             df = pd.DataFrame(ws.get_all_records())
             # Carregar pestanya Senders
             try:
-                ws_senders = sh.worksheet("Senders")
+                ws_senders = pestanyes["Senders"]
                 _cache_dades["senders_url"] = {
                     row["Senders"]: row["Enllaç_senders"]
                     for row in ws_senders.get_all_records()
@@ -181,10 +187,10 @@ def carregar_dades():
                 }
             except Exception as e:
                 print(f"Error carregant Senders: {e}")
-                _cache_dades["senders_url"] = {}
+                _cache_dades.setdefault("senders_url", {})
             # Carregar pestanya Estacions (dades úniques per estació)
             try:
-                ws_est = sh.worksheet("Estacions")
+                ws_est = pestanyes["Estacions"]
                 estacions_info = {}
                 for erow in ws_est.get_all_records():
                     nom = str(erow.get("Nom_estació", "")).strip()
@@ -213,10 +219,10 @@ def carregar_dades():
                 _cache_dades["estacions_info"] = estacions_info
             except Exception as e:
                 print(f"Error carregant Estacions: {e}")
-                _cache_dades["estacions_info"] = {}
+                _cache_dades.setdefault("estacions_info", {})
             # Carregar pestanya Articles (URL triades manualment, evita la consulta massiva per categoria)
             try:
-                ws_articles = sh.worksheet("Articles")
+                ws_articles = pestanyes["Articles"]
                 import unicodedata
                 def _sense_accents(s):
                     return "".join(c for c in unicodedata.normalize("NFD", s) if unicodedata.category(c) != "Mn")
@@ -229,10 +235,10 @@ def carregar_dades():
                 _cache_dades["articles_urls"] = urls_articles
             except Exception as e:
                 print(f"Error carregant Articles: {e}")
-                _cache_dades["articles_urls"] = []
+                _cache_dades.setdefault("articles_urls", [])
             # Carregar pestanya 100cims (dades úniques per cim)
             try:
-                ws_cims = sh.worksheet("100cims")
+                ws_cims = pestanyes["100cims"]
                 cims_info = {}
                 for crow in ws_cims.get_all_records():
                     nom = str(crow.get("Nom_100cims", "")).strip()
@@ -251,10 +257,10 @@ def carregar_dades():
                 _cache_dades["cims_info"] = cims_info
             except Exception as e:
                 print(f"Error carregant 100cims: {e}")
-                _cache_dades["cims_info"] = {}
+                _cache_dades.setdefault("cims_info", {})
             # Carregar pestanya 522cims (llistat complet del repte "100 Cims" de la FEEC)
             try:
-                ws_cims522 = sh.worksheet("522cims")
+                ws_cims522 = pestanyes["522cims"]
                 valors = ws_cims522.get_all_values()
                 capcalera = valors[0] if valors else []
                 def _idx_col(nom):
@@ -287,10 +293,10 @@ def carregar_dades():
                 _cache_dades["cims522"] = cims522
             except Exception as e:
                 print(f"Error carregant 522cims: {e}")
-                _cache_dades["cims522"] = []
+                _cache_dades.setdefault("cims522", [])
             # Carregar pestanya Descàrregues (comptadors GPX/KML/Excel dels 522 cims)
             try:
-                ws_desc = sh.worksheet("Descàrregues")
+                ws_desc = pestanyes["Descàrregues"]
                 descarregues = {}
                 for fila in ws_desc.get_all_values()[1:]:
                     if fila and fila[0].strip():
@@ -301,7 +307,7 @@ def carregar_dades():
                 _cache_dades["descarregues"] = descarregues
             except Exception as e:
                 print(f"Error carregant Descàrregues: {e}")
-                _cache_dades["descarregues"] = {}
+                _cache_dades.setdefault("descarregues", {})
         else:
             # Fallback local per a desenvolupament
             df = pd.read_excel("SET_excel_app.xlsx")
@@ -313,6 +319,10 @@ def carregar_dades():
             _cache_dades["descarregues"] = {}
     except Exception as e:
         print(f"Error carregant dades: {e}")
+        if _cache_dades["dades"] is not None and not _cache_dades["dades"].empty:
+            # Mantenim les darreres dades bones i reintentem aviat
+            _cache_dades["ts"] = ara - CACHE_TTL + REINTENT_TTL
+            return _cache_dades["dades"]
         df = pd.DataFrame()
         _cache_dades["senders_url"] = {}
         _cache_dades["estacions_info"] = {}
@@ -323,7 +333,7 @@ def carregar_dades():
 
     _cache_dades["dades"] = df
     _avisats_fallback.clear()
-    _cache_dades["ts"] = ara
+    _cache_dades["ts"] = ara if not df.empty else ara - CACHE_TTL + REINTENT_TTL
     return df
 
 
