@@ -589,6 +589,37 @@ def obtenir_fotos(ruta_id):
     return fotos
 
 
+_cache_portades = {"mapa": None, "ts": 0}
+
+def obtenir_portades():
+    """Primera foto de cada ruta amb una sola crida a l'API Git Trees.
+    Tolera majúscules i extensions diverses, com obtenir_fotos."""
+    ara = time.time()
+    if _cache_portades["mapa"] is not None and ara - _cache_portades["ts"] < 3600:
+        return _cache_portades["mapa"]
+    try:
+        headers = {"Accept": "application/vnd.github+json"}
+        if GITHUB_TOKEN:
+            headers["Authorization"] = f"Bearer {GITHUB_TOKEN}"
+        r = requests.get("https://api.github.com/repos/Senderismeentren/imatges/git/trees/main?recursive=1",
+                         timeout=10, headers=headers)
+        r.raise_for_status()
+        millors = {}
+        for a in r.json().get("tree", []):
+            m = re.match(r'ruta-(\d+)/foto(\d+)\.(jpg|jpeg|png)$', a.get("path", ""), re.IGNORECASE)
+            if m:
+                rid, n = int(m.group(1)), int(m.group(2))
+                if rid not in millors or n < millors[rid][0]:
+                    millors[rid] = (n, a["path"])
+        mapa = {rid: f"https://raw.githubusercontent.com/Senderismeentren/imatges/main/{p}"
+                for rid, (n, p) in millors.items()}
+        _cache_portades.update(mapa=mapa, ts=ara)
+        return mapa
+    except Exception as e:
+        print(f"[portades] Error llistant el repositori d'imatges: {repr(e)}")
+        return _cache_portades["mapa"] or {}  # si falla, conserva l'última versió bona
+
+
 # ── GPX ─────────────────────────────────────────────────────────────
 _cache_gpx = {}
 
@@ -840,7 +871,7 @@ def inici():
     colleccions = []
     for k, v_list in sorted(grups.items()):
         primera = v_list[0] if v_list else None
-        foto = f"https://raw.githubusercontent.com/Senderismeentren/imatges/main/ruta-{str(primera['id']).zfill(3)}/foto1.jpg" if primera else ""
+        foto = obtenir_portades().get(int(primera["id"]), "") if primera else ""
         colleccions.append({"nom": k, "n": len(v_list), "foto": foto, "url": f"/rutes?millors={k}"})
     # Totes les col·leccions (inici.html en mostra 4 i la resta amb botó)
 
@@ -1248,7 +1279,7 @@ def millors_rutes_pagina():
     grups = dict(sorted(grups.items(), key=_clau_ordre_cat))
     for llista in grups.values():
         random.shuffle(llista)
-    return render_template("millors_rutes.html", grups=grups)
+    return render_template("millors_rutes.html", grups=grups, portades=obtenir_portades())
 
 
 @app.route("/100-cims")
