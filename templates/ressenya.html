@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+
+{% block titol %}Ressenya · {{ ruta.codi }} · {{ ruta.nom }}{% endblock %}
+{% block descripcio %}{{ ruta.descripcio[:160] }}{% endblock %}
+
+{% block estils_extra %}
+<link rel="canonical" href="{{ ruta.enllaç_wp }}">
+<style>
+/* ── NAV ────────────────────────────────────────────────────────── */
+.ress-nav {
+  position: fixed; top: var(--nav-h); left: 0; right: 0; z-index: 200;
+  background: rgba(255,255,255,0.97); backdrop-filter: blur(8px);
+  height: 46px; display: flex; align-items: center; padding: 0 16px; gap: 12px;
+  border-bottom: 1px solid #eee; box-shadow: 0 1px 8px rgba(0,0,0,0.06);
+}
+.ress-nav-back {
+  color: #555; font-size: 13px; font-weight: 600; text-decoration: none; flex-shrink: 0;
+}
+.ress-nav-back:hover { color: var(--blau); }
+.ress-nav-nom {
+  flex: 1; font-size: 13px; font-weight: 600; color: #111;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+/* ── CAPÇALERA BAIXA ────────────────────────────────────────────── */
+.ress-hero { position: relative; height: 150px; overflow: hidden; margin-top: 46px; background: #333; }
+.ress-hero img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.ress-hero-overlay { position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.15) 70%); }
+.ress-hero-content {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  max-width: 720px; margin: 0 auto; padding: 0 20px 16px;
+}
+.ress-codi {
+  display: inline-block; background: {{ ruta.color_dif }}; color: white;
+  border-radius: 6px; padding: 2px 9px; font-size: 12px; font-weight: 800;
+  letter-spacing: 0.3px; margin-bottom: 6px;
+}
+.ress-titol {
+  color: white; font-size: clamp(18px,3.5vw,24px); font-weight: 800; line-height: 1.25;
+  text-shadow: 0 1px 8px rgba(0,0,0,0.5);
+}
+
+/* ── TEXT ───────────────────────────────────────────────────────── */
+.ress-cos { max-width: 720px; margin: 0 auto; padding: 28px 20px 60px; }
+.ress-etiqueta {
+  font-size: 12px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.5px; color: #999; margin-bottom: 14px;
+}
+.ress-text { font-size: 17px; line-height: 1.8; color: #2a2a2a; }
+.ress-text p { margin: 0 0 1.1em; }
+.ress-text h2, .ress-text h3, .ress-text h4, .ress-text h5 { font-weight: 800; color: #111; line-height: 1.3; margin: 1.6em 0 0.5em; }
+.ress-text h2 { font-size: 22px; } .ress-text h3 { font-size: 20px; } .ress-text h4, .ress-text h5 { font-size: 18px; }
+.ress-text a { color: #3498DB; text-decoration: underline; }
+.ress-text a:hover { color: #1a6ea8; }
+.ress-text ul, .ress-text ol { padding-left: 22px; margin: 0 0 1.1em; }
+.ress-text blockquote { border-left: 3px solid #ddd; padding-left: 14px; color: #666; font-style: italic; margin: 1.2em 0; }
+.ress-text img { max-width: 100%; height: auto; border-radius: 8px; display: block; margin: 1.2em auto; }
+.ress-text figure { margin: 1.2em 0; max-width: 100%; }
+.ress-text figcaption { font-size: 13px; color: #888; text-align: center; margin-top: 6px; }
+.ress-text iframe { max-width: 100%; }
+
+.ress-buit { color: #bbb; font-size: 15px; }
+
+/* ── PEU ────────────────────────────────────────────────────────── */
+.ress-peu { margin-top: 36px; padding-top: 22px; border-top: 1px solid #eee; text-align: center; }
+.ress-btn {
+  display: inline-block; background: var(--blau); color: white; text-decoration: none;
+  border-radius: 8px; padding: 11px 22px; font-size: 14px; font-weight: 700;
+}
+.ress-btn:hover { opacity: 0.9; }
+
+@media (max-width: 768px) {
+  .ress-nav { top: 0; }
+  .ress-hero { height: 120px; }
+  .ress-cos { padding: 22px 16px calc(var(--mob-nav-h) + 40px); }
+  .ress-text { font-size: 16px; }
+}
+</style>
+{% endblock %}
+
+{% block contingut %}
+
+<div class="ress-nav">
+  <a class="ress-nav-back" href="/ruta/{{ ruta.id }}">← Fitxa</a>
+  <div class="ress-nav-nom">{{ ruta.nom }}</div>
+</div>
+
+<div class="ress-hero">
+  {% if foto %}<img src="{{ foto }}" alt="{{ ruta.nom }}" onerror="this.style.display='none'">{% endif %}
+  <div class="ress-hero-overlay"></div>
+  <div class="ress-hero-content">
+    <div class="ress-codi">{{ ruta.codi }}</div>
+    <h1 class="ress-titol">{{ ruta.nom }}</h1>
+  </div>
+</div>
+
+<div class="ress-cos">
+  <div class="ress-etiqueta">📰 Ressenya</div>
+  {% if contingut %}
+  <div class="ress-text">{{ contingut|safe }}</div>
+  {% else %}
+  <p class="ress-buit">Ara mateix no s'ha pogut carregar la ressenya. Torna-ho a provar d'aquí a una estona.</p>
+  {% endif %}
+
+  <div class="ress-peu">
+    <a class="ress-btn" href="/ruta/{{ ruta.id }}">← Tornar a la fitxa de la ruta</a>
+  </div>
+</div>
+
+{% endblock %}
