@@ -1572,6 +1572,43 @@ def api_resseny():
         return jsonify({"error": str(e)}), 500
 
 
+def _obtenir_resseny_wp(url_wp):
+    """Contingut net d'una ressenya de WP a partir de la seva URL (slug o ID numèric)."""
+    segment = url_wp.rstrip('/').split('/')[-1]
+    if segment.isdigit():
+        api_url = f"https://senderismeentren.cat/wp-json/wp/v2/posts/{segment}?_fields=content"
+    else:
+        api_url = f"https://senderismeentren.cat/wp-json/wp/v2/posts?slug={segment}&_fields=content"
+    data = requests.get(api_url, timeout=8).json()
+    if isinstance(data, list):
+        data = data[0] if data else {}
+    contingut = data.get("content", {}).get("rendered", "")
+    # Mateixa neteja que article_pagina
+    contingut = re.sub(r'<ul[^>]*wp-block-social-links[^>]*>.*?</ul>\s*', '', contingut, flags=re.DOTALL, count=1)
+    contingut = re.sub(r'<div[^>]*wp-block-spacer[^>]*>.*?</div>', '', contingut, flags=re.DOTALL)
+    contingut = re.sub(r' style="[^"]*color[^"]*"', '', contingut)
+    return contingut.strip()
+
+
+@app.route("/ruta/<int:ruta_id>/ressenya")
+def ressenya_ruta(ruta_id):
+    """Pàgina de lectura de la ressenya de WP d'una ruta."""
+    ruta = next((r for r in get_rutes() if r["id"] == ruta_id), None)
+    if not ruta or not ruta.get("enllaç_wp"):
+        abort(404)
+    contingut = ""
+    for intent in range(2):  # WP de vegades falla al primer intent
+        try:
+            contingut = _obtenir_resseny_wp(ruta["enllaç_wp"])
+            if contingut:
+                break
+        except Exception as e:
+            print(f"[ressenya] Error carregant ressenya de ruta-{ruta_id:03d}: {repr(e)}")
+    fotos = obtenir_fotos(ruta_id)
+    return render_template("ressenya.html", ruta=ruta, contingut=contingut,
+                           foto=fotos[0] if fotos else "")
+
+
 @app.route("/api/gpx/linia/<nom_linia>")
 def api_gpx_linia(nom_linia):
     """Serveix el GPX d'una línia de tren des de GitHub amb caché."""
