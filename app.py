@@ -236,6 +236,23 @@ def carregar_dades():
             except Exception as e:
                 print(f"Error carregant Articles: {e}")
                 _cache_dades.setdefault("articles_urls", [])
+            # Carregar pestanya Línies (quin GPX i quin color correspon a cada operador i línia)
+            try:
+                linies_gpx = []
+                for lrow in pestanyes["Línies"].get_all_records():
+                    op_l = str(lrow.get("Operador", "")).strip()
+                    nom_l = str(lrow.get("Línia", "")).strip()
+                    if op_l and nom_l:
+                        linies_gpx.append({
+                            "op": op_l,
+                            "linia": nom_l,
+                            "gpx": str(lrow.get("GPX", "")).strip(),
+                            "color": str(lrow.get("Color", "")).strip(),
+                        })
+                _cache_dades["linies_gpx"] = linies_gpx
+            except Exception as e:
+                print(f"Error carregant Línies: {e}")
+                _cache_dades.setdefault("linies_gpx", [])
             # Carregar pestanya 100cims (dades úniques per cim)
             try:
                 ws_cims = pestanyes["100cims"]
@@ -1258,6 +1275,7 @@ def mapa_pagina():
         espais_mapa=espais_mapa,
         linies_per_op=linies_per_op_ord,
         cims_llista=cims_llista,
+        linies_gpx=_cache_dades.get("linies_gpx", []),
     )
 
 
