@@ -1475,8 +1475,9 @@ def _refrescar_articles_en_segon_pla():
     global _articles_fetching
     try:
         articles = _fetch_articles_wp()
-        _cache_articles["articles"] = articles
-        _cache_articles["ts"] = time.time()
+        if articles:
+            _cache_articles["articles"] = articles
+            _cache_articles["ts"] = time.time()
         print(f"[articles] Caché actualitzada ({len(articles)} articles)")
     except Exception as e:
         print(f"[articles] Error consultant WP: {repr(e)}")
@@ -1505,6 +1506,7 @@ def get_articles():
 @app.route("/articles")
 def articles_pagina():
     """Llista d'articles del WP."""
+    carregar_dades()
     articles = get_articles()
     return render_template("llista_articles.html", articles=articles)
 
