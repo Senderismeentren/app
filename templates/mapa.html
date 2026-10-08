@@ -568,7 +568,7 @@ const LINIES_PER_OP = {
   'fgc':          ['fgc-fc','fgc-fv','fgc-gelida','fgc-l12','fgc-l6','fgc-l7','fgc-l8',
                    'fgc-mm','fgc-nu','fgc-r5','fgc-r50','fgc-r6','fgc-r60','fgc-rl2',
                    'fgc-s1','fgc-s2','fgc-s3','fgc-s4','fgc-s8','fgc-s9',
-                   'fgc-santacova','fgc-santjoan'],
+                   'fgc-santacova','fgc-santjoan','fgc-trenciment'],
   'tmb':          ['tmb-l1','tmb-l2','tmb-l3','tmb-l4','tmb-l5',
                    'tmb-l9n','tmb-l9s','tmb-l10n','tmb-l10s','tmb-l11','tmb-funicular'],
   'tram':         ['tram-t1','tram-t2','tram-t3','tram-t4','tram-t5','tram-t6'],
@@ -577,7 +577,12 @@ const LINIES_PER_OP = {
   'tramalacant':  ['tramalacant-l1','tramalacant-l2','tramalacant-l3',
                    'tramalacant-l4','tramalacant-l5','tramalacant-l9'],
   'cremallera':   ['fgc-nu','fgc-mm','fgc-fv'],
+  'fgv':          ['tramalacant-l1','tramalacant-l2','tramalacant-l3',
+                   'tramalacant-l4','tramalacant-l5','tramalacant-l9'],
+  'renfe':        ['adif-canfranero'],
 };
+// Operadors del full el GPX dels quals té un prefix diferent
+const PREFIX_GPX_OP = { 'fgv': 'tramalacant', 'renfe': 'adif' };
 
 async function filtrarPerLinia(valor) {
   // Tancar panell d'estació si estava obert
@@ -620,8 +625,9 @@ async function filtrarPerLinia(valor) {
       const NOM_LINIA_MAP = {'r2 nord':'r2n','r2 sud':'r2s','r2nord':'r2n','r2sud':'r2s','l9 nord':'l9n','l9 sud':'l9s','l9nord':'l9n','l9sud':'l9s','l10 nord':'l10n','l10 sud':'l10s','l10nord':'l10n','l10sud':'l10s'};
       const lkey = linia.toLowerCase();
       const l = NOM_LINIA_MAP[lkey] || lkey.replace(/[^a-z0-9]/g,'');
-      const opGpx = op.replace(/[^a-z]/g,'');
-      const gpxExplicit = { 'cremallera de núria':'fgc-nu','cremallera de montserrat':'fgc-mm','funicular de vallvidrera':'fgc-fv','funicular de sant joan':'fgc-santjoan','funicular de la santa cova':'fgc-santacova','fc':'fgc-fc','la tor de querol - tolosa':'sncf-tolosa','cervera - perpinyà':'sncf-perpinya','tren groc':'sncf-trengroc' }[lkey];
+      const opNet = op.replace(/[^a-z]/g,'');
+      const opGpx = PREFIX_GPX_OP[opNet] || opNet;
+      const gpxExplicit = { 'canfranero':'adif-canfranero','tren del ciment':'fgc-trenciment','cremallera de núria':'fgc-nu','cremallera de montserrat':'fgc-mm','funicular de vallvidrera':'fgc-fv','funicular de sant joan':'fgc-santjoan','funicular de la santa cova':'fgc-santacova','fc':'fgc-fc','la tor de querol - tolosa':'sncf-tolosa','cervera - perpinyà':'sncf-perpinya','tren groc':'sncf-trengroc' }[lkey];
       candidates = gpxExplicit ? [gpxExplicit] : [opGpx + '-' + l, l];
     }
     capesLinia[clau] = [];
@@ -710,6 +716,8 @@ async function toggleLinia(op, linia, pill) {
     'la tor de querol - tolosa': 'sncf-tolosa',
     'cervera - perpinyà': 'sncf-perpinya',
     'tren groc': 'sncf-trengroc',
+    'canfranero': 'adif-canfranero',
+    'tren del ciment': 'fgc-trenciment',
   };
 
   if (!capesLinia[clau]) {
