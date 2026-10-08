@@ -226,6 +226,11 @@ body { overflow: hidden; }
 const RUTES = {{ rutes|tojson }};
 const CIMS = {{ cims_llista|tojson }};
 const ESTACIONS = {{ estacions|tojson }};
+// Pestanya Línies del full: operador, línia, GPX i color
+const LINIES_GPX = {{ linies_gpx|tojson }};
+const clauLinia = (op, linia) => (op || '').toLowerCase().replace(/ /g, '-') + '|' + (linia || '').toLowerCase();
+const INDEX_LINIES = {};
+LINIES_GPX.forEach(r => { INDEX_LINIES[clauLinia(r.op, r.linia)] = r; });
 
 const COLORS = {
   'Molt fàcil': '#2ECC71', 'Fàcil': '#3498DB',
@@ -605,22 +610,39 @@ async function filtrarPerLinia(valor) {
   let liniesAActivar = [];
   if (valor.startsWith('op:')) {
     const op = valor.replace('op:', '');
-    // LINIES_PER_OP ja conté els slugs GPX complets i correctes (ex. "rodalies-r2n")
-    liniesAActivar = (LINIES_PER_OP[op] || []).map(slug => ({ op, linia: slug, gpxSlug: slug }));
+    // Primer, les files de la pestanya Línies d'aquest operador (sense repetir GPX)
+    const vistos = new Set();
+    LINIES_GPX.forEach(r => {
+      if (clauLinia(r.op, '').slice(0, -1) !== op || !r.gpx || vistos.has(r.gpx)) return;
+      vistos.add(r.gpx);
+      liniesAActivar.push({ op, linia: r.linia, gpxSlug: r.gpx, color: r.color });
+    });
+    // Si l'operador no és a la pestanya, es manté el comportament antic
+    if (!liniesAActivar.length) {
+      liniesAActivar = (LINIES_PER_OP[op] || []).map(slug => ({ op, linia: slug, gpxSlug: slug }));
+    }
   } else {
     const [op, linia] = valor.split('|');
-    liniesAActivar = [{ op, linia }];
+    const fila = INDEX_LINIES[clauLinia(op, linia)];
+    if (fila) {
+      // La línia és a la pestanya Línies. Si no té GPX, no es dibuixa res.
+      liniesAActivar = [{ op, linia, gpxSlug: fila.gpx || null, color: fila.color, senseGpx: !fila.gpx }];
+    } else {
+      liniesAActivar = [{ op, linia }];
+    }
   }
 
   // Carregar i mostrar els GPX de les línies (en paral·lel per anar més ràpid)
-  await Promise.all(liniesAActivar.map(async ({ op, linia, gpxSlug }) => {
+  await Promise.all(liniesAActivar.map(async ({ op, linia, gpxSlug, color: colorFila, senseGpx }) => {
     const clau = op + '|' + linia;
     if (capesLinia[clau]) {
       capesLinia[clau].forEach(l => l.addTo(mapa));
       return;
     }
     let candidates;
-    if (gpxSlug) {
+    if (senseGpx) {
+      candidates = [];
+    } else if (gpxSlug) {
       // Filtratge per operador sencer: el slug ja és el nom exacte del fitxer GPX
       candidates = [gpxSlug];
     } else {
@@ -639,8 +661,8 @@ async function filtrarPerLinia(valor) {
         if (!resp.ok) continue;
         const punts = await resp.json();
         if (!punts || !punts.length) continue;
-        const color = colorLinia(nom + '.gpx');
-        const etiqueta = gpxSlug ? nom.split('-').slice(1).join('-').toUpperCase() : linia.toUpperCase();
+        const color = colorFila || colorLinia(nom + '.gpx');
+        const etiqueta = gpxSlug && linia === gpxSlug ? nom.split('-').slice(1).join('-').toUpperCase() : linia.toUpperCase();
         const poly = L.polyline(punts.map(p => [p.lat, p.lng]), { color, weight: 6, opacity: 0.85 })
           .addTo(mapa).bindTooltip(etiqueta, { sticky: true });
         capesLinia[clau].push(poly);
@@ -655,11 +677,13 @@ async function filtrarPerLinia(valor) {
   capes.estacions.eachLayer(marker => {
     const est = marker._estacio;
     if (!est) return;
-    const estOp = (est.op || '').toLowerCase();
-    const estLinies = (est.linies || []).map(l => l.toLowerCase());
-    const mostrar = opNoms.has(estOp) && (
-      valor.startsWith('op:') || estLinies.some(l => liniesNoms.has(l))
-    );
+    // Es comprova l'operador principal i també el segon operador de l'estació
+    const coincideix = (opE, liniesE) => {
+      const o = (opE || '').toLowerCase().replace(/ /g, '-');
+      const ls = (liniesE || []).map(l => l.toLowerCase());
+      return opNoms.has(o) && (valor.startsWith('op:') || ls.some(l => liniesNoms.has(l)));
+    };
+    const mostrar = coincideix(est.op, est.linies) || coincideix(est.op2, est.linies2);
     if (marker._icon) marker._icon.style.opacity = mostrar ? '1' : '0.1';
   });
 
