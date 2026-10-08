@@ -1508,7 +1508,8 @@ def articles_pagina():
     """Llista d'articles del WP."""
     carregar_dades()
     articles = get_articles()
-    return render_template("llista_articles.html", articles=articles)
+    carregant = not articles and _articles_fetching
+    return render_template("llista_articles.html", articles=articles, carregant=carregant)
 
 @app.route("/article/<int:post_id>")
 def article_pagina(post_id):
