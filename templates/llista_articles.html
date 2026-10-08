@@ -52,6 +52,9 @@
     </a>
     {% endfor %}
   </div>
+  {% elif carregant %}
+  <p style="color:#999;text-align:center;padding:60px 0;">S'estan carregant els articles…</p>
+  <script>setTimeout(() => location.reload(), 4000);</script>
   {% else %}
   <p style="color:#bbb;text-align:center;padding:60px 0;">No hi ha articles disponibles.</p>
   {% endif %}
