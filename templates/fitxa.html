@@ -736,6 +736,9 @@ const PERFIL_DISTS = {{ perfil_dists|safe }};
 const PERFIL_ELES = {{ perfil_eles|safe }};
 const RUTA_COLOR = "{{ ruta.color_dif }}";
 const RUTA_ID = {{ ruta.id }};
+if (window.parent !== window) {
+  window.parent.postMessage({ tipus: 'senderisme-ruta', id: RUTA_ID }, '*');
+}
 const ENLLAÇ_WP = "{{ ruta.enllaç_wp or '' }}";
 const LIMIT_PARAULES_RESSENYA = 300;  // per sobre d'aquí, la ressenya s'obre a part
 
