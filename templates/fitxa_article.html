@@ -56,3 +56,12 @@
   {% endif %}
 </div>
 {% endblock %}
+
+{% block scripts_extra %}
+<script>
+if (window.parent !== window) {
+  var m = location.pathname.match(/\/article\/(\d+)/);
+  if (m) window.parent.postMessage({ tipus: 'senderisme-article', id: m[1] }, '*');
+}
+</script>
+{% endblock %}
