@@ -139,9 +139,47 @@ def _incrementar_descarrega(format_nom):
     threading.Thread(target=_fer, daemon=True).start()
 
 
+COPIA_PATH = "/tmp/senderisme_copia_dades.json"
+_CLAUS_COPIA = ["senders_url", "estacions_info", "articles_urls", "cims_info",
+                "cims522", "descarregues", "linies_gpx"]
+
+def _desar_copia(df):
+    """Desa a disc les darreres dades bones, per si Sheets no respon en arrencar."""
+    try:
+        contingut = {"dades": df.to_dict(orient="records"),
+                     "columnes": list(df.columns)}
+        for k in _CLAUS_COPIA:
+            contingut[k] = _cache_dades.get(k)
+        tmp = f"{COPIA_PATH}.{os.getpid()}.{threading.get_ident()}"
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(contingut, f, ensure_ascii=False, default=str)
+        os.replace(tmp, COPIA_PATH)
+    except Exception as e:
+        print(f"[copia] No s'ha pogut desar: {e}")
+
+def _llegir_copia():
+    """Retorna el DataFrame de la còpia (i omple les altres dades), o None."""
+    try:
+        with open(COPIA_PATH, encoding="utf-8") as f:
+            contingut = json.load(f)
+        df = pd.DataFrame(contingut["dades"], columns=contingut.get("columnes"))
+        if df.empty:
+            return None
+        for k in _CLAUS_COPIA:
+            if contingut.get(k) is not None:
+                _cache_dades[k] = contingut[k]
+        return df
+    except FileNotFoundError:
+        return None
+    except Exception as e:
+        print(f"[copia] No s'ha pogut llegir: {e}")
+        return None
+
+
 def carregar_dades():
     """Carrega les dades del Google Sheet amb cache de 30 min."""
     ara = time.time()
+    de_copia = False
     if _cache_dades["dades"] is not None and ara - _cache_dades["ts"] < CACHE_TTL:
         return _cache_dades["dades"]
 
@@ -340,17 +378,24 @@ def carregar_dades():
             # Mantenim les darreres dades bones i reintentem aviat
             _cache_dades["ts"] = ara - CACHE_TTL + REINTENT_TTL
             return _cache_dades["dades"]
-        df = pd.DataFrame()
-        _cache_dades["senders_url"] = {}
-        _cache_dades["estacions_info"] = {}
-        _cache_dades["cims_info"] = {}
-        _cache_dades["articles_urls"] = []
-        _cache_dades["cims522"] = []
-        _cache_dades["descarregues"] = {}
+        df = _llegir_copia()
+        if df is not None:
+            print("[copia] Sheets no respon: fent servir la còpia desada")
+            de_copia = True
+        else:
+            df = pd.DataFrame()
+            _cache_dades["senders_url"] = {}
+            _cache_dades["estacions_info"] = {}
+            _cache_dades["cims_info"] = {}
+            _cache_dades["articles_urls"] = []
+            _cache_dades["cims522"] = []
+            _cache_dades["descarregues"] = {}
 
     _cache_dades["dades"] = df
     _avisats_fallback.clear()
-    _cache_dades["ts"] = ara if not df.empty else ara - CACHE_TTL + REINTENT_TTL
+    if not df.empty and not de_copia:
+        _desar_copia(df)
+    _cache_dades["ts"] = ara if (not df.empty and not de_copia) else ara - CACHE_TTL + REINTENT_TTL
     return df
 
 
@@ -2533,29 +2578,3 @@ def globals_plantilles():
 
 if __name__ == "__main__":
     app.run(debug=True, port=5000)
-
-@app.route("/api/tram-debug")
-def tram_debug():
-    """Diagnòstic temporal de l'API de Tram."""
-    tram_id = os.environ.get("TRAM_CLIENT_ID", "NO_ID")
-    tram_secret = os.environ.get("TRAM_CLIENT_SECRET", "NO_SECRET")
-    try:
-        r_token = requests.post("https://opendata.tram.cat/connect/token", data={
-            "grant_type": "client_credentials",
-            "client_id": tram_id,
-            "client_secret": tram_secret
-        }, timeout=8)
-        token_resp = r_token.json()
-        token = token_resp.get("access_token", "")
-        if not token:
-            return jsonify({"error": "no_token", "resp": token_resp})
-        r2 = requests.get("https://opendata.tram.cat/api/v1/stopTimes/1001",
-            headers={"Authorization": f"Bearer {token}"}, timeout=8)
-        return jsonify({
-            "token_ok": True,
-            "client_id": tram_id,
-            "stopTimes_status": r2.status_code,
-            "stopTimes_resp": r2.text[:500]
-        })
-    except Exception as e:
-        return jsonify({"error": str(e)})
