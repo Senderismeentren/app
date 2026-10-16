@@ -139,47 +139,9 @@ def _incrementar_descarrega(format_nom):
     threading.Thread(target=_fer, daemon=True).start()
 
 
-COPIA_PATH = "/tmp/senderisme_copia_dades.json"
-_CLAUS_COPIA = ["senders_url", "estacions_info", "articles_urls", "cims_info",
-                "cims522", "descarregues", "linies_gpx"]
-
-def _desar_copia(df):
-    """Desa a disc les darreres dades bones, per si Sheets no respon en arrencar."""
-    try:
-        contingut = {"dades": df.to_dict(orient="records"),
-                     "columnes": list(df.columns)}
-        for k in _CLAUS_COPIA:
-            contingut[k] = _cache_dades.get(k)
-        tmp = f"{COPIA_PATH}.{os.getpid()}.{threading.get_ident()}"
-        with open(tmp, "w", encoding="utf-8") as f:
-            json.dump(contingut, f, ensure_ascii=False, default=str)
-        os.replace(tmp, COPIA_PATH)
-    except Exception as e:
-        print(f"[copia] No s'ha pogut desar: {e}")
-
-def _llegir_copia():
-    """Retorna el DataFrame de la còpia (i omple les altres dades), o None."""
-    try:
-        with open(COPIA_PATH, encoding="utf-8") as f:
-            contingut = json.load(f)
-        df = pd.DataFrame(contingut["dades"], columns=contingut.get("columnes"))
-        if df.empty:
-            return None
-        for k in _CLAUS_COPIA:
-            if contingut.get(k) is not None:
-                _cache_dades[k] = contingut[k]
-        return df
-    except FileNotFoundError:
-        return None
-    except Exception as e:
-        print(f"[copia] No s'ha pogut llegir: {e}")
-        return None
-
-
 def carregar_dades():
     """Carrega les dades del Google Sheet amb cache de 30 min."""
     ara = time.time()
-    de_copia = False
     if _cache_dades["dades"] is not None and ara - _cache_dades["ts"] < CACHE_TTL:
         return _cache_dades["dades"]
 
@@ -214,7 +176,9 @@ def carregar_dades():
             llista_ws = sh.worksheets()
             pestanyes = {w.title: w for w in llista_ws}
             ws = llista_ws[0]
-            df = pd.DataFrame(ws.get_all_records())
+            # Sense numericise: gspread esborra les comes ("18,60" passava a 1860).
+            # Els números es converteixen a ruta_a_dict amb _num().
+            df = pd.DataFrame(ws.get_all_records(numericise_ignore=["all"]))
             # Carregar pestanya Senders
             try:
                 ws_senders = pestanyes["Senders"]
@@ -378,24 +342,17 @@ def carregar_dades():
             # Mantenim les darreres dades bones i reintentem aviat
             _cache_dades["ts"] = ara - CACHE_TTL + REINTENT_TTL
             return _cache_dades["dades"]
-        df = _llegir_copia()
-        if df is not None:
-            print("[copia] Sheets no respon: fent servir la còpia desada")
-            de_copia = True
-        else:
-            df = pd.DataFrame()
-            _cache_dades["senders_url"] = {}
-            _cache_dades["estacions_info"] = {}
-            _cache_dades["cims_info"] = {}
-            _cache_dades["articles_urls"] = []
-            _cache_dades["cims522"] = []
-            _cache_dades["descarregues"] = {}
+        df = pd.DataFrame()
+        _cache_dades["senders_url"] = {}
+        _cache_dades["estacions_info"] = {}
+        _cache_dades["cims_info"] = {}
+        _cache_dades["articles_urls"] = []
+        _cache_dades["cims522"] = []
+        _cache_dades["descarregues"] = {}
 
     _cache_dades["dades"] = df
     _avisats_fallback.clear()
-    if not df.empty and not de_copia:
-        _desar_copia(df)
-    _cache_dades["ts"] = ara if (not df.empty and not de_copia) else ara - CACHE_TTL + REINTENT_TTL
+    _cache_dades["ts"] = ara if not df.empty else ara - CACHE_TTL + REINTENT_TTL
     return df
 
 
@@ -451,6 +408,22 @@ def _separa_dist_punt_interes(text):
     return {"nom": text.strip(), "dist": "", "alcada": ""}
 
 
+def _num(val, enters=False):
+    """Converteix un número del full, escrit amb coma o punt decimal, a float.
+    Amb enters=True el punt i la coma es tracten com a separadors de milers (desnivells, alçades)."""
+    s = str(val if val is not None else "").strip().replace(" ", "")
+    if not s:
+        return 0.0
+    if enters:
+        s = s.replace(".", "").replace(",", "")
+    elif "," in s:
+        s = s.replace(".", "").replace(",", ".")
+    try:
+        return float(s)
+    except ValueError:
+        return 0.0
+
+
 def ruta_a_dict(row):
     """Converteix una fila del DataFrame a diccionari net per a les plantilles."""
     def v(camp):
@@ -459,17 +432,16 @@ def ruta_a_dict(row):
             return ""
         return str(val).strip() if val is not None else ""
 
-    def vf(camp):
-        try: return float(row.get(camp, 0) or 0)
-        except: return 0.0
+    def vf(camp, enters=False):
+        return _num(row.get(camp, 0), enters)
 
     num = v("Núm_Ruta")
     try: ruta_id = int(float(num))
     except: ruta_id = 0
 
     tipus = v("Tipus_ruta").lower()
-    desn_p = vf("desnivell_positiu")
-    desn_n = vf("desnivell_negatiu")
+    desn_p = vf("desnivell_positiu", enters=True)
+    desn_n = vf("desnivell_negatiu", enters=True)
     if "circular" in tipus:
         desn_txt = f"+/- {int(desn_p)} m"
     else:
@@ -544,7 +516,7 @@ def ruta_a_dict(row):
         "linies2_arribada": info_a.get("linies2") or [l.strip() for l in v("Linies2_Arribada").split(";") if l.strip()],
         "muni_arribada":info_a.get("municipi") or v("Municipi_arribada"),
         "comarca_arribada": info_a.get("comarca") or v("Comarca_arribada"),
-        "km":           v("km"),
+        "km":           str(round(vf("km"), 2)) if v("km") else "",
         "desn_txt":     desn_txt,
         "desn_p":       int(desn_p),
         "desn_n":       int(desn_n),
@@ -556,7 +528,7 @@ def ruta_a_dict(row):
         "temps":        temps_fmt,
         "epoca":        v("Millor_època"),
         "punt_alt":     v("Punt_mes_alt"),
-        "alcada_alt":   int(vf("Alçada_punt_alt")),
+        "alcada_alt":   int(vf("Alçada_punt_alt", enters=True)),
         "cims":         v("100cims").lower() in ("si", "sí", "yes", "1", "true"),
         "nom_cim":      v("Nom_100cims"),
         "lat_cim":      _resol_cims_camp(v("Nom_100cims"), "lat", vf_fallback=v("Lat_100cims")),
@@ -2578,3 +2550,29 @@ def globals_plantilles():
 
 if __name__ == "__main__":
     app.run(debug=True, port=5000)
+
+@app.route("/api/tram-debug")
+def tram_debug():
+    """Diagnòstic temporal de l'API de Tram."""
+    tram_id = os.environ.get("TRAM_CLIENT_ID", "NO_ID")
+    tram_secret = os.environ.get("TRAM_CLIENT_SECRET", "NO_SECRET")
+    try:
+        r_token = requests.post("https://opendata.tram.cat/connect/token", data={
+            "grant_type": "client_credentials",
+            "client_id": tram_id,
+            "client_secret": tram_secret
+        }, timeout=8)
+        token_resp = r_token.json()
+        token = token_resp.get("access_token", "")
+        if not token:
+            return jsonify({"error": "no_token", "resp": token_resp})
+        r2 = requests.get("https://opendata.tram.cat/api/v1/stopTimes/1001",
+            headers={"Authorization": f"Bearer {token}"}, timeout=8)
+        return jsonify({
+            "token_ok": True,
+            "client_id": tram_id,
+            "stopTimes_status": r2.status_code,
+            "stopTimes_resp": r2.text[:500]
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)})
