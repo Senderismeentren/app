@@ -15,7 +15,7 @@
 .col-header p { color: rgba(255,255,255,0.65); font-size: 15px; }
 
 /* ── GRUP ── */
-.col-grup { max-width: 1000px; margin: 0 auto; padding: 40px 20px; }
+.col-grup { max-width: 1000px; margin: 0 auto; padding: 40px 20px; border-radius: 12px; }
 .col-grup-cap {
   display: flex; align-items: flex-start; gap: 16px;
   margin-bottom: 20px; padding-bottom: 16px;
@@ -25,6 +25,13 @@
 .col-grup-titol { font-size: 22px; font-weight: 800; color: #111; margin-bottom: 4px; }
 .col-grup-desc { font-size: 14px; color: #888; line-height: 1.6; }
 .col-grup-n { font-size: 12px; color: #bbb; font-weight: 600; margin-top: 4px; }
+
+/* Grup obert des d'un enllaç de la fitxa (?criteri=...) */
+.col-grup-destacat { animation: col-destaca 2.5s ease; }
+@keyframes col-destaca {
+  0%, 40% { background: #FFF8E1; }
+  100%    { background: transparent; }
+}
 
 /* ── RUTES ── */
 .col-rutes { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
@@ -79,7 +86,7 @@
 
   {% if grups %}
     {% for nom_cat, rutes in grups.items() %}
-    <div class="col-grup">
+    <div class="col-grup" data-criteri="{{ nom_cat }}">
       <div class="col-grup-cap">
         <div class="col-grup-icon">
           {% set cat_l = nom_cat.lower() %}
@@ -161,5 +168,21 @@ function veureMesRutes(btn) {
   grup.querySelectorAll('.col-rcard-oculta').forEach(el => el.classList.remove('col-rcard-oculta'));
   btn.parentElement.remove();
 }
+
+// Si l'adreça porta ?criteri=..., baixa fins a aquell grup, el desplega i el ressalta
+(function () {
+  const criteri = new URLSearchParams(location.search).get('criteri');
+  if (!criteri) return;
+  const grup = Array.from(document.querySelectorAll('.col-grup'))
+    .find(g => g.dataset.criteri === criteri.trim());
+  if (!grup) return;
+  grup.querySelectorAll('.col-rcard-oculta').forEach(el => el.classList.remove('col-rcard-oculta'));
+  const mes = grup.querySelector('.col-veure-mes-wrap');
+  if (mes) mes.remove();
+  const nav = document.querySelector('.nav');
+  const navH = nav ? nav.offsetHeight : 0;
+  window.scrollTo({ top: grup.getBoundingClientRect().top + window.scrollY - navH - 12, behavior: 'smooth' });
+  grup.classList.add('col-grup-destacat');
+})();
 </script>
 {% endblock %}
