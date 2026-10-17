@@ -223,6 +223,30 @@
 </footer>
 {% endblock %}
 
+<!-- ── ADREÇA COMPARTIBLE ──
+     Dins l'iframe de WordPress, avisa la pàgina pare de quina secció s'està mostrant
+     perquè l'adreça de dalt passi a ser senderismeentren.cat/?pagina=... -->
+<script>
+(function () {
+  if (window.parent === window) return;
+  var PAGINES = {
+    '/rutes': 'rutes',
+    '/mapa': 'mapa',
+    '/millors_rutes': 'millors',
+    '/articles': 'articles',
+    '/100-cims': '100-cims'
+  };
+  var pagina = PAGINES[location.pathname];
+  if (!pagina) return;
+  var missatge = { tipus: 'senderisme-pagina', pagina: pagina };
+  if (pagina === 'millors') {
+    var criteri = new URLSearchParams(location.search).get('criteri');
+    if (criteri) missatge.criteri = criteri;
+  }
+  window.parent.postMessage(missatge, '*');
+})();
+</script>
+
 {% block scripts_extra %}{% endblock %}
 </body>
 </html>
