@@ -131,6 +131,16 @@ body { overflow: hidden; }
 .mir-nom { font-size: 13px; font-weight: 700; color: #111; line-height: 1.3; margin-bottom: 4px; }
 .mir-dades { font-size: 12px; color: #666; line-height: 1.8; }
 
+/* ── BOTÓ ESBORRAR TRACKS ── */
+.btn-esborra-tracks {
+  display: none; position: absolute; bottom: 24px; left: 50%;
+  transform: translateX(-50%); z-index: 450;
+  background: white; color: #E74C3C; border: 1.5px solid #E74C3C;
+  border-radius: 20px; padding: 6px 14px; font-size: 13px; font-weight: 600;
+  cursor: pointer; box-shadow: 0 3px 12px rgba(0,0,0,0.18); white-space: nowrap;
+}
+.btn-esborra-tracks.visible { display: inline-flex; align-items: center; gap: 5px; }
+
 @media (max-width: 768px) {
   body { overflow: auto; }
   .mapa-page { height: calc(100vh - var(--mob-nav-h)); overflow: hidden; }
@@ -195,6 +205,11 @@ body { overflow: hidden; }
 
   <!-- MAPA -->
   <div id="mapa-general"></div>
+
+  <!-- BOTÓ ESBORRAR TRACKS -->
+  <button class="btn-esborra-tracks" id="btn-esborra-tracks" onclick="netejarTracks()">
+    ✕ Esborra traçats (<span id="n-tracks">0</span>)
+  </button>
 
   <!-- PANELL ESTACIÓ -->
   <div class="mapa-panell" id="mapa-panell">
@@ -349,6 +364,7 @@ async function toggleTrack(rutaId, btn) {
       btn.style.color = 'white';
       mapa.fitBounds(layer.getBounds(), {padding:[30,30]});
     }
+    actualitzarBotoTracks();
     return;
   }
   btn.textContent = '⏳';
@@ -382,6 +398,7 @@ async function toggleTrack(rutaId, btn) {
     btn.textContent = '—';
   }
   btn.disabled = false;
+  actualitzarBotoTracks();
 }
 
 function netejarTracks() {
@@ -394,6 +411,14 @@ function netejarTracks() {
     b.style.background = '#f0f4ff';
     b.style.color = '#3455a4';
   });
+  actualitzarBotoTracks();
+}
+
+// Mostra o amaga el botó flotant segons els tracks visibles al mapa
+function actualitzarBotoTracks() {
+  const n = Object.values(tracksCarregats).filter(t => mapa.hasLayer(t.layer)).length;
+  document.getElementById('n-tracks').textContent = n;
+  document.getElementById('btn-esborra-tracks').classList.toggle('visible', n > 0);
 }
 
 // Marcadors 100 Cims - un sol marcador per cim (deduplicat), amb totes les rutes que hi passen
@@ -913,6 +938,8 @@ function obrirPanellEstacio(est) {
     const ruta = RUTES.find(x => x.id === r.id);
     const color = ruta ? (COLORS[ruta.dificultat] || '#888') : '#888';
     const fotoUrl = `https://raw.githubusercontent.com/Senderismeentren/imatges/main/ruta-${String(r.id).padStart(3,'0')}/foto1.jpg`;
+    // El botó reflecteix si el track ja és visible al mapa
+    const trackVisible = tracksCarregats[r.id] && mapa.hasLayer(tracksCarregats[r.id].layer);
     return `<div class="ruta-mini" style="border-left-color:${color};">
       <div style="display:flex;gap:8px;align-items:flex-start;">
         <img src="${fotoUrl}" style="width:50px;height:50px;object-fit:cover;border-radius:5px;flex-shrink:0;"
@@ -924,7 +951,7 @@ function obrirPanellEstacio(est) {
       </div>
       <div style="display:flex;gap:5px;margin-top:7px;">
         <button class="btn-track" onclick="toggleTrack(${r.id},this)"
-          style="background:#f0f4ff;color:#3455a4;border:1px solid #c0cfe8;border-radius:6px;padding:4px 8px;font-size:11px;font-weight:700;cursor:pointer;flex:1;">🗺️ Track</button>
+          style="background:${trackVisible ? '#3498DB' : '#f0f4ff'};color:${trackVisible ? 'white' : '#3455a4'};border:1px solid #c0cfe8;border-radius:6px;padding:4px 8px;font-size:11px;font-weight:700;cursor:pointer;flex:1;">${trackVisible ? '✕' : '🗺️ Track'}</button>
         <a href="/ruta/${r.id}"
           style="background:#0f3460;color:white;border:none;border-radius:6px;padding:4px 8px;font-size:11px;font-weight:700;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:3px;flex:1;">📋 Fitxa</a>
       </div>
