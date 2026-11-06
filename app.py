@@ -14,6 +14,7 @@ from flask import Flask, render_template, jsonify, request, abort, Response
 from google.oauth2.service_account import Credentials
 from concurrent.futures import ThreadPoolExecutor
 from functools import lru_cache
+from collections import OrderedDict
 import time
 import html as h
 import re
@@ -655,19 +656,34 @@ def obtenir_portades():
 
 
 # ── GPX ─────────────────────────────────────────────────────────────
-_cache_gpx = {}
+# Cache limitada (LRU): cada track pot ocupar més d'1 MB a memòria com a llista
+# de dicts, i sense límit acabava guardant tots els tracks visitats.
+GPX_CACHE_MAX = 40
+_cache_gpx = OrderedDict()
+_gpx_lock = threading.Lock()
+
+def _desa_gpx(ruta_id, punts, ts):
+    with _gpx_lock:
+        _cache_gpx[ruta_id] = (punts, ts)
+        _cache_gpx.move_to_end(ruta_id)
+        while len(_cache_gpx) > GPX_CACHE_MAX:
+            _cache_gpx.popitem(last=False)
+
 
 def obtenir_gpx(ruta_id):
     ara = time.time()
-    if ruta_id in _cache_gpx:
-        punts, ts = _cache_gpx[ruta_id]
-        if ara - ts < CACHE_TTL:
-            return punts
+    with _gpx_lock:
+        entrada = _cache_gpx.get(ruta_id)
+        if entrada is not None:
+            punts, ts = entrada
+            if ara - ts < CACHE_TTL:
+                _cache_gpx.move_to_end(ruta_id)
+                return punts
     url = BASE_GPX_URL.format(id=ruta_id)
     try:
         r = requests.get(url, timeout=5)
         if r.status_code != 200:
-            _cache_gpx[ruta_id] = (None, ara)
+            _desa_gpx(ruta_id, None, ara)
             return None
         gpx = gpxpy.parse(r.text)
         punts = []
@@ -679,14 +695,16 @@ def obtenir_gpx(ruta_id):
                         "lng": round(p.longitude, 6),
                         "ele": round(p.elevation or 0, 1)
                     })
-        _cache_gpx[ruta_id] = (punts, ara)
+        _desa_gpx(ruta_id, punts, ara)
         return punts
     except Exception as e:
         print(f"Error GPX {ruta_id}: {e}")
         # Si ja teníem una versió vàlida en cache, la mantenim (millor mostrar
         # dades una mica antigues que res); si no, no cachegem l'error.
-        if ruta_id in _cache_gpx and _cache_gpx[ruta_id][0] is not None:
-            return _cache_gpx[ruta_id][0]
+        with _gpx_lock:
+            entrada = _cache_gpx.get(ruta_id)
+            if entrada is not None and entrada[0] is not None:
+                return entrada[0]
         return None
 
 
@@ -1883,36 +1901,221 @@ def api_horaris_renfe(id_estacio):
         return jsonify({"horaris": [], "error": str(e)})
 
 
-_cache_gtfs_renfe = {"dades": None, "carregat_a": 0}
-GTFS_RENFE_TTL = 24 * 3600
+# ── GTFS ESTÀTICS ────────────────────────────────────────────────────
+# El zip es desa al disc i a memòria només hi queden les taules petites
+# (stops, trips, calendar). stop_times.txt, que és el fitxer enorme, es llegeix
+# a trossos des del disc i només se'n guarden les files de l'estació demanada.
+# Abans es carregava sencer amb pandas i podia ocupar centenars de MB.
+GTFS_DIR = "/tmp/gtfs"
+GTFS_TTL = 24 * 3600      # refrescar cada dia
+GTFS_REINTENT = 3600      # si el refresc falla, reintentar al cap d'1 h amb les dades antigues
+GTFS_CHUNK = 200_000      # files de stop_times per tros
+COLS_STOP_TIMES = {"trip_id", "stop_id", "arrival_time", "departure_time"}
+COLS_TRIPS = {"trip_id", "route_id", "service_id", "trip_headsign"}
 
-def _carregar_gtfs_renfe():
-    """Descarrega i parseja el mirall a GitHub del GTFS estàtic de Renfe Cercanías
-    (l'original de ssl.renfe.com falla sovint des de servidors de hosting, per
-    això es manté un mirall actualitzat setmanalment via GitHub Action)."""
+GTFS_FONTS = {
+    # Mirall a GitHub del GTFS de Renfe Cercanías (l'original de ssl.renfe.com
+    # falla sovint des de servidors de hosting; GitHub Action setmanal)
+    "renfe": {
+        "url": "https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/gtfs-renfe/fomento_transit.zip",
+        "timeout": 15,
+    },
+    # Renfe Alta Velocitat / Llarga Distància / Media Distancia (Regional Exprés inclòs)
+    "renfe_avld": {
+        "url": "https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/gtfs-renfe-avld/google_transit.zip",
+        "timeout": 15,
+    },
+    # TMB: només ens interessen L9/L10, així que la resta de viatges (bus inclòs) es descarten en carregar
+    "tmb": {
+        "url": "https://api.tmb.cat/v1/static/datasets/gtfs.zip",
+        "timeout": 30,
+        "credencials_tmb": True,
+        "linies": ["L9N", "L9S", "L10N", "L10S"],
+    },
+    # TRAM d'Alacant (FGV)
+    "fgv": {
+        "url": "https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/gtfs-fgv/google_transit.zip",
+        "timeout": 15,
+    },
+}
+
+_gtfs_lock = threading.RLock()
+_cache_gtfs = {}     # clau -> dict amb taules petites, zip_path, versio, refrescar_a
+_cache_passos = {}   # (clau, stop_ids) -> (versio, DataFrame de passos per l'estació)
+
+
+def _descarregar_zip_gtfs(clau, font, versio):
+    """Descarrega el zip directament al disc, sense passar-lo sencer per memòria."""
+    os.makedirs(GTFS_DIR, exist_ok=True)
+    desti = os.path.join(GTFS_DIR, f"{clau}-{versio}.zip")
+    tmp = desti + ".tmp"
+    params = {"app_id": TMB_APP_ID, "app_key": TMB_APP_KEY} if font.get("credencials_tmb") else None
+    with requests.get(font["url"], params=params, timeout=font["timeout"], stream=True) as r:
+        r.raise_for_status()
+        with open(tmp, "wb") as f:
+            for bloc in r.iter_content(chunk_size=1 << 20):
+                f.write(bloc)
+    with zipfile.ZipFile(tmp) as z:  # valida que sigui un zip correcte
+        z.namelist()
+    os.replace(tmp, desti)
+    return desti
+
+
+def _llegir_taula_gtfs(z, nom, cols=None):
+    if nom not in z.namelist():
+        return None
+    with z.open(nom) as f:
+        if cols is None:
+            return pd.read_csv(f, dtype=str)
+        return pd.read_csv(f, dtype=str, usecols=lambda col: col in cols)
+
+
+def _gtfs(clau):
+    """Retorna les taules petites d'un GTFS (stops, trips, calendar...),
+    descarregant el zip si cal. Refresca un cop al dia."""
     ara = time.time()
-    if _cache_gtfs_renfe["dades"] and (ara - _cache_gtfs_renfe["carregat_a"] < GTFS_RENFE_TTL):
-        return _cache_gtfs_renfe["dades"]
+    actual = _cache_gtfs.get(clau)
+    if actual and ara < actual["refrescar_a"]:
+        return actual
+    with _gtfs_lock:
+        actual = _cache_gtfs.get(clau)
+        if actual and ara < actual["refrescar_a"]:
+            return actual
+        font = GTFS_FONTS[clau]
+        versio = (actual["versio"] + 1) if actual else 1
+        try:
+            zip_path = _descarregar_zip_gtfs(clau, font, versio)
+            with zipfile.ZipFile(zip_path) as z:
+                stops = _llegir_taula_gtfs(z, "stops.txt")
+                routes = _llegir_taula_gtfs(z, "routes.txt", {"route_id", "route_short_name"})
+                trips = _llegir_taula_gtfs(z, "trips.txt", COLS_TRIPS)
+                calendar = _netejar_calendar(_llegir_taula_gtfs(z, "calendar.txt"))
+                calendar_dates = _llegir_taula_gtfs(z, "calendar_dates.txt")
+            if font.get("linies"):
+                ids_ok = set(routes.loc[routes["route_short_name"].isin(font["linies"]), "route_id"])
+                trips = trips[trips["route_id"].isin(ids_ok)]
+            noms_linia = dict(zip(routes["route_id"], routes["route_short_name"]))
+            trips = trips.copy()
+            trips["linia"] = trips["route_id"].map(noms_linia)
+            if "trip_headsign" not in trips.columns:
+                trips["trip_headsign"] = ""
+            trips = trips[["trip_id", "service_id", "trip_headsign", "linia"]].fillna("")
+            nou = {
+                "stops": stops, "trips": trips,
+                "calendar": calendar, "calendar_dates": calendar_dates,
+                "zip_path": zip_path, "versio": versio,
+                "refrescar_a": ara + GTFS_TTL,
+            }
+            _cache_gtfs[clau] = nou
+            for k in [k for k in _cache_passos if k[0] == clau]:
+                del _cache_passos[k]
+            if actual and actual["zip_path"] != zip_path:
+                try:
+                    os.remove(actual["zip_path"])
+                except OSError:
+                    pass
+            print(f"[gtfs] {clau} carregat (versió {versio}, {len(trips)} viatges útils)")
+            return nou
+        except Exception as e:
+            print(f"[gtfs] Error carregant {clau}: {repr(e)}")
+            if actual:
+                actual["refrescar_a"] = ara + GTFS_REINTENT
+                return actual
+            raise
 
-    url = "https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/gtfs-renfe/fomento_transit.zip"
-    r = requests.get(url, timeout=15)
-    z = zipfile.ZipFile(io.BytesIO(r.content))
 
-    stops = pd.read_csv(z.open("stops.txt"), dtype=str)
-    routes = pd.read_csv(z.open("routes.txt"), dtype=str)
-    trips = pd.read_csv(z.open("trips.txt"), dtype=str)
-    stop_times = pd.read_csv(z.open("stop_times.txt"), dtype=str)
-    calendar = pd.read_csv(z.open("calendar.txt"), dtype=str) if "calendar.txt" in z.namelist() else None
-    calendar = _netejar_calendar(calendar)
-    calendar_dates = pd.read_csv(z.open("calendar_dates.txt"), dtype=str) if "calendar_dates.txt" in z.namelist() else None
+def _stop_ids_estacio(dades, id_estacio):
+    """stop_id del GTFS que coincideixen amb el codi d'estació (stop_id o stop_code)."""
+    stops = dades["stops"]
+    coincidents = stops[(stops["stop_id"] == str(id_estacio)) | (stops.get("stop_code") == str(id_estacio))]
+    return set(coincidents["stop_id"])
 
-    dades = {
-        "stops": stops, "routes": routes, "trips": trips,
-        "stop_times": stop_times, "calendar": calendar, "calendar_dates": calendar_dates
-    }
-    _cache_gtfs_renfe["dades"] = dades
-    _cache_gtfs_renfe["carregat_a"] = ara
-    return dades
+
+def _passos_estacio(clau, stop_ids):
+    """Files de stop_times d'unes estacions concretes, ja creuades amb trips
+    (linia, destinació, servei). Es llegeix a trossos des del disc i el resultat
+    es guarda per estació fins al proper refresc del GTFS."""
+    dades = _gtfs(clau)
+    k = (clau, tuple(sorted(stop_ids)))
+    entrada = _cache_passos.get(k)
+    if entrada is not None and entrada[0] == dades["versio"]:
+        return entrada[1]
+    with _gtfs_lock:
+        entrada = _cache_passos.get(k)
+        if entrada is not None and entrada[0] == dades["versio"]:
+            return entrada[1]
+        llista_ids = list(stop_ids)
+        trossos = []
+        with zipfile.ZipFile(dades["zip_path"]) as z:
+            with z.open("stop_times.txt") as f:
+                for tros in pd.read_csv(f, dtype=str, usecols=lambda col: col in COLS_STOP_TIMES,
+                                        chunksize=GTFS_CHUNK):
+                    tros = tros[tros["stop_id"].isin(llista_ids)]
+                    if not tros.empty:
+                        trossos.append(tros)
+        if trossos:
+            pas = pd.concat(trossos, ignore_index=True)
+        else:
+            pas = pd.DataFrame(columns=sorted(COLS_STOP_TIMES))
+        pas = pas.merge(dades["trips"], on="trip_id", how="inner").fillna("")
+        _cache_passos[k] = (dades["versio"], pas)
+        return pas
+
+
+def _horaris_gtfs(clau, id_estacio):
+    """Propers passos programats per una estació a partir d'un GTFS estàtic.
+    Retorna None si l'estació no existeix al GTFS."""
+    from datetime import datetime, timedelta
+    import zoneinfo
+    tz_cat = zoneinfo.ZoneInfo("Europe/Madrid")
+
+    dades = _gtfs(clau)
+    stop_ids = _stop_ids_estacio(dades, id_estacio)
+    if not stop_ids:
+        return None
+    pas = _passos_estacio(clau, stop_ids)
+    serveis_avui = _serveis_actius_avui(dades["calendar"], dades["calendar_dates"])
+
+    ara = datetime.now(tz_cat)
+    avui_str = ara.strftime("%Y%m%d")
+    avui_iso = ara.strftime("%Y-%m-%d")
+    horaris = []
+    vist_claus = set()
+    for _, row in pas.iterrows():
+        trip_id = row["trip_id"]
+        data_incrustada = _data_incrustada_trip_id(trip_id)
+        if data_incrustada is not None:
+            if data_incrustada != avui_iso:
+                continue
+        elif serveis_avui is not None and row["service_id"] not in serveis_avui:
+            continue
+        hora_txt = row.get("departure_time") or row.get("arrival_time")
+        if not hora_txt:
+            continue
+        hh, mm, ss = [int(x) for x in hora_txt.split(":")]
+        moment = datetime.strptime(avui_str, "%Y%m%d").replace(
+            hour=0, minute=0, second=0, tzinfo=tz_cat
+        ) + timedelta(hours=hh, minutes=mm, seconds=ss)  # gestiona hores >=24 (servei nocturn)
+        if moment < ara:
+            continue
+        linia = str(row["linia"]).strip()
+        desti = str(row["trip_headsign"]).strip()
+        clau_h = (moment.strftime("%H:%M"), linia, desti)
+        if clau_h in vist_claus:
+            continue
+        vist_claus.add(clau_h)
+        horaris.append({
+            "hora": moment.strftime("%H:%M"),
+            "linia": linia,
+            "destinacio": desti,
+            "retard": 0,
+            "ara": False,
+            "_ordre": moment
+        })
+    horaris.sort(key=lambda x: x["_ordre"])
+    for hh in horaris:
+        del hh["_ordre"]
+    return horaris[:8]
 
 
 @app.route("/api/horaris-renfe-gtfs/<path:id_estacio>")
@@ -1921,133 +2124,30 @@ def api_horaris_renfe_gtfs(id_estacio):
     per a Cercanías/Media Distancia, en substitució del feed en directe
     (gtfsrt.renfe.com), que sovint no dona cap resultat per a línies poc
     freqüentades com Cercedilla."""
-    from datetime import datetime, timedelta
-    import zoneinfo
-    tz_cat = zoneinfo.ZoneInfo("Europe/Madrid")
-
     try:
-        dades = _carregar_gtfs_renfe()
-        stops, routes, trips = dades["stops"], dades["routes"], dades["trips"]
-        stop_times = dades["stop_times"]
-
-        coincidents = stops[(stops["stop_id"] == str(id_estacio)) | (stops.get("stop_code") == str(id_estacio))]
-        if coincidents.empty:
+        horaris = _horaris_gtfs("renfe", id_estacio)
+        if horaris is None:
             return jsonify({"horaris": [], "error": f"Estació {id_estacio} no trobada al GTFS de Renfe"})
-        stop_ids = set(coincidents["stop_id"])
-
-        trip_id_a_linia = dict(zip(trips["trip_id"], trips["route_id"]))
-        trip_id_a_desti = dict(zip(trips["trip_id"], trips.get("trip_headsign", pd.Series(dtype=str)).fillna("")))
-        trip_id_a_servei = dict(zip(trips["trip_id"], trips["service_id"]))
-        route_id_a_nom = dict(zip(routes["route_id"], routes["route_short_name"]))
-
-        serveis_avui = _serveis_actius_avui(dades["calendar"], dades["calendar_dates"])
-
-        pas = stop_times[stop_times["stop_id"].isin(stop_ids) & stop_times["trip_id"].isin(trip_id_a_linia.keys())]
-
-        ara = datetime.now(tz_cat)
-        avui_str = ara.strftime("%Y%m%d")
-        avui_iso = ara.strftime("%Y-%m-%d")
-        horaris = []
-        vist_claus = set()
-        for _, row in pas.iterrows():
-            trip_id = row["trip_id"]
-            data_incrustada = _data_incrustada_trip_id(trip_id)
-            if data_incrustada is not None:
-                if data_incrustada != avui_iso:
-                    continue
-            elif serveis_avui is not None and trip_id_a_servei.get(trip_id) not in serveis_avui:
-                continue
-            hora_txt = row.get("departure_time") or row.get("arrival_time")
-            if not hora_txt:
-                continue
-            hh, mm, ss = [int(x) for x in hora_txt.split(":")]
-            moment = datetime.strptime(avui_str, "%Y%m%d").replace(
-                hour=0, minute=0, second=0, tzinfo=tz_cat
-            ) + timedelta(hours=hh, minutes=mm, seconds=ss)
-            if moment < ara:
-                continue
-            linia = str(route_id_a_nom.get(trip_id_a_linia.get(trip_id), "")).strip()
-            desti = str(trip_id_a_desti.get(trip_id, "")).strip()
-            clau = (moment.strftime("%H:%M"), linia, desti)
-            if clau in vist_claus:
-                continue
-            vist_claus.add(clau)
-            horaris.append({
-                "hora": moment.strftime("%H:%M"),
-                "linia": linia,
-                "destinacio": desti,
-                "retard": 0,
-                "ara": False,
-                "_ordre": moment
-            })
-        horaris.sort(key=lambda x: x["_ordre"])
-        for hh in horaris:
-            del hh["_ordre"]
-        return jsonify({"horaris": horaris[:8], "operador": "Cercanías"})
+        return jsonify({"horaris": horaris, "operador": "Cercanías"})
     except Exception as e:
         return jsonify({"horaris": [], "error": str(e)})
-
-
-_cache_gtfs_renfe_avld = {"dades": None, "carregat_a": 0}
-GTFS_RENFE_AVLD_TTL = 24 * 3600
-
-def _carregar_gtfs_renfe_avld():
-    """Descarrega i parseja el mirall a GitHub del GTFS estàtic de Renfe
-    Alta Velocitat / Llarga Distància / Media Distancia (Regional Exprés
-    inclòs), diferent del de Cercanías."""
-    ara = time.time()
-    if _cache_gtfs_renfe_avld["dades"] and (ara - _cache_gtfs_renfe_avld["carregat_a"] < GTFS_RENFE_AVLD_TTL):
-        return _cache_gtfs_renfe_avld["dades"]
-
-    url = "https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/gtfs-renfe-avld/google_transit.zip"
-    r = requests.get(url, timeout=15)
-    z = zipfile.ZipFile(io.BytesIO(r.content))
-
-    stops = pd.read_csv(z.open("stops.txt"), dtype=str)
-    routes = pd.read_csv(z.open("routes.txt"), dtype=str)
-    trips = pd.read_csv(z.open("trips.txt"), dtype=str)
-    stop_times = pd.read_csv(z.open("stop_times.txt"), dtype=str)
-    calendar = pd.read_csv(z.open("calendar.txt"), dtype=str) if "calendar.txt" in z.namelist() else None
-    calendar = _netejar_calendar(calendar)
-    calendar_dates = pd.read_csv(z.open("calendar_dates.txt"), dtype=str) if "calendar_dates.txt" in z.namelist() else None
-
-    dades = {
-        "stops": stops, "routes": routes, "trips": trips,
-        "stop_times": stop_times, "calendar": calendar, "calendar_dates": calendar_dates
-    }
-    _cache_gtfs_renfe_avld["dades"] = dades
-    _cache_gtfs_renfe_avld["carregat_a"] = ara
-    return dades
 
 
 @app.route("/api/horaris-renfe-avld-gtfs/<path:id_estacio>")
 def api_horaris_renfe_avld_gtfs(id_estacio):
     """Horaris programats (GTFS estàtic oficial) per a Media Distancia,
     Regional Exprés, Llarga Distància i Alta Velocitat de Renfe."""
-    from datetime import datetime, timedelta
+    from datetime import datetime
     import zoneinfo
     tz_cat = zoneinfo.ZoneInfo("Europe/Madrid")
 
     try:
-        dades = _carregar_gtfs_renfe_avld()
-        stops, routes, trips = dades["stops"], dades["routes"], dades["trips"]
-        stop_times = dades["stop_times"]
-
-        coincidents = stops[(stops["stop_id"] == str(id_estacio)) | (stops.get("stop_code") == str(id_estacio))]
-        if coincidents.empty:
-            return jsonify({"horaris": [], "error": f"Estació {id_estacio} no trobada al GTFS d'AV/LD/MD"})
-        stop_ids = set(coincidents["stop_id"])
-
-        trip_id_a_linia = dict(zip(trips["trip_id"], trips["route_id"]))
-        trip_id_a_desti = dict(zip(trips["trip_id"], trips.get("trip_headsign", pd.Series(dtype=str)).fillna("")))
-        trip_id_a_servei = dict(zip(trips["trip_id"], trips["service_id"]))
-        route_id_a_nom = dict(zip(routes["route_id"], routes["route_short_name"]))
-
-        serveis_avui = _serveis_actius_avui(dades["calendar"], dades["calendar_dates"])
-
-        pas = stop_times[stop_times["stop_id"].isin(stop_ids) & stop_times["trip_id"].isin(trip_id_a_linia.keys())]
-
         if request.args.get("debug"):
+            dades = _gtfs("renfe_avld")
+            stop_ids = _stop_ids_estacio(dades, id_estacio)
+            if not stop_ids:
+                return jsonify({"horaris": [], "error": f"Estació {id_estacio} no trobada al GTFS d'AV/LD/MD"})
+            pas = _passos_estacio("renfe_avld", stop_ids)
             dates_trobades = sorted(set(
                 _data_incrustada_trip_id(t) for t in pas["trip_id"] if _data_incrustada_trip_id(t)
             ))
@@ -2057,117 +2157,12 @@ def api_horaris_renfe_avld_gtfs(id_estacio):
                 "data_avui": datetime.now(tz_cat).strftime("%Y-%m-%d")
             })
 
-        ara = datetime.now(tz_cat)
-        avui_str = ara.strftime("%Y%m%d")
-        avui_iso = ara.strftime("%Y-%m-%d")
-        horaris = []
-        vist_claus = set()
-        for _, row in pas.iterrows():
-            trip_id = row["trip_id"]
-            data_incrustada = _data_incrustada_trip_id(trip_id)
-            if data_incrustada is not None:
-                if data_incrustada != avui_iso:
-                    continue
-            elif serveis_avui is not None and trip_id_a_servei.get(trip_id) not in serveis_avui:
-                continue
-            hora_txt = row.get("departure_time") or row.get("arrival_time")
-            if not hora_txt:
-                continue
-            hh, mm, ss = [int(x) for x in hora_txt.split(":")]
-            moment = datetime.strptime(avui_str, "%Y%m%d").replace(
-                hour=0, minute=0, second=0, tzinfo=tz_cat
-            ) + timedelta(hours=hh, minutes=mm, seconds=ss)
-            if moment < ara:
-                continue
-            linia = str(route_id_a_nom.get(trip_id_a_linia.get(trip_id), "")).strip()
-            desti = str(trip_id_a_desti.get(trip_id, "")).strip()
-            clau = (moment.strftime("%H:%M"), linia, desti)
-            if clau in vist_claus:
-                continue
-            vist_claus.add(clau)
-            horaris.append({
-                "hora": moment.strftime("%H:%M"),
-                "linia": linia,
-                "destinacio": desti,
-                "retard": 0,
-                "ara": False,
-                "_ordre": moment
-            })
-        horaris.sort(key=lambda x: x["_ordre"])
-        for hh in horaris:
-            del hh["_ordre"]
-        return jsonify({"horaris": horaris[:8], "operador": "Renfe"})
+        horaris = _horaris_gtfs("renfe_avld", id_estacio)
+        if horaris is None:
+            return jsonify({"horaris": [], "error": f"Estació {id_estacio} no trobada al GTFS d'AV/LD/MD"})
+        return jsonify({"horaris": horaris, "operador": "Renfe"})
     except Exception as e:
         return jsonify({"horaris": [], "error": str(e)})
-
-
-
-
-    """Horaris en temps real del Metro de Barcelona via l'API i-Metro de TMB."""
-    from datetime import datetime
-    import zoneinfo
-    tz_cat = zoneinfo.ZoneInfo("Europe/Madrid")
-
-    if not TMB_APP_ID or not TMB_APP_KEY:
-        return jsonify({"horaris": [], "error": "Falten les credencials TMB_APP_ID/TMB_APP_KEY"})
-
-    try:
-        url = "https://api.tmb.cat/v1/itransit/metro/estacions"
-        params = {"estacions": id_estacio, "app_id": TMB_APP_ID, "app_key": TMB_APP_KEY}
-        r = requests.get(url, params=params, timeout=8)
-        data = r.json()
-        horaris = []
-        for linia in data.get("linies", []):
-            nom_linia = linia.get("nom_linia", "")
-            for estacio in linia.get("estacions", []):
-                for trajecte in estacio.get("linies_trajectes", []):
-                    desti = trajecte.get("desti_trajecte", "")
-                    for tren in trajecte.get("propers_trens", []):
-                        ts_ms = tren.get("temps_arribada")
-                        if not ts_ms:
-                            continue
-                        hora = datetime.fromtimestamp(int(ts_ms) / 1000, tz_cat).strftime("%H:%M")
-                        horaris.append({
-                            "hora": hora,
-                            "linia": nom_linia,
-                            "destinacio": desti,
-                            "retard": 0,
-                            "ara": False
-                        })
-        horaris.sort(key=lambda h: h["hora"])
-        return jsonify({"horaris": horaris[:8], "operador": "TMB"})
-    except Exception as e:
-        return jsonify({"horaris": [], "error": str(e)})
-
-
-_cache_gtfs_tmb = {"dades": None, "carregat_a": 0}
-GTFS_TMB_TTL = 24 * 3600  # el GTFS de TMB s'actualitza setmanalment; refresquem cada dia
-
-def _carregar_gtfs_tmb():
-    """Descarrega i parseja el GTFS estàtic de TMB (només un cop al dia, es queda en memòria)."""
-    ara = time.time()
-    if _cache_gtfs_tmb["dades"] and (ara - _cache_gtfs_tmb["carregat_a"] < GTFS_TMB_TTL):
-        return _cache_gtfs_tmb["dades"]
-
-    url = "https://api.tmb.cat/v1/static/datasets/gtfs.zip"
-    r = requests.get(url, params={"app_id": TMB_APP_ID, "app_key": TMB_APP_KEY}, timeout=30)
-    z = zipfile.ZipFile(io.BytesIO(r.content))
-
-    stops = pd.read_csv(z.open("stops.txt"), dtype=str)
-    routes = pd.read_csv(z.open("routes.txt"), dtype=str)
-    trips = pd.read_csv(z.open("trips.txt"), dtype=str)
-    stop_times = pd.read_csv(z.open("stop_times.txt"), dtype=str)
-    calendar = pd.read_csv(z.open("calendar.txt"), dtype=str) if "calendar.txt" in z.namelist() else None
-    calendar = _netejar_calendar(calendar)
-    calendar_dates = pd.read_csv(z.open("calendar_dates.txt"), dtype=str) if "calendar_dates.txt" in z.namelist() else None
-
-    dades = {
-        "stops": stops, "routes": routes, "trips": trips,
-        "stop_times": stop_times, "calendar": calendar, "calendar_dates": calendar_dates
-    }
-    _cache_gtfs_tmb["dades"] = dades
-    _cache_gtfs_tmb["carregat_a"] = ara
-    return dades
 
 
 _PATRO_DATA_TRIP_ID = re.compile(r'(\d{4}-\d{2}-\d{2})$')
@@ -2270,181 +2265,30 @@ def api_horaris_tmb_gtfs(id_estacio):
     """Horaris programats (GTFS estàtic oficial) per a L9 i L10 (Nord i Sud),
     on l'i-Metro en temps real no dona cobertura. Com que són línies automàtiques
     sense conductor, l'horari programat és pràcticament exacte."""
-    from datetime import datetime, timedelta
-    import zoneinfo
-    tz_cat = zoneinfo.ZoneInfo("Europe/Madrid")
-
     if not TMB_APP_ID or not TMB_APP_KEY:
         return jsonify({"horaris": [], "error": "Falten les credencials TMB_APP_ID/TMB_APP_KEY"})
 
     try:
-        dades = _carregar_gtfs_tmb()
-        stops, routes, trips = dades["stops"], dades["routes"], dades["trips"]
-        stop_times = dades["stop_times"]
-
-        # Trobar el/s stop_id que coincideixin amb el codi d'estació (stop_id o stop_code)
-        coincidents = stops[(stops["stop_id"] == str(id_estacio)) | (stops.get("stop_code") == str(id_estacio))]
-        if coincidents.empty:
+        dades = _gtfs("tmb")
+        if not _stop_ids_estacio(dades, id_estacio):
             return jsonify({"horaris": [], "error": f"Estació {id_estacio} no trobada al GTFS"})
-        stop_ids = set(coincidents["stop_id"])
-
-        # Només L9/L10 (Nord i Sud)
-        rutes_l9l10 = routes[routes["route_short_name"].isin(["L9N", "L9S", "L10N", "L10S"])]
-        route_ids = set(rutes_l9l10["route_id"])
-        if not route_ids:
+        if dades["trips"].empty:
             return jsonify({"horaris": [], "error": "No s'han trobat les línies L9/L10 al GTFS"})
-
-        trips_l9l10 = trips[trips["route_id"].isin(route_ids)]
-        trip_id_a_linia = dict(zip(trips_l9l10["trip_id"], trips_l9l10["route_id"]))
-        trip_id_a_desti = dict(zip(trips_l9l10["trip_id"], trips_l9l10.get("trip_headsign", pd.Series(dtype=str)).fillna("")))
-        trip_id_a_servei = dict(zip(trips_l9l10["trip_id"], trips_l9l10["service_id"]))
-        route_id_a_nom = dict(zip(routes["route_id"], routes["route_short_name"]))
-
-        serveis_avui = _serveis_actius_avui(dades["calendar"], dades["calendar_dates"])
-
-        pas = stop_times[stop_times["stop_id"].isin(stop_ids) & stop_times["trip_id"].isin(trip_id_a_linia.keys())]
-
-        ara = datetime.now(tz_cat)
-        avui_str = ara.strftime("%Y%m%d")
-        avui_iso = ara.strftime("%Y-%m-%d")
-        horaris = []
-        vist_claus = set()
-        for _, row in pas.iterrows():
-            trip_id = row["trip_id"]
-            data_incrustada = _data_incrustada_trip_id(trip_id)
-            if data_incrustada is not None:
-                if data_incrustada != avui_iso:
-                    continue
-            elif serveis_avui is not None and trip_id_a_servei.get(trip_id) not in serveis_avui:
-                continue
-            hora_txt = row.get("departure_time") or row.get("arrival_time")
-            if not hora_txt:
-                continue
-            hh, mm, ss = [int(x) for x in hora_txt.split(":")]
-            moment = datetime.strptime(avui_str, "%Y%m%d").replace(
-                hour=0, minute=0, second=0, tzinfo=tz_cat
-            ) + timedelta(hours=hh, minutes=mm, seconds=ss)  # gestiona hores >=24 (servei nocturn)
-            if moment < ara:
-                continue
-            linia = str(route_id_a_nom.get(trip_id_a_linia.get(trip_id), "")).strip()
-            desti = str(trip_id_a_desti.get(trip_id, "")).strip()
-            clau = (moment.strftime("%H:%M"), linia, desti)
-            if clau in vist_claus:
-                continue
-            vist_claus.add(clau)
-            horaris.append({
-                "hora": moment.strftime("%H:%M"),
-                "linia": linia,
-                "destinacio": desti,
-                "retard": 0,
-                "ara": False,
-                "_ordre": moment
-            })
-        horaris.sort(key=lambda x: x["_ordre"])
-        for hh in horaris:
-            del hh["_ordre"]
-        return jsonify({"horaris": horaris[:8], "operador": "TMB"})
+        horaris = _horaris_gtfs("tmb", id_estacio) or []
+        return jsonify({"horaris": horaris, "operador": "TMB"})
     except Exception as e:
         return jsonify({"horaris": [], "error": str(e)})
-
-
-_cache_gtfs_fgv = {"dades": None, "carregat_a": 0}
-GTFS_FGV_TTL = 24 * 3600  # setmanal segons FGV; refresquem cada dia per si de cas
-
-def _carregar_gtfs_fgv():
-    """Descarrega i parseja el GTFS estàtic oficial del TRAM d'Alacant (FGV)."""
-    ara = time.time()
-    if _cache_gtfs_fgv["dades"] and (ara - _cache_gtfs_fgv["carregat_a"] < GTFS_FGV_TTL):
-        return _cache_gtfs_fgv["dades"]
-
-    url = "https://raw.githubusercontent.com/Senderismeentren/senderisme-recursos/refs/heads/main/gtfs-fgv/google_transit.zip"
-    r = requests.get(url, timeout=15)
-    z = zipfile.ZipFile(io.BytesIO(r.content))
-
-    stops = pd.read_csv(z.open("stops.txt"), dtype=str)
-    routes = pd.read_csv(z.open("routes.txt"), dtype=str)
-    trips = pd.read_csv(z.open("trips.txt"), dtype=str)
-    stop_times = pd.read_csv(z.open("stop_times.txt"), dtype=str)
-    calendar = pd.read_csv(z.open("calendar.txt"), dtype=str) if "calendar.txt" in z.namelist() else None
-    calendar = _netejar_calendar(calendar)
-    calendar_dates = pd.read_csv(z.open("calendar_dates.txt"), dtype=str) if "calendar_dates.txt" in z.namelist() else None
-
-    dades = {
-        "stops": stops, "routes": routes, "trips": trips,
-        "stop_times": stop_times, "calendar": calendar, "calendar_dates": calendar_dates
-    }
-    _cache_gtfs_fgv["dades"] = dades
-    _cache_gtfs_fgv["carregat_a"] = ara
-    return dades
 
 
 @app.route("/api/horaris-fgv-gtfs/<path:id_estacio>")
 def api_horaris_fgv_gtfs(id_estacio):
     """Horaris programats (GTFS estàtic oficial) del TRAM d'Alacant (FGV),
     ja que FGV no publica cap API pública d'horaris en temps real."""
-    from datetime import datetime, timedelta
-    import zoneinfo
-    tz_cat = zoneinfo.ZoneInfo("Europe/Madrid")
-
     try:
-        dades = _carregar_gtfs_fgv()
-        stops, routes, trips = dades["stops"], dades["routes"], dades["trips"]
-        stop_times = dades["stop_times"]
-
-        coincidents = stops[(stops["stop_id"] == str(id_estacio)) | (stops.get("stop_code") == str(id_estacio))]
-        if coincidents.empty:
+        horaris = _horaris_gtfs("fgv", id_estacio)
+        if horaris is None:
             return jsonify({"horaris": [], "error": f"Estació {id_estacio} no trobada al GTFS de FGV"})
-        stop_ids = set(coincidents["stop_id"])
-
-        trip_id_a_linia = dict(zip(trips["trip_id"], trips["route_id"]))
-        trip_id_a_desti = dict(zip(trips["trip_id"], trips.get("trip_headsign", pd.Series(dtype=str)).fillna("")))
-        trip_id_a_servei = dict(zip(trips["trip_id"], trips["service_id"]))
-        route_id_a_nom = dict(zip(routes["route_id"], routes["route_short_name"]))
-
-        serveis_avui = _serveis_actius_avui(dades["calendar"], dades["calendar_dates"])
-
-        pas = stop_times[stop_times["stop_id"].isin(stop_ids) & stop_times["trip_id"].isin(trip_id_a_linia.keys())]
-
-        ara = datetime.now(tz_cat)
-        avui_str = ara.strftime("%Y%m%d")
-        avui_iso = ara.strftime("%Y-%m-%d")
-        horaris = []
-        vist_claus = set()
-        for _, row in pas.iterrows():
-            trip_id = row["trip_id"]
-            data_incrustada = _data_incrustada_trip_id(trip_id)
-            if data_incrustada is not None:
-                if data_incrustada != avui_iso:
-                    continue
-            elif serveis_avui is not None and trip_id_a_servei.get(trip_id) not in serveis_avui:
-                continue
-            hora_txt = row.get("departure_time") or row.get("arrival_time")
-            if not hora_txt:
-                continue
-            hh, mm, ss = [int(x) for x in hora_txt.split(":")]
-            moment = datetime.strptime(avui_str, "%Y%m%d").replace(
-                hour=0, minute=0, second=0, tzinfo=tz_cat
-            ) + timedelta(hours=hh, minutes=mm, seconds=ss)
-            if moment < ara:
-                continue
-            linia = str(route_id_a_nom.get(trip_id_a_linia.get(trip_id), "")).strip()
-            desti = str(trip_id_a_desti.get(trip_id, "")).strip()
-            clau = (moment.strftime("%H:%M"), linia, desti)
-            if clau in vist_claus:
-                continue
-            vist_claus.add(clau)
-            horaris.append({
-                "hora": moment.strftime("%H:%M"),
-                "linia": linia,
-                "destinacio": desti,
-                "retard": 0,
-                "ara": False,
-                "_ordre": moment
-            })
-        horaris.sort(key=lambda x: x["_ordre"])
-        for hh in horaris:
-            del hh["_ordre"]
-        return jsonify({"horaris": horaris[:8], "operador": "FGV"})
+        return jsonify({"horaris": horaris, "operador": "FGV"})
     except Exception as e:
         return jsonify({"horaris": [], "error": str(e)})
 
@@ -2457,7 +2301,7 @@ def cerca_estacio_fgv():
     if not q:
         return jsonify({"error": "Passa un nom a cercar, p. ex. /api/cerca-estacio-fgv?q=calp"})
     try:
-        dades = _carregar_gtfs_fgv()
+        dades = _gtfs("fgv")
         stops = dades["stops"]
         trobades = stops[stops["stop_name"].str.lower().str.contains(q, na=False)]
         resultat = trobades[["stop_id", "stop_name"] + (["stop_code"] if "stop_code" in trobades.columns else [])].to_dict(orient="records")
